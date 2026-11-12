@@ -1,1 +1,1 @@
-module.exports={content:['./app/**/*.tsx','./components/**/*.tsx','./lib/**/*.tsx'],theme:{extend:{colors:{blush:'#F2D4D2',cream:'#FAF4EE',sand:'#E9DCCF',ink:'#1C1A1A'},fontFamily:{serif:['var(--f-serif)','serif'],sans:['var(--f-sans)','sans-serif']}}}}
+module.exports={content:['./app/**/*.tsx','./components/**/*.tsx','./lib/**/*.tsx'],theme:{extend:{colors:{blush:'#F6DCE9',cream:'#FBF3F8',sand:'#EBD3E1',ink:'#3B0F27',plum:'#8E3F68',deep:'#3B0F27',rose:'#D42C74'},fontFamily:{serif:['var(--f-serif)','serif'],sans:['var(--f-sans)','sans-serif']}}}}
