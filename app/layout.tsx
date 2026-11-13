@@ -5,8 +5,8 @@ export const metadata={title:'Beauty_bypndd | L’élégance au féminin',descri
 const nav=[['maquillage','Maquillage'],['soins-visage','Visage'],['soins-corps','Corps'],['parfums-brumes','Parfums'],['coffrets-cadeaux','Coffrets'],['rituals','Rituals'],['cheveux','Cheveux'],['mode','Mode'],['sacs-accessoires','Sacs'],['nouveautes','Nouveautés'],['promotions','Promos']];
 export default function L({children}:{children:React.ReactNode}){return <html lang="fr"><body className={`${serif.variable} ${sans.variable}`}><CartProvider>
 <div className="bg-plum text-white text-center text-[11px] tracking-[0.2em] uppercase py-2.5 px-4">Livraison rapide à domicile &amp; paiement à la livraison</div>
-<header className="sticky top-0 z-20 bg-cream/95 backdrop-blur border-b border-sand"><div className="grid grid-cols-3 items-center px-4 py-3 max-w-6xl mx-auto"><span/>
-<Link href="/" className="text-center leading-none"><span className="block font-serif italic text-3xl text-plum">beautybypndd</span><span className="block mt-1 text-[9px] tracking-[0.3em] uppercase text-rose">L’élégance au féminin</span></Link>
+<header className="sticky top-0 z-20 bg-cream/95 backdrop-blur border-b border-sand"><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 max-w-6xl mx-auto"><span/>
+<Link href="/" className="text-center leading-none"><span className="block font-serif italic text-2xl text-plum">beautybypndd</span><span className="block mt-1 text-[8px] tracking-[0.25em] uppercase text-rose whitespace-nowrap">L’élégance au féminin</span></Link>
 <div className="text-right"><CartLink/></div></div>
 <nav className="flex gap-6 overflow-x-auto px-4 pb-3 max-w-6xl mx-auto text-[11px] tracking-[0.18em] uppercase whitespace-nowrap">{nav.map(([s,n])=><Link key={s} href={`/categorie/${s}`} className="text-plum">{n}</Link>)}</nav></header>
 <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
