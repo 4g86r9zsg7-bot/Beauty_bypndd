@@ -1,9 +1,10 @@
-import Link from 'next/link';import {supabase} from '@/lib/supabase';import ProductCard from '@/components/ProductCard';import ProductScroller from '@/components/ProductScroller';
+import Link from 'next/link';import {supabase} from '@/lib/supabase';import ProductCard from '@/components/ProductCard';import ProductScroller from '@/components/ProductScroller';import Suggestions from '@/components/Suggestions';
 export const revalidate=30;
+const rank=(p:any)=>{const pre=p.availability==='preorder',arr=p.availability==='arrival';const sold=p.availability==='soldout'||(!pre&&!arr&&p.stock<=0);return sold?2:(pre||arr)?1:0};
 const uniq=(a:any[]|null)=>{const s=new Set<string>();return (a||[]).filter(x=>{const k=x.name.trim().toLowerCase();if(s.has(k))return false;s.add(k);return true})};
 async function row(seen:Set<string>,title:string,f:(q:any)=>any,href?:string){
 const {data}=await f(supabase.from('products').select('*,brands(name)').eq('active',true).order('created_at',{ascending:false}).limit(16));
-const items=(data||[]).filter((p:any)=>!seen.has(p.id)).slice(0,8);if(!items.length)return null;items.forEach((p:any)=>seen.add(p.id));
+const items=(data||[]).filter((p:any)=>!seen.has(p.id)).sort((a:any,b:any)=>rank(a)-rank(b)).slice(0,8);if(!items.length)return null;items.forEach((p:any)=>seen.add(p.id));
 return <section className="mt-12"><div className="text-center mb-5"><h2 className="font-serif text-3xl text-plum">{title}</h2><div className="w-16 h-px bg-rose mx-auto mt-3"/>{href&&<Link href={href} className="text-[11px] tracking-[0.2em] uppercase text-rose mt-3 inline-block">Tout voir</Link>}</div>
 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{items.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div></section>}
 export default async function Home(){
@@ -29,4 +30,5 @@ return <>
 {await row(seen,'Coffrets cadeaux',q=>q.eq('category_id',cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id??'00000000-0000-0000-0000-000000000000'),'/categorie/coffrets-cadeaux')}
 {await row(seen,'Disponibles immédiatement',q=>q.in('availability',['available','last']).gt('stock',0),'/categorie/tous')}
 {brands.length>0&&<section className="mt-12 text-center"><h2 className="font-serif text-3xl text-plum">Marques populaires</h2><div className="flex flex-wrap justify-center gap-2 mt-4">{brands.map((x:any)=><Link key={x.id} href={`/categorie/tous?brand=${x.id}`} className="border border-plum px-4 py-1.5 text-[11px] tracking-[0.15em] uppercase text-plum">{x.name}</Link>)}</div></section>}
+<Suggestions title="Coups de cœur" exclude={Array.from(seen)} limit={4}/>
 </>}
