@@ -1,4 +1,4 @@
-import {supabase,eur} from '@/lib/supabase';
+import {supabase,eur} from '@/lib/supabase';import {DELIVERY,PREORDER} from '@/lib/shop';
 export const revalidate=300;
 export const metadata={title:'Livraison | Beauty_bypndd',description:'Livraison à domicile, paiement à la livraison, frais et conditions chez Beauty_bypndd.'};
 export default async function Livraison(){
@@ -11,7 +11,7 @@ return <div className="mx-auto max-w-2xl space-y-3"><h1 className="font-serif te
 {base!=null&&<p>Frais standard : <b>{eur(base)}</b>.</p>}
 {cities.length>0&&<ul className="list-disc pl-5">{cities.map((z:any)=><li key={z.city}>{z.city} : {eur(z.fee)}</li>)}</ul>}
 {v.free_over&&<p>Livraison <b>offerte</b> dès {eur(v.free_over)} d’achats.</p>}
-<h2 className={h}>Délais</h2><p>{v.delay||'Le délai exact vous est confirmé par WhatsApp après votre commande.'}</p>
+<h2 className={h}>Délais</h2><p>Livraison à domicile en <b>{DELIVERY}</b> après confirmation de votre commande.</p>
 <h2 className={h}>Paiement à la livraison</h2><p>Vous payez en espèces à la réception de votre commande.</p>
-<h2 className={h}>Arrivages et précommandes</h2><p>Les produits en précommande ou en arrivage sont expédiés dès leur réception. Nous vous prévenons par WhatsApp.</p>
+<h2 className={h}>Arrivages et précommandes</h2><p>Précommande : comptez <b>{PREORDER}</b> d’attente, le délai exact vous est confirmé par WhatsApp. Arrivage : réservez votre article, nous vous prévenons par WhatsApp dès sa réception.</p>
 <p className="pt-4"><a href="/contact" className="underline">Une question ? Contactez-nous</a></p></div>}
