@@ -1,4 +1,4 @@
-import {supabase,eur} from '@/lib/supabase';import {DELIVERY,PREORDER} from '@/lib/shop';
+import {supabase,eur} from '@/lib/supabase';import {DELIVERY,PREORDER,IG} from '@/lib/shop';import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';
 export const revalidate=300;
 export const metadata={title:'Livraison | Beauty_bypndd',description:'Livraison à domicile, paiement à la livraison, frais et conditions chez Beauty_bypndd.'};
 export default async function Livraison(){
@@ -14,4 +14,4 @@ return <div className="mx-auto max-w-2xl space-y-3"><h1 className="font-serif te
 <h2 className={h}>Délais</h2><p>Livraison à domicile en <b>{DELIVERY}</b> après confirmation de votre commande.</p>
 <h2 className={h}>Paiement à la livraison</h2><p>Vous payez en espèces à la réception de votre commande.</p>
 <h2 className={h}>Arrivages et précommandes</h2><p>Précommande : comptez <b>{PREORDER}</b> d’attente, le délai exact vous est confirmé par WhatsApp. Arrivage : réservez votre article, nous vous prévenons par WhatsApp dès sa réception.</p>
-<p className="pt-4"><a href="/contact" className="underline">Une question ? Contactez-nous</a></p></div>}
+<div className="pt-6 text-center"><p>Une question ? Écrivez-nous.</p><div className="mt-3 flex justify-center gap-6"><a href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP||''}`} aria-label="WhatsApp"><WhatsAppIcon size={56}/></a><a href={IG} aria-label="Instagram"><InstagramIcon size={56}/></a></div></div></div>}
