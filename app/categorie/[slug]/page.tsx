@@ -23,4 +23,4 @@ return <><h1 className="font-serif text-4xl text-plum">{title}</h1>
 <input name="min" type="number" inputMode="numeric" defaultValue={sp.min||''} placeholder="Prix min (DH)" className={inp}/><input name="max" type="number" inputMode="numeric" defaultValue={sp.max||''} placeholder="Prix max (DH)" className={inp}/>
 <label className="flex items-center gap-2 px-2"><input type="checkbox" name="stock" value="1" defaultChecked={!!sp.stock}/>En stock</label><button className="bg-rose text-white rounded-full py-3 text-xs tracking-[0.2em] uppercase">Filtrer</button></form>
 <p className="text-sm text-plum mb-3">{list.length} produit(s)</p>
-{list.length?<div className="grid grid-cols-2 md:grid-cols-4 gap-4">{list.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div>:<p>Aucun produit trouvé.</p>}<Suggestions title="Vous aimerez aussi" exclude={list.map((p:any)=>p.id)} limit={4}/></>}
+{list.length?<div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">{list.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div>:<p>Aucun produit trouvé.</p>}<Suggestions title="Vous aimerez aussi" exclude={list.map((p:any)=>p.id)} limit={4}/></>}
