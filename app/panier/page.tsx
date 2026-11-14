@@ -1,4 +1,4 @@
-'use client';import {useEffect,useState} from 'react';import {useCart} from '@/lib/cart';import {supabase,eur,WA} from '@/lib/supabase';import Suggestions from '@/components/Suggestions';
+'use client';import {useEffect,useState} from 'react';import {useCart} from '@/lib/cart';import {supabase,eur,WA} from '@/lib/supabase';import Suggestions from '@/components/Suggestions';import {DELIVERY,PREORDER} from '@/lib/shop';
 export default function Panier(){const {lines,setQty,remove,clear,subtotal}=useCart();const [cfg,setCfg]=useState<any>(null);const [f,setF]=useState({name:'',phone:'',address:'',city:'',notes:'',promo:''});
 const [err,setErr]=useState('');const [ack,setAck]=useState(false);const [busy,setBusy]=useState(false);const [order,setOrder]=useState<any>(null);
 useEffect(()=>{supabase.from('settings').select('value').eq('key','delivery').single().then(({data})=>setCfg(data?.value))},[]);
@@ -15,15 +15,15 @@ return <><div className="text-center py-10"><h1 className="font-serif text-3xl">
 if(!lines.length)return <><p className="py-10 text-center">Votre panier est vide.</p><Suggestions title="Nos produits en stock" limit={8}/></>;
 return <><form onSubmit={submit} className="grid md:grid-cols-2 gap-8"><div><h1 className="font-serif text-3xl mb-4">Panier</h1>
 {lines.map((l:any,i:number)=><div key={i} className="flex gap-3 py-3 border-b border-sand">{l.image&&<img src={l.image} alt="" className="w-16 h-20 object-cover"/>}
-<div className="flex-1"><p className="font-serif">{l.name}</p>{l.variant&&<p className="text-xs">{l.variant}</p>}{l.pre&&<p className="text-xs text-plum">Précommande : délai d’attente</p>}<p className="text-sm">{eur(l.price,cur)}</p>
+<div className="flex-1"><p className="font-serif">{l.name}</p>{l.variant&&<p className="text-xs">{l.variant}</p>}{l.pre&&<p className="text-xs text-plum">Précommande : {PREORDER} d’attente</p>}<p className="text-sm">{eur(l.price,cur)}</p>
 <div className="flex items-center gap-2 mt-1"><button type="button" onClick={()=>setQty(i,l.qty-1)} className="border px-2">−</button>{l.qty}<button type="button" onClick={()=>setQty(i,l.qty+1)} disabled={l.max!=null&&l.qty>=l.max} className="border px-2 disabled:opacity-30">+</button>
 <button type="button" onClick={()=>remove(i)} className="ml-3 text-xs underline">Retirer</button></div>{l.max!=null&&l.qty>=l.max&&<p className="text-xs text-plum mt-1">Quantité maximale disponible</p>}</div></div>)}
-<div className="mt-4 text-sm space-y-1"><p>Sous-total : {eur(subtotal,cur)}</p><p>Livraison : {fee?eur(fee,cur):'Offerte'}</p><p className="font-semibold">Total estimé : {eur(subtotal+fee,cur)}</p><p className="text-xs">Le code promo est appliqué à la validation.</p></div></div>
+<div className="mt-4 text-sm space-y-1"><p>Sous-total : {eur(subtotal,cur)}</p><p>Livraison : {fee?eur(fee,cur):'Offerte'}</p><p className="font-semibold">Total estimé : {eur(subtotal+fee,cur)}</p><p className="text-xs">Le code promo est appliqué à la validation.</p><p className="text-xs">Livraison à domicile en {DELIVERY}.</p></div></div>
 <div className="space-y-3"><h2 className="font-serif text-2xl">Livraison</h2>
 {[['name','Nom et prénom'],['phone','Téléphone'],['address','Adresse de livraison'],['city','Ville']].map(([k,l])=><input key={k} required placeholder={l} value={(f as any)[k]} onChange={set(k)} className="w-full border border-sand bg-white p-3"/>)}
 <textarea placeholder="Instructions de livraison (facultatif)" value={f.notes} onChange={set('notes')} className="w-full border border-sand bg-white p-3"/>
 <input placeholder="Code promo" value={f.promo} onChange={set('promo')} className="w-full border border-sand bg-white p-3"/>
-{lines.some((l:any)=>l.pre)&&<label className="flex gap-2 border border-plum/40 bg-blush/40 p-3 text-sm"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)} required className="mt-1"/><span>Ma commande contient des articles en <b>précommande</b> : je comprends qu’ils ne sont pas en stock et que je dois patienter avant la livraison. Le délai m’est confirmé par WhatsApp.</span></label>}
+{lines.some((l:any)=>l.pre)&&<label className="flex gap-2 border border-plum/40 bg-blush/40 p-3 text-sm"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)} required className="mt-1"/><span>Ma commande contient des articles en <b>précommande</b> : je comprends qu’ils ne sont pas en stock et que je dois patienter {PREORDER} avant la livraison. Le délai m’est confirmé par WhatsApp.</span></label>}
 <p className="text-sm">Paiement à la livraison (COD)</p>{err&&<p className="text-red-700 text-sm">{err}</p>}
 <button disabled={busy} className="w-full bg-ink text-white py-3 disabled:opacity-50">{busy?'Envoi…':'Valider la commande'}</button></div></form>
 <Suggestions title="Complétez votre commande" excludeCart limit={4}/></>}
