@@ -52,7 +52,7 @@ return <div><div className="flex gap-2 flex-wrap mb-4">{[['orders','Commandes'],
 {tab==='new'&&<form key={edit?.id||'new'} onSubmit={saveProduct} className="grid gap-2 max-w-lg"><h2 className="font-serif text-2xl">{edit?`Modifier : ${edit.name}`:'Nouveau produit'}</h2>
 <input name="name" required placeholder="Nom" defaultValue={edit?.name||''} className="border p-2"/>
 <select name="brand" defaultValue={edit?.brand_id||''} className="border p-2"><option value="">Marque</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
-<select name="cat" defaultValue={edit?.category_id||''} className="border p-2"><option value="">Catégorie</option>{cats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
+<select name="cat" defaultValue={edit?.category_id||''} className="border p-2"><option value="">Catégorie</option>{[...cats].map((c:any)=>({c,l:(cats.find((x:any)=>x.id===c.parent_id)?cats.find((x:any)=>x.id===c.parent_id).name+' › ':'')+c.name})).sort((a:any,b:any)=>a.l.localeCompare(b.l)).map((o:any)=><option key={o.c.id} value={o.c.id}>{o.l}</option>)}</select>
 <input name="price" type="number" step="0.01" required placeholder="Prix (DH)" defaultValue={edit?.price??''} className="border p-2"/>
 <input name="old" type="number" step="0.01" placeholder="Ancien prix (promo)" defaultValue={edit?.old_price??''} className="border p-2"/>
 <input name="stock" type="number" placeholder="Stock (ignoré s'il y a des variantes)" defaultValue={edit?.stock??''} className="border p-2"/>
