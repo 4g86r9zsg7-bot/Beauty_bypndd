@@ -21,7 +21,7 @@ return <>
 <Link href="/categorie/promotions" className="border border-white/40 text-center rounded-full py-4 text-xs tracking-[0.2em] uppercase font-semibold">Voir les bonnes affaires</Link></div></section>
 <div className="text-center mt-12"><p className="text-xs tracking-[0.35em] uppercase text-rose">Inspiration élégante</p><h2 className="font-serif text-3xl text-plum mt-2">Achetez par catégorie</h2><div className="w-16 h-px bg-rose mx-auto mt-3"/></div>
 <div className="flex flex-wrap justify-center gap-2 mt-5">{cats.map((x:any)=><Link key={x.id} href={`/categorie/${x.slug}`} className="border border-plum/30 bg-white text-plum rounded-full px-4 py-2 text-[11px] tracking-[0.15em] uppercase">{x.name}</Link>)}</div>
-{await row(seen,'Arrivages du moment',q=>q.in('availability',['arrival','preorder']),'/categorie/nouveautes')}
+{await row(seen,'Arrivages du moment',q=>q.in('availability',['arrival','preorder']),'/categorie/arrivages')}
 {await row(seen,'Nouveautés',q=>q.eq('is_new',true).not('availability','in','(arrival,preorder)'),'/categorie/nouveautes')}
 {await row(seen,'Meilleures ventes',q=>q.eq('is_bestseller',true).not('availability','in','(arrival,preorder)'))}
 {await row(seen,'Promotions et bonnes affaires',q=>q.not('old_price','is',null).not('availability','in','(arrival,preorder)'),'/categorie/promotions')}
