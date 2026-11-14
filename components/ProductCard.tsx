@@ -22,5 +22,5 @@ return <Link href={`/produit/${p.slug}`} className="group block">
 <p className="mt-1 min-h-[2.6em] font-serif text-[17px] leading-snug text-ink line-clamp-2">{p.name}</p>
 <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-sm"><span className={`font-semibold ${promo&&!sold?'text-rose':'text-ink'}`}>{eur(p.price)}</span>{promo&&<s className="text-xs text-ink/50">{eur(p.old_price)}</s>}</p>
 <p className="mt-1 h-4 text-[11px]">{inStock&&(p.availability==='last'?<span className="text-rose">Stock limité</span>:<span className="text-green-700">● En stock</span>)}</p>
-<span className={`mt-2 block rounded-full border py-2.5 text-center text-[11px] uppercase tracking-[0.18em] transition ${order?'border-plum text-plum group-hover:bg-plum group-hover:text-white':'border-ink text-ink group-hover:bg-ink group-hover:text-white'}`}>{order?'Précommander':'Voir le produit'}</span>
+<span className={`mt-2 block rounded-full border py-2.5 text-center text-[11px] uppercase tracking-[0.18em] transition ${order?'border-plum text-plum group-hover:bg-plum group-hover:text-white':'border-ink text-ink group-hover:bg-ink group-hover:text-white'}`}>{arr?'Réserver':order?'Précommander':'Voir le produit'}</span>
 </div></Link>}
