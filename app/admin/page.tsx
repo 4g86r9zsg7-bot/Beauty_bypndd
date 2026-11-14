@@ -1,6 +1,6 @@
 'use client';import {useEffect,useState} from 'react';import {supabase,eur} from '@/lib/supabase';
 const ST=['pending','confirmed','shipped','delivered','cancelled'];const SL:any={pending:'En attente',confirmed:'Confirmée',shipped:'Expédiée',delivered:'Livrée',cancelled:'Annulée'};
-const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>typeof x==='string'?{name:x,stock:p.stock||0,price:'',images:[],files:[]}:{name:x.name,stock:x.stock??0,price:x.price??'',images:x.images||(x.image?[x.image]:[]),files:[]});
+const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>typeof x==='string'?{name:x,stock:p.stock||0,status:'available',price:'',images:[],files:[]}:{name:x.name,stock:x.stock??0,status:x.status||'available',price:x.price??'',images:x.images||(x.image?[x.image]:[]),files:[]});
 const hasObjVars=(p:any)=>Array.isArray(p.variants)&&p.variants.some((x:any)=>typeof x==='object');
 const autoAv=(av:string,n:number)=>['available','last','soldout'].includes(av)?(n<=0?'soldout':n<=3?'last':'available'):av;
 export default function Admin(){const [ok,setOk]=useState<boolean|null>(null);const [em,setEm]=useState('');const [pw,setPw]=useState('');const [tab,setTab]=useState('orders');
@@ -21,10 +21,11 @@ async function saveProduct(e:any){e.preventDefault();const form=e.target;const f
 for(const file of Array.from((form.images as HTMLInputElement).files||[])){const path=`${Date.now()}-${file.name.replace(/[^\w.]/g,'_')}`;const {error}=await supabase.storage.from('product-images').upload(path,file);if(!error)urls.push(supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl)}
 const name=String(fd.get('name'));
 const upload=async(file:File)=>{const path=`${Date.now()}-${Math.random().toString(36).slice(2,6)}-${file.name.replace(/[^\w.]/g,'_')}`;const {error}=await supabase.storage.from('product-images').upload(path,file);return error?null:supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl};
-const vars:any[]=[];for(const r of vrows){if(!String(r.name).trim())continue;const ups:string[]=[];for(const f of (r.files||[])){const u=await upload(f);if(u)ups.push(u)}const vi=[...(r.images||[]),...ups];const o:any={name:String(r.name).trim(),stock:Math.max(0,parseInt(String(r.stock))||0)};const pr=parseFloat(String(r.price).replace(',','.'));if(String(r.price).trim()!==''&&isFinite(pr))o.price=pr;if(vi.length){o.images=vi;o.image=vi[0]}vars.push(o)}
+const vars:any[]=[];for(const r of vrows){if(!String(r.name).trim())continue;const ups:string[]=[];for(const f of (r.files||[])){const u=await upload(f);if(u)ups.push(u)}const vi=[...(r.images||[]),...ups];const o:any={name:String(r.name).trim(),stock:Math.max(0,parseInt(String(r.stock))||0),status:r.status||'available'};const pr=parseFloat(String(r.price).replace(',','.'));if(String(r.price).trim()!==''&&isFinite(pr))o.price=pr;if(vi.length){o.images=vi;o.image=vi[0]}vars.push(o)}
 const general=[...imgs,...urls];
-let stock=Number(fd.get('stock')||0);if(vars.length)stock=vars.reduce((s,x)=>s+x.stock,0);
-const av=autoAv(String(fd.get('av')),stock);
+let stock=Number(fd.get('stock')||0);if(vars.length)stock=vars.filter((x:any)=>['available','last'].includes(x.status)).reduce((s:number,x:any)=>s+x.stock,0);
+let av=autoAv(String(fd.get('av')),stock);
+if(vars.length){av=stock>0?(stock<=3?'last':'available'):vars.some((x:any)=>x.status==='arrival')?'arrival':vars.some((x:any)=>x.status==='preorder'||(['available','last'].includes(x.status)&&x.stock<=0))?'preorder':'soldout'}
 const row:any={name,brand_id:fd.get('brand')||null,category_id:fd.get('cat')||null,description:fd.get('desc'),price:Number(fd.get('price')),old_price:fd.get('old')?Number(fd.get('old')):null,stock,availability:av,variants:vars,is_new:fd.get('new')==='on',is_bestseller:fd.get('best')==='on',images:general.length?general:(vars.find((x:any)=>x.image)?[vars.find((x:any)=>x.image).image]:[])};
 const slug=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString(36);
 const {error}=edit?await supabase.from('products').update(row).eq('id',edit.id):await supabase.from('products').insert({...row,slug});
@@ -60,10 +61,11 @@ return <div><div className="flex gap-2 flex-wrap mb-4">{[['orders','Commandes'],
 {vrows.map((r:any,i:number)=><div key={i} className="border border-sand bg-white p-3 space-y-2">
 <div className="flex gap-2"><input value={r.name} onChange={e=>setV(i,{name:e.target.value})} placeholder="Nom (ex : Rose)" className="flex-1 border p-2"/><button type="button" onClick={()=>setVrows(vrows.filter((_:any,j:number)=>j!==i))} className="text-sm text-red-700 underline">Retirer</button></div>
 <div className="flex gap-2"><input type="number" value={r.stock} onChange={e=>setV(i,{stock:e.target.value})} placeholder="Stock" className="w-24 border p-2"/><input type="number" step="0.01" value={r.price} onChange={e=>setV(i,{price:e.target.value})} placeholder="Prix (facultatif)" className="flex-1 border p-2"/></div>
+<select value={r.status||'available'} onChange={e=>setV(i,{status:e.target.value})} className="w-full border p-2"><option value="available">Disponible immédiatement</option><option value="last">Dernières pièces</option><option value="arrival">Arrivage prochainement (réservation)</option><option value="preorder">Précommande</option><option value="soldout">Épuisé</option></select>
 {r.images.length>0&&<div className="flex flex-wrap gap-2">{r.images.map((u:string)=><div key={u} className="relative"><img src={u} alt="" className="h-16 w-14 object-cover"/><button type="button" onClick={()=>setV(i,{images:r.images.filter((x:string)=>x!==u)})} className="absolute right-0 top-0 bg-ink px-1 text-xs text-white">×</button></div>)}</div>}
 <label className="text-xs">Photos de cette variante <input type="file" accept="image/*" multiple onChange={e=>setV(i,{files:Array.from(e.target.files||[])})}/></label>
 {r.files?.length>0&&<p className="text-xs text-plum">{r.files.length} photo(s) à ajouter à l’enregistrement</p>}</div>)}
-<button type="button" onClick={()=>setVrows([...vrows,{name:'',stock:0,price:'',images:[],files:[]}])} className="w-full rounded-full border border-plum py-2 text-sm text-plum">+ Ajouter une variante</button></div>
+<button type="button" onClick={()=>setVrows([...vrows,{name:'',stock:0,status:'available',price:'',images:[],files:[]}])} className="w-full rounded-full border border-plum py-2 text-sm text-plum">+ Ajouter une variante</button></div>
 <textarea name="desc" placeholder="Description" defaultValue={edit?.description||''} className="border p-2"/>
 {imgs.length>0&&<div className="flex gap-2 flex-wrap">{imgs.map(u=><div key={u} className="relative"><img src={u} alt="" className="w-16 h-20 object-cover"/><button type="button" onClick={()=>setImgs(imgs.filter(x=>x!==u))} className="absolute top-0 right-0 bg-ink text-white text-xs px-1">×</button></div>)}</div>}
 <label className="text-sm">Photos générales du produit <input name="images" type="file" accept="image/*" multiple/></label>
