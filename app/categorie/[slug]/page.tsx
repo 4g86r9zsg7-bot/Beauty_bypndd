@@ -1,4 +1,4 @@
-import {notFound} from 'next/navigation';import {supabase} from '@/lib/supabase';import ProductCard from '@/components/ProductCard';
+import {notFound} from 'next/navigation';import {supabase} from '@/lib/supabase';import ProductCard from '@/components/ProductCard';import Suggestions from '@/components/Suggestions';
 export const dynamic='force-dynamic';
 type SP={brand?:string;sort?:string;stock?:string;q?:string;min?:string;max?:string};
 export default async function Cat({params,searchParams}:{params:{slug:string};searchParams:SP}){
@@ -12,6 +12,8 @@ if(sp.brand)q=q.eq('brand_id',sp.brand);if(sp.stock)q=q.neq('availability','sold
 if(sp.min&&isFinite(Number(sp.min)))q=q.gte('price',Number(sp.min));if(sp.max&&isFinite(Number(sp.max)))q=q.lte('price',Number(sp.max));
 const o=sp.sort;q=o==='asc'?q.order('price'):o==='desc'?q.order('price',{ascending:false}):o==='pop'?q.order('sold',{ascending:false}):q.order('created_at',{ascending:false});
 const [{data},{data:b}]=await Promise.all([q,supabase.from('brands').select('*').order('name')]);
+const rank=(p:any)=>{const pre=p.availability==='preorder',arr=p.availability==='arrival';const sold=p.availability==='soldout'||(!pre&&!arr&&p.stock<=0);return sold?2:(pre||arr)?1:0};
+const list=[...(data||[])].sort((x:any,y:any)=>rank(x)-rank(y));
 const seen=new Set<string>();const brands=(b||[]).filter((x:any)=>{const k=x.name.trim().toLowerCase();if(seen.has(k))return false;seen.add(k);return true});
 const inp="border border-sand bg-white p-3 rounded-full";
 return <><h1 className="font-serif text-4xl text-plum">{title}</h1>
@@ -20,5 +22,5 @@ return <><h1 className="font-serif text-4xl text-plum">{title}</h1>
 <select name="sort" defaultValue={o||''} className={inp}><option value="">Plus récents</option><option value="pop">Plus vendus</option><option value="asc">Prix croissant</option><option value="desc">Prix décroissant</option></select>
 <input name="min" type="number" inputMode="numeric" defaultValue={sp.min||''} placeholder="Prix min (DH)" className={inp}/><input name="max" type="number" inputMode="numeric" defaultValue={sp.max||''} placeholder="Prix max (DH)" className={inp}/>
 <label className="flex items-center gap-2 px-2"><input type="checkbox" name="stock" value="1" defaultChecked={!!sp.stock}/>En stock</label><button className="bg-rose text-white rounded-full py-3 text-xs tracking-[0.2em] uppercase">Filtrer</button></form>
-<p className="text-sm text-plum mb-3">{data?.length||0} produit(s)</p>
-{data?.length?<div className="grid grid-cols-2 md:grid-cols-4 gap-4">{data.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div>:<p>Aucun produit trouvé.</p>}</>}
+<p className="text-sm text-plum mb-3">{list.length} produit(s)</p>
+{list.length?<div className="grid grid-cols-2 md:grid-cols-4 gap-4">{list.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div>:<p>Aucun produit trouvé.</p>}<Suggestions title="Vous aimerez aussi" exclude={list.map((p:any)=>p.id)} limit={4}/></>}
