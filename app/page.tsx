@@ -6,7 +6,7 @@ async function row(seen:Set<string>,title:string,f:(q:any)=>any,href?:string){
 const {data}=await f(supabase.from('products').select('*,brands(name)').eq('active',true).order('created_at',{ascending:false}).limit(16));
 const items=(data||[]).filter((p:any)=>!seen.has(p.id)).sort((a:any,b:any)=>rank(a)-rank(b)).slice(0,8);if(!items.length)return null;items.forEach((p:any)=>seen.add(p.id));
 return <section className="mt-12"><div className="text-center mb-5"><h2 className="font-serif text-3xl text-plum">{title}</h2><div className="w-16 h-px bg-rose mx-auto mt-3"/>{href&&<Link href={href} className="text-[11px] tracking-[0.2em] uppercase text-rose mt-3 inline-block">Tout voir</Link>}</div>
-<div className="grid grid-cols-2 md:grid-cols-4 gap-4">{items.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div></section>}
+<div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">{items.map((p:any)=><ProductCard key={p.id} p={p}/>)}</div></section>}
 export default async function Home(){
 const seen=new Set<string>();
 const {data:c}=await supabase.from('categories').select('*').order('name');const {data:b}=await supabase.from('brands').select('*').order('name');
