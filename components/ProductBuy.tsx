@@ -1,4 +1,4 @@
-'use client';import {useState} from 'react';import {useCart} from '@/lib/cart';import {WA,eur} from '@/lib/supabase';import {DELIVERY,PREORDER} from '@/lib/shop';
+'use client';import {useState} from 'react';import Link from 'next/link';import {useCart} from '@/lib/cart';import {WA,eur} from '@/lib/supabase';import {DELIVERY,PREORDER} from '@/lib/shop';
 export default function ProductBuy({p}:{p:any}){const {add,lines}=useCart();
 const vs:any[]=(p.variants||[]).map((x:any)=>typeof x==='string'?{name:x}:x);
 const vimgs=(x:any):string[]=>x?(x.images?.length?x.images:x.image?[x.image]:[]):[];
@@ -24,7 +24,7 @@ const note="mt-3 border border-plum/40 bg-blush/40 p-3 text-sm";
 return <div className="grid md:grid-cols-2 gap-8">
 <div><div className="aspect-[4/5] bg-sand overflow-hidden">{shown&&<img src={shown} alt={p.name} className="w-full h-full object-cover"/>}</div>
 {thumbs.length>1&&<div className="flex gap-2 mt-2 overflow-x-auto">{thumbs.map(u=><button key={u} type="button" onClick={()=>setPic(u)} className={`shrink-0 w-16 h-20 border-2 ${u===shown?'border-rose':'border-transparent'}`}><img src={u} alt="" className="w-full h-full object-cover"/></button>)}</div>}</div>
-<div><p className="text-sm text-ink/60">{p.brands?.name}</p><h1 className="font-serif text-3xl">{p.name}</h1>
+<div><p className="text-sm">{p.brands?.name&&<Link href={`/categorie/tous?brand=${p.brand_id}`} className="uppercase tracking-[0.15em] text-plum underline">{p.brands.name}</Link>}</p><h1 className="font-serif text-3xl">{p.name}</h1>
 <p className="text-xl mt-2">{eur(price)} {promo&&<><s className="text-ink/50 ml-2">{eur(p.old_price)}</s> <span className="bg-blush px-2 text-sm">-{Math.round(100-p.price/p.old_price*100)}%</span></>}</p>
 {!needV&&<p className="mt-2 text-sm">{status}</p>}
 {!needV&&(mode==='pre'||needAck)&&<div className={note}><b>Précommande.</b> Cet article n’est pas en stock : il est commandé pour vous, avec un délai de <b>{PREORDER}</b>, confirmé par WhatsApp.</div>}
