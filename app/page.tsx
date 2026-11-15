@@ -27,7 +27,8 @@ return <>
 {await row(seen,'Meilleures ventes',q=>q.eq('is_bestseller',true).not('availability','in','(arrival,preorder)'))}
 {await row(seen,'Promotions et bonnes affaires',q=>q.not('old_price','is',null).not('availability','in','(arrival,preorder)'),'/categorie/promotions')}
 {await row(seen,'Coffrets cadeaux',q=>q.eq('category_id',cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id??'00000000-0000-0000-0000-000000000000'),'/categorie/coffrets-cadeaux')}
-{await row(seen,'Prochains arrivages',q=>q.in('availability',['arrival','preorder']),'/categorie/arrivages')}
+{await row(seen,'Prochains arrivages',q=>q.eq('availability','arrival'),'/categorie/arrivages')}
+{await row(seen,'Précommandes',q=>q.eq('availability','preorder'),'/categorie/precommandes')}
 {brands.length>0&&<section className="mt-12 text-center"><h2 className="font-serif text-3xl text-plum">Marques populaires</h2><div className="flex flex-wrap justify-center gap-2 mt-4">{brands.map((x:any)=><Link key={x.id} href={`/categorie/tous?brand=${x.id}`} className="border border-plum px-4 py-1.5 text-[11px] tracking-[0.15em] uppercase text-plum">{x.name}</Link>)}</div></section>}
 <Suggestions title="Coups de cœur" exclude={Array.from(seen)} limit={4}/>
 </>}
