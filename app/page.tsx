@@ -1,5 +1,6 @@
 import Link from 'next/link';import {supabase} from '@/lib/supabase';import ProductCard from '@/components/ProductCard';import Suggestions from '@/components/Suggestions';import ProductRail from '@/components/ProductRail';import Shortcuts from '@/components/Shortcuts';import SearchBox from '@/components/SearchBox';import Hero from '@/components/Hero';
 export const revalidate=30;
+export const metadata={title:'Beauty_bypndd | Le luxe à petit prix',description:'Beauté, soins, parfums et mode : grandes marques authentiques à prix accessibles. Livraison à domicile et paiement à la livraison.',openGraph:{title:'Beauty_bypndd | Le luxe à petit prix',description:'Beauté, soins, parfums et mode : grandes marques authentiques à prix accessibles.',url:'/',siteName:'Beauty_bypndd',locale:'fr_FR',type:'website'}};
 const rank=(p:any)=>{const pre=p.availability==='preorder',arr=p.availability==='arrival';const sold=p.availability==='soldout'||(!pre&&!arr&&p.stock<=0);return sold?2:(pre||arr)?1:0};
 const uniq=(a:any[]|null)=>{const s=new Set<string>();return (a||[]).filter(x=>{const k=x.name.trim().toLowerCase();if(s.has(k))return false;s.add(k);return true})};
 async function row(seen:Set<string>,title:string,f:(q:any)=>any,href?:string,track=true){
