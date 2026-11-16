@@ -21,7 +21,7 @@ const SORTS: [string, string][] = [['', 'Plus récents'], ['pop', 'Plus vendus']
 
 // ---------- Catégories (une seule requête, partagée) ----------
 const getCats = cache(async () => {
-  const {data} = await supabase.from('categories').select('id,slug,name,parent_id').order('name');
+  const {data} = await supabase.from('categories').select('id,slug,name,parent_id,image_url').order('name');
   return (data || []) as any[];
 });
 const kidsOf = (all: any[], id: any) => all.filter((x) => x.parent_id === id && x.slug !== 'sacs-accessoires');
@@ -48,7 +48,7 @@ export async function generateMetadata({params}: {params: {slug: string}}) {
   if (c) pq = pq.in('category_id', subtree(all, c.id)).order('sold', {ascending: false});
   else pq = (f?.filter ? f.filter(pq) : pq).order('created_at', {ascending: false});
   const {data: pr} = await pq.limit(1);
-  const img: string | undefined = pr?.[0]?.images?.[0];
+  const img: string | undefined = c?.image_url || pr?.[0]?.images?.[0];
 
   return {
     title: `${title} | Beauty_bypndd`,
@@ -118,20 +118,7 @@ export default async function Cat({params, searchParams}: {params: {slug: string
   const o = sp.sort;
   q = o === 'asc' ? q.order('price') : o === 'desc' ? q.order('price', {ascending: false}) : o === 'pop' ? q.order('sold', {ascending: false}) : q.order('created_at', {ascending: false});
 
-  // Vignettes des sous-catégories : image du produit le plus vendu de chaque sous-catégorie
-  const thumbIds = navItems.flatMap((n) => subtree(all, n.id));
-  const thumbQ = thumbIds.length
-    ? supabase.from('products').select('category_id,images').eq('active', true).in('category_id', thumbIds).order('sold', {ascending: false}).limit(400)
-    : Promise.resolve({data: [] as any[]});
-
-  const [{data}, {data: b}, {data: tp}] = await Promise.all([q, supabase.from('brands').select('*').order('name'), thumbQ as any]);
-
-  const thumbs: Record<string, string> = {};
-  for (const n of navItems) {
-    const ids = new Set(subtree(all, n.id));
-    const hit = (tp || []).find((p: any) => ids.has(p.category_id) && p.images?.[0]);
-    if (hit) thumbs[n.id] = hit.images[0];
-  }
+  const [{data}, {data: b}] = await Promise.all([q, supabase.from('brands').select('*').order('name')]);
 
   const rank = (p: any) => {
     const pre = p.availability === 'preorder', arr = p.availability === 'arrival';
@@ -202,16 +189,16 @@ export default async function Cat({params, searchParams}: {params: {slug: string
             ))}
           </div>
 
-          {/* Raccourcis visuels */}
-          <div className={`-mx-4 mt-5 flex gap-4 overflow-x-auto px-4 pb-2 md:gap-6 ${noScroll}`}>
+          {/* Raccourcis visuels : image propre à chaque sous-catégorie (champ image_url) */}
+          <div className={`-mx-4 mt-5 flex gap-3 overflow-x-auto px-4 pb-2 md:gap-5 ${noScroll}`}>
             {navItems.map((k) => (
-              <Link key={k.id} href={`/categorie/${k.slug}`} className="group w-[84px] shrink-0 text-center md:w-[110px]">
-                <span className={`mx-auto flex h-[84px] w-[84px] items-center justify-center overflow-hidden rounded-full bg-sand/60 ring-1 transition md:h-[110px] md:w-[110px] ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
-                  {thumbs[k.id]
-                    ? <img src={thumbs[k.id]} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                    : <span className="font-serif text-3xl text-plum/60">{k.name.charAt(0)}</span>}
+              <Link key={k.id} href={`/categorie/${k.slug}`} className="group w-[112px] shrink-0 md:w-[160px]">
+                <span className={`relative block aspect-[4/5] w-full overflow-hidden rounded-xl bg-gradient-to-br from-sand to-white ring-1 transition ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
+                  {k.image_url
+                    ? <img src={k.image_url} alt={k.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    : <span className="flex h-full w-full items-center justify-center font-serif text-4xl text-plum/40">{k.name.charAt(0)}</span>}
                 </span>
-                <span className="mt-2 block text-xs leading-tight text-ink">{k.name}</span>
+                <span className={`mt-2 block text-center text-xs leading-tight ${k.slug === s ? 'font-semibold text-plum' : 'text-ink'}`}>{k.name}</span>
               </Link>
             ))}
           </div>
