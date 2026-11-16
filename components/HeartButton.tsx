@@ -1,1 +1,4 @@
+'use client';import {useClient} from '@/components/ClientProvider';
+export default function HeartButton({id}:{id:string}){const {favs,toggleFav}=useClient();const on=favs.includes(id);
+return <button type="button" aria-label={on?'Retirer des favoris':'Ajouter aux favoris'} aria-pressed={on} onClick={e=>{e.preventDefault();e.stopPropagation();toggleFav(id)}} className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-plum shadow transition active:scale-90"><svg width="19" height="19" viewBox="0 0 24 24" fill={on?'currentColor':'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M12 20.5s-7.5-4.6-9.2-9.3C1.7 8 3.6 5 6.6 5c1.9 0 3.5 1 5.4 3 1.9-2 3.5-3 5.4-3 3 0 4.9 3 3.8 6.2-1.7 4.7-9.2 9.3-9.2 9.3z"/></svg></button>}
 
