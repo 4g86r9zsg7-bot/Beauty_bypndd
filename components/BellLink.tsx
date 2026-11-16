@@ -1,0 +1,3 @@
+'use client';import Link from 'next/link';import {useClient} from '@/components/ClientProvider';
+export default function BellLink(){const {unread}=useClient();
+return <Link href="/notifications" aria-label={`Notifications${unread?` (${unread} non lues)`:''}`} className="relative p-2 text-plum"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17h12l-1.6-2.2V10a4.4 4.4 0 0 0-8.8 0v4.8z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>{unread>0&&<span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose px-1 text-[10px] font-semibold leading-none text-white">{unread>9?'9+':unread}</span>}</Link>}
