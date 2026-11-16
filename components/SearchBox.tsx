@@ -16,13 +16,13 @@ const {data,count}=await supabase.from('products').select('id,slug,name,price,im
 if(id!==seq.current)return;
 setItems([...(data||[])].sort((a:any,b:any)=>rk(a)-rk(b)).slice(0,6));setTotal(count||0);setLoading(false)},150);
 return()=>clearTimeout(tm)},[t]);
-return <div ref={ref} className="relative mt-8 max-w-sm">
+return <div ref={ref} className="relative mt-8 max-w-xl">
 <p className="mb-2 text-[11px] uppercase tracking-[0.25em] text-blush">Rechercher un produit</p>
 <form action="/categorie/tous" onSubmit={()=>setOpen(false)} role="search" className="relative">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-plum/60"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
-<input ref={inp} name="q" type="text" inputMode="search" enterKeyHint="search" autoComplete="off" value={v} onChange={e=>{setV(e.target.value);setOpen(true)}} onFocus={()=>setOpen(true)} placeholder="Nom, marque ou catégorie" className="w-full rounded-full bg-white py-3.5 pl-11 pr-12 text-base text-ink shadow-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-rose"/>
-{v&&<button type="button" aria-label="Effacer la recherche" onClick={()=>{setV('');setItems([]);setOpen(false);inp.current?.focus()}} className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-sand text-lg leading-none text-plum">×</button>}
-</form>
+<input ref={inp} name="q" type="text" inputMode="search" enterKeyHint="search" autoComplete="off" value={v} onChange={e=>{setV(e.target.value);setOpen(true)}} onFocus={()=>setOpen(true)} placeholder="Nom, marque ou catégorie" className="w-full rounded-full bg-white/90 py-3.5 pl-11 pr-24 text-base text-ink shadow-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-rose"/>
+{v&&<button type="button" aria-label="Effacer la recherche" onClick={()=>{setV('');setItems([]);setOpen(false);inp.current?.focus()}} className="absolute right-14 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-sand text-lg leading-none text-plum">×</button>}
+<button type="submit" aria-label="Rechercher" className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#EE6FB0] text-[#2a0a1b]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
 {open&&t&&<div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-[70vh] overflow-y-auto rounded-2xl bg-white text-ink shadow-2xl">
 {items.map(p=>{const l=lab(p);return <Link key={p.id} href={`/produit/${p.slug}`} onClick={()=>setOpen(false)} className="flex items-center gap-3 border-b border-sand px-3 py-3 active:bg-cream">
 <span className="h-16 w-12 shrink-0 overflow-hidden bg-sand">{p.images?.[0]&&<img src={p.images[0]} alt="" loading="lazy" className="h-full w-full object-cover"/>}</span>
