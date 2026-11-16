@@ -1,14 +1,14 @@
 import './globals.css';import Link from 'next/link';import {Cormorant_Garamond,Inter} from 'next/font/google';
-import {CartProvider} from '@/lib/cart';import {WA} from '@/lib/supabase';import CartLink from '@/components/CartLink';import SideMenu from '@/components/SideMenu';import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';import {IG} from '@/lib/shop';
+import {CartProvider} from '@/lib/cart';import {WA} from '@/lib/supabase';import CartLink from '@/components/CartLink';import SideMenu from '@/components/SideMenu';import BellLink from '@/components/BellLink';import {ClientProvider} from '@/components/ClientProvider';import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';import {IG} from '@/lib/shop';
 const serif=Cormorant_Garamond({subsets:['latin'],weight:['400','500','600'],style:['normal','italic'],variable:'--f-serif'});const sans=Inter({subsets:['latin'],variable:'--f-sans'});
 export const metadata={metadataBase:new URL('https://beautybypnd.com'),title:'Beauty_bypndd | L’élégance au féminin',description:'Sephora, Rituals, Huda Beauty, The Ordinary, MAC, NYX et plus. Authentique, tendance, prix accessibles.',openGraph:{title:'Beauty_bypndd | Le luxe à petit prix',description:'Beauté, soins, parfums et mode : grandes marques authentiques à prix accessibles.',siteName:'Beauty_bypndd',locale:'fr_FR',type:'website'}};
-export default function L({children}:{children:React.ReactNode}){return <html lang="fr"><body className={`${serif.variable} ${sans.variable}`}><CartProvider>
+export default function L({children}:{children:React.ReactNode}){return <html lang="fr"><body className={`${serif.variable} ${sans.variable}`}><ClientProvider><CartProvider>
 <div className="bg-plum text-white text-center text-[11px] tracking-[0.2em] uppercase py-2.5 px-4">Livraison à domicile en 24 à 48 h · Paiement à la livraison</div>
-<header className="sticky top-0 z-20 bg-cream/95 backdrop-blur border-b border-sand"><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 max-w-6xl mx-auto"><div><SideMenu/></div>
+<header className="sticky top-0 z-20 bg-cream/95 backdrop-blur border-b border-sand"><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3 max-w-6xl mx-auto"><div className="flex items-center gap-1"><SideMenu/><BellLink/></div>
 <Link href="/" className="text-center leading-none"><span className="block font-serif italic text-2xl text-plum">beautybypndd</span><span className="block mt-1 text-[8px] tracking-[0.25em] uppercase text-rose whitespace-nowrap">L’élégance au féminin</span></Link>
 <div className="text-right"><CartLink/></div></div>
 </header>
 <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
 <footer className="bg-deep text-white px-4 py-10 text-xs tracking-[0.15em] uppercase text-center"><p>Beauty_bypndd · Le luxe à petit prix</p><nav className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2"><Link href="/livraison" className="underline">Livraison</Link><Link href="/contact" className="underline">Contact</Link><span className="flex items-center gap-3"><a href={IG} aria-label="Instagram"><InstagramIcon size={36}/></a><a href={`https://wa.me/${WA}`} aria-label="WhatsApp"><WhatsAppIcon size={36}/></a></span></nav></footer>
 <a href={`https://wa.me/${WA}`} aria-label="WhatsApp" className="fixed bottom-4 right-4 z-30 rounded-full shadow-lg"><WhatsAppIcon size={56}/></a>
-</CartProvider></body></html>}
+</CartProvider></ClientProvider></body></html>}
