@@ -8,7 +8,7 @@ const show=()=>{setMounted(true);requestAnimationFrame(()=>requestAnimationFrame
 useEffect(()=>{if(!mounted)return;Promise.all([supabase.from('categories').select('id,slug,name,parent_id,position'),supabase.from('brands').select('id,name').order('name'),supabase.from('products').select('category_id,brand_id').eq('active',true)]).then(([c,b,p])=>{setCats(c.data||[]);setBrands(b.data||[]);setUsedC(new Set((p.data||[]).map((x:any)=>x.category_id)));setUsedB(new Set((p.data||[]).map((x:any)=>x.brand_id)))})},[mounted]);
 useEffect(()=>{document.body.style.overflow=open?'hidden':'';const k=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false)};window.addEventListener('keydown',k);return()=>{window.removeEventListener('keydown',k);document.body.style.overflow=''}},[open]);
 const ord=(a:any,b:any)=>(a.position??9999)-(b.position??9999)||a.name.localeCompare(b.name);
-const tops=cats.filter(c=>!c.parent_id&&c.name.trim().toLowerCase()!=='mercadona').sort(ord);const kids=(c:any)=>cats.filter(x=>x.parent_id===c.id).sort(ord);
+const tops=cats.filter(c=>!c.parent_id&&c.name.trim().toLowerCase()!=='mercadona'&&c.slug!=='sacs-accessoires').sort(ord);const kids=(c:any)=>cats.filter(x=>x.parent_id===c.id).sort(ord);
 const mains=tops.filter(c=>kids(c).length>0);const others=tops.filter(c=>kids(c).length===0);const brandsU=brands.filter(b=>usedB.has(b.id));
 const row="flex w-full items-center justify-between border-b border-sand px-5 py-4 text-left text-[13px] uppercase tracking-[0.16em] text-plum";
 const lnk="block py-2.5 text-sm text-ink";
