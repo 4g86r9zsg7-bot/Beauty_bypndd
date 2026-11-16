@@ -3,7 +3,7 @@ export const dynamic='force-dynamic';
 type SP={brand?:string;sort?:string;stock?:string;q?:string;min?:string;max?:string};
 export async function generateMetadata({params}:{params:{slug:string}}){const s=params.slug;const fixed:any={tous:'Tous les produits',nouveautes:'Nouveautés',promotions:'Promotions',arrivages:'Prochains arrivages',precommandes:'Précommandes'};let t=fixed[s];if(!t){const {data}=await supabase.from('categories').select('name').eq('slug',s).single();t=data?.name||'Boutique'}return {title:`${t} | Beauty_bypndd`,description:`Découvrez ${t} chez Beauty_bypndd : beauté, soins, parfums et mode, authentiques à prix accessibles.`}}
 export default async function Cat({params,searchParams}:{params:{slug:string};searchParams:SP}){
-const s=params.slug,sp=searchParams;let q:any=supabase.from('products').select('*,brands(name)').eq('active',true);let title='';let kids:any[]=[];
+const s=params.slug,sp=searchParams;if(s==='sacs-accessoires')notFound();let q:any=supabase.from('products').select('*,brands(name)').eq('active',true);let title='';let kids:any[]=[];
 if(s==='tous'){title=sp.q?`Recherche : ${sp.q}`:'Tous les produits'}
 else if(s==='nouveautes'){title='Nouveautés';q=q.eq('is_new',true)}
 else if(s==='promotions'){title='Promotions';q=q.not('old_price','is',null)}
