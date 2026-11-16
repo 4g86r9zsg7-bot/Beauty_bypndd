@@ -194,9 +194,8 @@ export default async function Cat({params, searchParams}: {params: {slug: string
             {navItems.map((k) => (
               <Link key={k.id} href={`/categorie/${k.slug}`} className="group w-[112px] shrink-0 md:w-[160px]">
                 <span className={`relative block aspect-[4/5] w-full overflow-hidden rounded-xl bg-gradient-to-br from-sand to-white ring-1 transition ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
-                  {k.image_url
-                    ? <img src={k.image_url} alt={k.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                    : <span className="flex h-full w-full items-center justify-center font-serif text-4xl text-plum/40">{k.name.charAt(0)}</span>}
+                  <span className="absolute inset-0 flex items-center justify-center font-serif text-4xl text-plum/40">{k.name.charAt(0)}</span>
+                  <img src={k.image_url || `/categories/${k.slug}.jpg`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                 </span>
                 <span className={`mt-2 block text-center text-xs leading-tight ${k.slug === s ? 'font-semibold text-plum' : 'text-ink'}`}>{k.name}</span>
               </Link>
