@@ -14,7 +14,7 @@ const row="flex w-full items-center justify-between border-b border-sand px-5 py
 const lnk="block py-2.5 text-sm text-ink";
 const Acc=({k,label,children}:{k:string;label:string;children:any})=><div><button type="button" aria-expanded={sec===k} onClick={()=>setSec(sec===k?'':k)} className={row}><span>{label}</span><span className={`text-lg leading-none transition-transform ${sec===k?'rotate-45':''}`}>+</span></button>{sec===k&&<div className="border-b border-sand bg-cream px-5 py-2">{children}</div>}</div>;
 return <>
-<button type="button" onClick={show} aria-label="Ouvrir le menu" className="-ml-2 p-2 text-plum"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+<button type="button" onClick={show} aria-label="Ouvrir le menu" className="-ml-2 p-2 text-white"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
 {mounted&&createPortal(<div className={`fixed inset-0 z-50 transition-all duration-300 ${open?'':'invisible'}`}>
 <div onClick={hide} className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${open?'opacity-100':'opacity-0'}`}/>
 <aside className={`absolute inset-y-0 left-0 flex w-[88%] max-w-sm flex-col bg-white shadow-xl transition-transform duration-300 ${open?'translate-x-0':'-translate-x-full'}`}>
