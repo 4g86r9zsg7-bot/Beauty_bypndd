@@ -179,23 +179,11 @@ export default async function Cat({params, searchParams}: {params: {slug: string
       {/* Navigation par sous-catégories */}
       {navItems.length > 0 && (
         <>
-          <div className={`-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1 ${noScroll}`}>
-            {navAllHref && (
-              <Link href={navAllHref} className="shrink-0 rounded-full border border-plum/30 bg-white px-4 py-2 text-sm text-plum">Tout {navTitle}</Link>
-            )}
-            {navItems.map((k) => (
-              <Link key={k.id} href={`/categorie/${k.slug}`} aria-current={k.slug === s ? 'page' : undefined}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${k.slug === s ? 'border-plum bg-plum text-white' : 'border-plum/30 bg-white text-plum hover:border-plum'}`}>
-                {k.name}
-              </Link>
-            ))}
-          </div>
-
           {/* Raccourcis visuels : image propre à chaque sous-catégorie (champ image_url) */}
           <div className={`-mx-4 mt-5 flex gap-3 overflow-x-auto px-4 pb-2 md:gap-5 ${noScroll}`}>
             {navItems.map((k) => (
-              <Link key={k.id} href={`/categorie/${k.slug}`} className="group w-[112px] shrink-0 md:w-[160px]">
-                <span className={`relative block aspect-[4/5] w-full overflow-hidden rounded-xl bg-gradient-to-br from-sand to-white ring-1 transition ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
+              <Link key={k.id} href={`/categorie/${k.slug}`} className="group w-[108px] shrink-0 md:w-[112px]">
+                <span className={`relative mx-auto block h-[92px] w-[92px] overflow-hidden rounded-full md:h-[108px] md:w-[108px] bg-gradient-to-br from-sand to-white ring-1 transition ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
                   <span className="absolute inset-0 flex items-center justify-center font-serif text-4xl text-plum/40">{k.name.charAt(0)}</span>
                   <img src={k.image_url || `/categories/${k.slug}.jpg`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                 </span>
