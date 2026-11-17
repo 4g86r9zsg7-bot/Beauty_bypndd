@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 type SP = {brand?: string; sort?: string; stock?: string; q?: string; min?: string; max?: string};
 
 const FIXED: Record<string, {title: string; desc: string; filter?: (q: any) => any}> = {
+  'coups-de-coeur': {title: 'Coups de cœur', desc: 'Notre sélection coups de cœur chez Beauty_bypndd : les produits beauté et mode préférés de nos clientes.', filter: (q) => q.eq('featured', true)},
+  'meilleures-ventes': {title: 'Meilleures ventes', desc: 'Les meilleures ventes Beauty_bypndd : les produits les plus plébiscités, authentiques et à prix accessibles.', filter: (q) => q.eq('is_bestseller', true)},
   tous: {title: 'Tous les produits', desc: 'Tous les produits Beauty_bypndd : maquillage, soins, parfums et mode, authentiques à prix accessibles.'},
   nouveautes: {title: 'Nouveautés', desc: 'Les dernières nouveautés beauté, soins, parfums et mode chez Beauty_bypndd.', filter: (q) => q.eq('is_new', true)},
   promotions: {title: 'Promotions', desc: 'Les bonnes affaires du moment chez Beauty_bypndd : produits authentiques à prix réduit.', filter: (q) => q.not('old_price', 'is', null)},
