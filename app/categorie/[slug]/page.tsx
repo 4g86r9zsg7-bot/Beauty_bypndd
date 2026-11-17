@@ -4,6 +4,7 @@ import {notFound} from 'next/navigation';
 import {supabase} from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import Suggestions from '@/components/Suggestions';
+import ScrollRow from '@/components/ScrollRow';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ const SORTS: [string, string][] = [['', 'Plus récents'], ['pop', 'Plus vendus']
 
 // ---------- Catégories (une seule requête, partagée) ----------
 const getCats = cache(async () => {
-  const {data} = await supabase.from('categories').select('id,slug,name,parent_id,image_url').order('name');
+  const {data} = await supabase.from('categories').select('id,slug,name,parent_id,image_url,position').order('position', {ascending: true, nullsFirst: false}).order('name');
   return (data || []) as any[];
 });
 const kidsOf = (all: any[], id: any) => all.filter((x) => x.parent_id === id && x.slug !== 'sacs-accessoires');
@@ -183,7 +184,7 @@ export default async function Cat({params, searchParams}: {params: {slug: string
       {navItems.length > 0 && !isBrand && (
         <>
           {/* Raccourcis visuels : image propre à chaque sous-catégorie (champ image_url) */}
-          <div className={`-mx-4 mt-5 flex gap-3 overflow-x-auto px-4 pb-2 md:gap-5 ${noScroll}`}>
+          <ScrollRow className={`-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:gap-5 ${noScroll}`}>
             {navItems.map((k) => (
               <Link key={k.id} href={`/categorie/${k.slug}`} className="group w-[108px] shrink-0 md:w-[112px]">
                 <span className={`relative mx-auto block h-[92px] w-[92px] overflow-hidden rounded-full md:h-[108px] md:w-[108px] bg-gradient-to-br from-sand to-white ring-1 transition ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
@@ -193,7 +194,7 @@ export default async function Cat({params, searchParams}: {params: {slug: string
                 <span className={`mt-2 block text-center text-xs leading-tight ${k.slug === s ? 'font-semibold text-plum' : 'text-ink'}`}>{k.name}</span>
               </Link>
             ))}
-          </div>
+          </ScrollRow>
         </>
       )}
 
