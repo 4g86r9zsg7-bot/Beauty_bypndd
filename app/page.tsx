@@ -13,6 +13,8 @@ const top=cats.filter((x:any)=>!x.parent_id&&x.slug!=='sacs-accessoires');
 return <>
 <Shortcuts/>
 <Hero/>
+<Link href="/precommande-shein" className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#14040c] px-5 py-4 text-white transition hover:opacity-90"><span><span className="block text-[10px] uppercase tracking-[0.3em] text-[#EE6FB0]">SHEIN</span><span className="mt-1 block font-serif text-2xl italic">Précommande SHEIN</span><span className="mt-0.5 block text-xs text-white/70">Collez votre panier, obtenez votre prix final en dirhams</span></span><span className="text-2xl text-[#EE6FB0]" aria-hidden="true">→</span></Link>
+
 
 <section className="mt-14">
 <div className="text-center"><p className="text-[11px] uppercase tracking-[0.35em] text-rose">Inspiration élégante</p><h2 className="mt-2 font-serif text-3xl text-plum md:text-4xl">Achetez par catégorie</h2><div className="mx-auto mt-3 h-px w-16 bg-rose"/></div>
