@@ -141,6 +141,9 @@ export default async function Cat({params, searchParams}: {params: {slug: string
     if (bn) title = bn;
   }
 
+  // Page marque (/categorie/tous?brand=...) : on n'affiche pas les catégories
+  const isBrand = s === 'tous' && !!sp.brand && !sp.q;
+
   // ---------- Helpers d'URL ----------
   const url = (over: Partial<SP>) => {
     const p = new URLSearchParams();
@@ -177,7 +180,7 @@ export default async function Cat({params, searchParams}: {params: {slug: string
       </div>
 
       {/* Navigation par sous-catégories */}
-      {navItems.length > 0 && (
+      {navItems.length > 0 && !isBrand && (
         <>
           {/* Raccourcis visuels : image propre à chaque sous-catégorie (champ image_url) */}
           <div className={`-mx-4 mt-5 flex gap-3 overflow-x-auto px-4 pb-2 md:gap-5 ${noScroll}`}>
