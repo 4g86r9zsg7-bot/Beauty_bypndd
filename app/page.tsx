@@ -16,9 +16,9 @@ return <>
 
 <section className="mt-14">
 <div className="text-center"><p className="text-[11px] uppercase tracking-[0.35em] text-rose">Inspiration élégante</p><h2 className="mt-2 font-serif text-3xl text-plum md:text-4xl">Achetez par catégorie</h2><div className="mx-auto mt-3 h-px w-16 bg-rose"/></div>
-<div className="-mx-4 mt-7 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:gap-4 lg:overflow-visible lg:px-0 lg:[grid-template-columns:repeat(auto-fit,minmax(110px,1fr))]">
-{top.map((x:any)=><Link key={x.id} href={`/categorie/${x.slug}`} className="group w-[112px] shrink-0 lg:w-auto">
-<span className="relative block aspect-[4/5] overflow-hidden rounded-xl bg-gradient-to-br from-sand to-white ring-1 ring-sand transition group-hover:ring-plum">
+<div className="-mx-4 mt-7 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:gap-4 lg:overflow-visible lg:px-0 lg:[grid-template-columns:repeat(auto-fit,minmax(112px,1fr))]">
+{top.map((x:any)=><Link key={x.id} href={`/categorie/${x.slug}`} className="group w-[108px] shrink-0 md:w-[112px] lg:w-auto">
+<span className="relative mx-auto block h-[92px] w-[92px] overflow-hidden rounded-full bg-gradient-to-br from-sand to-white ring-1 ring-sand transition group-hover:ring-plum md:h-[108px] md:w-[108px]">
 <span className="absolute inset-0 flex items-center justify-center font-serif text-4xl text-plum/40">{x.name.charAt(0)}</span>
 <img src={x.image_url||`/categories/${x.slug}.jpg`} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"/></span>
 <span className="mt-2 block text-center text-xs leading-tight text-ink">{x.name}</span></Link>)}</div>
@@ -33,9 +33,9 @@ return <>
 {await row('precommandes','Précommandes',q=>q.eq('availability','preorder'),'/categorie/precommandes')}
 {await row('cadeaux','Coffrets cadeaux',q=>q.eq('category_id',cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id??'00000000-0000-0000-0000-000000000000').not('availability','in','(arrival,preorder)'),'/categorie/coffrets-cadeaux')}
 
-{brands.length>0&&<section className="mt-16 text-center"><p className="text-[11px] uppercase tracking-[0.35em] text-rose">Nos partenaires</p><h2 className="mt-2 font-serif text-3xl text-plum md:text-4xl">Marques populaires</h2><div className="mx-auto mt-3 h-px w-16 bg-rose"/>
-<div className="mx-auto mt-7 flex max-w-4xl flex-wrap justify-center gap-2.5">{brands.map((x:any)=><Link key={x.id} href={`/categorie/tous?brand=${x.id}`} className="rounded-full border border-plum/40 bg-white px-5 py-2 text-[11px] uppercase tracking-[0.15em] text-plum transition hover:border-plum hover:bg-plum hover:text-white">{x.name}</Link>)}</div>
-<Link href="/categorie/tous" className="mt-7 inline-block rounded-full border border-plum px-6 py-2.5 text-[11px] uppercase tracking-[0.18em] text-plum transition hover:bg-plum hover:text-white">Voir tout</Link></section>}
+{brands.length>0&&<section className="relative left-1/2 mt-16 w-screen -translate-x-1/2 bg-white py-12 text-center"><div className="mx-auto max-w-6xl px-4"><p className="text-[11px] uppercase tracking-[0.35em] text-rose">Nos partenaires</p><h2 className="mt-2 font-serif text-3xl text-plum md:text-4xl">Marques populaires</h2><div className="mx-auto mt-3 h-px w-16 bg-rose"/>
+<div className="-mx-4 mt-8 flex items-center gap-6 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:flex-wrap md:justify-center md:gap-x-12 md:gap-y-6 md:overflow-visible md:px-0">{brands.map((x:any)=><Link key={x.id} href={`/categorie/tous?brand=${x.id}`} aria-label={x.name} className="flex h-14 w-[132px] shrink-0 items-center justify-center px-2 md:w-[148px]">{x.logo_url?<img src={x.logo_url} alt={x.name} loading="lazy" decoding="async" className="max-h-9 max-w-full object-contain mix-blend-multiply grayscale"/>:<span className="text-center font-serif text-[15px] uppercase leading-tight tracking-[0.12em] text-black">{x.name}</span>}</Link>)}</div>
+<Link href="/categorie/tous" className="mt-7 inline-block rounded-full border border-plum px-6 py-2.5 text-[11px] uppercase tracking-[0.18em] text-plum transition hover:bg-plum hover:text-white">Voir tout</Link></div></section>}
 
 <div className="mt-6"><Suggestions title="Vous aimerez aussi" exclude={[]} limit={4}/></div>
 </>}
