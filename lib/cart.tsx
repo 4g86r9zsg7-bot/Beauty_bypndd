@@ -1,6 +1,6 @@
 'use client';
 import {createContext,useContext,useEffect,useState} from 'react';
-export type Line={id:string;name:string;price:number;qty:number;image?:string;variant?:string;max?:number|null;pre?:boolean};
+export type Line={id:string;name:string;price:number;qty:number;image?:string;variant?:string;max?:number|null;pre?:boolean;offer?:string};
 const C=createContext<any>(null);
 export const useCart=()=>useContext(C);
 const cap=(q:number,m?:number|null)=>m!=null?Math.min(q,Math.max(m,1)):q;
