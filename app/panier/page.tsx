@@ -68,7 +68,7 @@ export default function Panier(){
     ??0;
 
   const od=Number(qt?.discount||0);
-  const hasOffer=od>0||lines.some((l:any)=>l.offer);
+  const hasOffer=od>0||qt?.has_pack===true||lines.some((l:any)=>l.offer);
   const disc=!hasOffer&&pr?.ok?Number(pr.discount):0;
 
   const freeOver=Number(cfg?.free_over||0);
