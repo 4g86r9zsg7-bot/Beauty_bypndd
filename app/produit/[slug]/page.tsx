@@ -3,13 +3,14 @@ import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
 import {supabase} from '@/lib/supabase';
 import ProductBuy from '@/components/ProductBuy';
+import ProductOfferUpsell from '@/components/ProductOfferUpsell';
 import Suggestions from '@/components/Suggestions';
 import TrustBlock from '@/components/TrustBlock';
 import Reviews from '@/components/Reviews';
 
 export const dynamic='force-dynamic';
 
-const SITE='https://beautybypnd.com';
+const SITE='https://beautybypndd.com';
 
 function getBrand(value:any){
   return Array.isArray(value)?value[0]?.name:value?.name;
@@ -109,6 +110,19 @@ export default async function P({params}:{params:{slug:string}}){
 
   if(!p)notFound();
 
+  const now=new Date().toISOString();
+
+  const {data:offersData}=await supabase
+    .from('offers')
+    .select('*, offer_items(id,variant,qty, products(*))')
+    .eq('active',true)
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gt.${now}`)
+    .order('position',{nullsFirst:false})
+    .order('created_at',{ascending:false});
+
+  const activeOffers=offersData||[];
+
   const {data:rv}=await supabase
     .from('reviews')
     .select('rating,comment,customer_name,created_at')
@@ -167,9 +181,17 @@ export default async function P({params}:{params:{slug:string}}){
           __html:JSON.stringify(ld).replace(/</g,'\\u003c')
         }}
       />
+
       <ProductBuy p={{...p,rating_avg:avg,rating_count:rl.length}}/>
+
+      <ProductOfferUpsell
+        productId={String(p.id)}
+        offers={activeOffers}
+      />
+
       <TrustBlock p={p}/>
       <Reviews list={rl} avg={avg}/>
+
       <Suggestions
         title="Produits similaires"
         categoryId={p.category_id}
