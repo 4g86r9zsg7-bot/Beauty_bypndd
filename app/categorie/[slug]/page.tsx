@@ -1,5 +1,4 @@
 
-
 import {cache} from 'react';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
@@ -20,13 +19,13 @@ type SP = {
 };
 
 const FIXED: Record<string, {title: string; desc: string; filter?: (q: any) => any}> = {
-  'coups-de-coeur': {title: 'Coups de cœur', desc: 'Notre sélection coups de cœur chez Beauty_bypndd : les produits beauté et mode préférés de nos clientes.', filter: (q) => q.eq('featured', true)},
-  'meilleures-ventes': {title: 'Meilleures ventes', desc: 'Les meilleures ventes Beauty_bypndd : les produits les plus plébiscités, authentiques et à prix accessibles.', filter: (q) => q.eq('is_bestseller', true)},
-  tous: {title: 'Tous les produits', desc: 'Tous les produits Beauty_bypndd : maquillage, soins, parfums et mode, authentiques à prix accessibles.'},
-  nouveautes: {title: 'Nouveautés', desc: 'Les dernières nouveautés beauté, soins, parfums et mode chez Beauty_bypndd.', filter: (q) => q.eq('is_new', true)},
-  promotions: {title: 'Promotions', desc: 'Les bonnes affaires du moment chez Beauty_bypndd : produits authentiques à prix réduit.', filter: (q) => q.not('old_price', 'is', null)},
-  arrivages: {title: 'Prochains arrivages', desc: 'Découvrez les prochains arrivages Beauty_bypndd avant tout le monde.', filter: (q) => q.eq('availability', 'arrival')},
-  precommandes: {title: 'Précommandes', desc: 'Réservez dès maintenant vos produits en précommande chez Beauty_bypndd.', filter: (q) => q.eq('availability', 'preorder')},
+  'coups-de-coeur': {title: 'Coups de cœur', desc: 'Découvrez les coups de cœur Beauty_bypndd : une sélection de maquillage, soins, parfums et produits beauté appréciés par nos clientes au Maroc.', filter: (q) => q.eq('featured', true)},
+  'meilleures-ventes': {title: 'Meilleures ventes', desc: 'Découvrez les meilleures ventes Beauty_bypndd : maquillage, parfums, soins et produits de beauté tendance au Maroc.', filter: (q) => q.eq('is_bestseller', true)},
+  tous: {title: 'Tous les produits', desc: 'Explorez tous les produits Beauty_bypndd : maquillage, soins du visage, soins du corps, parfums, brumes parfumées et mode au Maroc.'},
+  nouveautes: {title: 'Nouveautés', desc: 'Découvrez les nouveautés Beauty_bypndd : les derniers produits de maquillage, soins, parfums et beauté à découvrir au Maroc.', filter: (q) => q.eq('is_new', true)},
+  promotions: {title: 'Promotions', desc: 'Profitez des promotions Beauty_bypndd sur une sélection de produits de beauté, maquillage, soins et parfums au Maroc.', filter: (q) => q.not('old_price', 'is', null)},
+  arrivages: {title: 'Prochains arrivages', desc: 'Découvrez les prochains arrivages Beauty_bypndd et retrouvez bientôt vos produits de beauté préférés.', filter: (q) => q.eq('availability', 'arrival')},
+  precommandes: {title: 'Précommandes', desc: 'Commandez vos produits en précommande chez Beauty_bypndd : maquillage, parfums, soins et nouveautés beauté.', filter: (q) => q.eq('availability', 'preorder')},
 };
 
 const SORTS: [string, string][] = [
@@ -63,54 +62,87 @@ const subtree = (all: any[], id: any, depth = 0): any[] =>
     ? [id]
     : [id, ...kidsOf(all, id).flatMap((k) => subtree(all, k.id, depth + 1))];
 
-// ---------- Métadonnées ----------
+// ---------- Métadonnées SEO ----------
 export async function generateMetadata({params}: {params: {slug: string}}) {
   const s = params.slug;
   const all = await getCats();
   const f = FIXED[s];
   const c = all.find((x) => x.slug === s);
 
-  if (!f && !c) return {title: 'Boutique | Beauty_bypndd'};
+  if (!f && !c) {
+    return {
+      title: 'Boutique beauté | Beauty_bypndd',
+      robots: {
+        index: false,
+        follow: true
+      }
+    };
+  }
 
   const title = f ? f.title : c.name;
-  const subs = c ? kidsOf(all, c.id).map((k) => k.name).slice(0, 6) : [];
+
+  const subs = c
+    ? kidsOf(all, c.id).map((k) => k.name).slice(0, 6)
+    : [];
 
   const description = f
     ? f.desc
     : subs.length
-    ? `${title} chez Beauty_bypndd : ${subs.join(', ')}. Marques authentiques à prix accessibles, livraison à domicile et paiement à la livraison.`
-    : `Découvrez ${title} chez Beauty_bypndd : produits authentiques à prix accessibles, livraison à domicile et paiement à la livraison.`;
+    ? `Découvrez notre sélection ${title.toLowerCase()} chez Beauty_bypndd : ${subs.join(', ')}. Produits de beauté et marques tendance à prix accessibles, livraison au Maroc et paiement à la livraison.`
+    : `Découvrez ${title} chez Beauty_bypndd : une sélection de produits de beauté et de grandes marques à prix accessibles, avec livraison au Maroc et paiement à la livraison.`;
 
-  let pq: any = supabase.from('products').select('images').eq('active', true);
+  let pq: any = supabase
+    .from('products')
+    .select('images')
+    .eq('active', true);
 
   if (c) {
-    pq = pq.in('category_id', subtree(all, c.id)).order('sold', {ascending: false});
+    pq = pq
+      .in('category_id', subtree(all, c.id))
+      .order('sold', {ascending: false});
   } else {
-    pq = (f?.filter ? f.filter(pq) : pq).order('created_at', {ascending: false});
+    pq = (f?.filter ? f.filter(pq) : pq)
+      .order('created_at', {ascending: false});
   }
 
   const {data: pr} = await pq.limit(1);
-  const img: string | undefined = c?.image_url || pr?.[0]?.images?.[0];
+
+  const img: string | undefined =
+    c?.image_url || pr?.[0]?.images?.[0];
+
+  const pageTitle = `${title} | Beauty_bypndd`;
 
   return {
-    title: `${title} | Beauty_bypndd`,
+    title: pageTitle,
     description,
-    alternates: {canonical: `/categorie/${s}`},
+    alternates: {
+      canonical: `/categorie/${s}`
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true
+      }
+    },
     openGraph: {
-      title: `${title} | Beauty_bypndd`,
+      title: pageTitle,
       description,
       url: `/categorie/${s}`,
       siteName: 'Beauty_bypndd',
       locale: 'fr_FR',
       type: 'website',
-      images: img ? [{url: img, alt: title}] : undefined,
+      images: img
+        ? [{url: img, alt: `${title} - Beauty_bypndd`}]
+        : undefined
     },
     twitter: {
       card: img ? 'summary_large_image' : 'summary',
-      title: `${title} | Beauty_bypndd`,
+      title: pageTitle,
       description,
       images: img ? [img] : undefined
-    },
+    }
   };
 }
 
