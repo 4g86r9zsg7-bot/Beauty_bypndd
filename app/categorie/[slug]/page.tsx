@@ -1,11 +1,11 @@
 
+
 import {cache} from 'react';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {supabase} from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import Suggestions from '@/components/Suggestions';
-import ScrollRow from '@/components/ScrollRow';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,13 +136,6 @@ export default async function Cat({
     ? all.find((x) => x.id === cat.parent_id)
     : null;
 
-  const navItems: any[] = cat
-    ? kidsOf(all, parent ? parent.id : cat.id)
-    : all.filter((x) => !x.parent_id && x.slug !== 'sacs-accessoires');
-
-  const navTitle = cat ? (parent ? parent.name : cat.name) : 'Parcourir par catégorie';
-  const navAllHref = cat ? (parent ? `/categorie/${parent.slug}` : null) : null;
-
   let title = fixed ? fixed.title : cat.name;
 
   if (s === 'tous' && sp.q) {
@@ -199,7 +192,6 @@ export default async function Cat({
   } else if (sp.availability === 'soldout') {
     q = q.or('availability.eq.soldout,and(stock.lte.0,availability.is.null),and(stock.lte.0,availability.not.in.(arrival,preorder))');
   } else if (sp.stock) {
-    // Compatibilité avec les anciennes URL contenant stock=1
     q = q.neq('availability', 'soldout');
   }
 
@@ -254,8 +246,6 @@ export default async function Cat({
     if (bn) title = bn;
   }
 
-  const isBrand = s === 'tous' && !!sp.brand && !sp.q;
-
   // ---------- URL ----------
   const url = (over: Partial<SP>) => {
     const p = new URLSearchParams();
@@ -294,7 +284,6 @@ export default async function Cat({
   const sortLabel = SORTS.find((x) => x[0] === (o || ''))?.[1] || 'Plus récents';
 
   const field = 'w-full rounded-full border border-sand bg-white px-4 py-2.5 text-sm outline-none focus:border-plum';
-  const noScroll = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
   return (
     <>
@@ -316,35 +305,6 @@ export default async function Cat({
           {list.length} produit{list.length > 1 ? 's' : ''}
         </p>
       </div>
-
-      {/* Navigation par sous-catégories */}
-      {navItems.length > 0 && !isBrand && (
-        <ScrollRow className={`-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 md:gap-5 ${noScroll}`}>
-          {navItems.map((k) => (
-            <Link
-              key={k.id}
-              href={`/categorie/${k.slug}`}
-              className="group w-[108px] shrink-0 md:w-[112px]"
-            >
-              <span className={`relative mx-auto block h-[92px] w-[92px] overflow-hidden rounded-full md:h-[108px] md:w-[108px] bg-gradient-to-br from-sand to-white ring-1 transition ${k.slug === s ? 'ring-2 ring-plum' : 'ring-sand group-hover:ring-plum'}`}>
-                <span className="absolute inset-0 flex items-center justify-center font-serif text-4xl text-plum/40">
-                  {k.name.charAt(0)}
-                </span>
-                <img
-                  src={k.image_url || `/categories/${k.slug}.jpg`}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-              </span>
-              <span className={`mt-2 block text-center text-xs leading-tight ${k.slug === s ? 'font-semibold text-plum' : 'text-ink'}`}>
-                {k.name}
-              </span>
-            </Link>
-          ))}
-        </ScrollRow>
-      )}
 
       {/* Barre filtres + tri */}
       <div className="relative mt-6 flex items-center justify-between gap-3 border-y border-sand py-3">
