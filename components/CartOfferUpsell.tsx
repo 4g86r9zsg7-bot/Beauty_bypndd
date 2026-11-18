@@ -16,7 +16,6 @@ function variantsOf(p:any){
 
 function validItem(it:any){
   const p=productOf(it);
-
   if(!p||!p.active||['soldout','arrival','preorder'].includes(p.availability))return false;
 
   const variants=variantsOf(p);
@@ -96,12 +95,10 @@ export default function CartOfferUpsell(){
   if(loading||!lines.length||!offers.length)return null;
 
   const productLines=lines.filter((l:any)=>!l.offer);
-
   if(!productLines.length)return null;
 
   const packs=offers.filter((o:any)=>{
     if(o.kind!=='pack'||Number(o.pack_price)<=0)return false;
-
     if(o.stock!=null&&Number(o.stock)-Number(o.sold||0)<=0)return false;
 
     const items=o.offer_items||[];
@@ -115,7 +112,6 @@ export default function CartOfferUpsell(){
 
   const freeOffers=offers.filter((o:any)=>{
     if(o.kind!=='buy_x_get_1')return false;
-
     if(o.stock!=null&&Number(o.stock)-Number(o.sold||0)<=0)return false;
 
     const items=o.offer_items||[];
@@ -128,9 +124,7 @@ export default function CartOfferUpsell(){
       const variants=variantsOf(p);
       const variant=it.variant||'';
 
-      if(variant){
-        return sum+cartQuantity(lines,it,variant);
-      }
+      if(variant)return sum+cartQuantity(lines,it,variant);
 
       if(variants.length){
         return sum+variants.reduce((s:number,v:any)=>
@@ -142,7 +136,6 @@ export default function CartOfferUpsell(){
     },0);
 
     const required=Math.max(1,Number(o.buy_qty||1))+1;
-
     return total>0&&total<required;
   });
 
@@ -154,7 +147,6 @@ export default function CartOfferUpsell(){
 
     const max=itemMax(it,variant);
     const current=cartQuantity(lines,it,variant);
-
     if(max<=current)return;
 
     add({
@@ -169,21 +161,127 @@ export default function CartOfferUpsell(){
     });
   };
 
-  return(
-    <section className="rounded-2xl border border-[#eadccf] bg-gradient-to-br from-[#fff9f7] via-white to-[#fffaf1] p-5 shadow-sm sm:p-6">
+  const imageOf=(p:any)=>Array.isArray(p?.images)?p.images[0]:p?.images;
 
-      <div className="text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b47b82]">
-          Beauty_bypndd
+  const productCard=(it:any,o:any)=>{
+    const p=productOf(it);
+    if(!p)return null;
+
+    const variants=variantsOf(p);
+    const fixed=it.variant||'';
+    const key=`${o.id}-${it.id}`;
+    const needsChoice=variants.length>0&&!fixed;
+    const choice=selected[key]??fixed;
+    const chosen=variants.find((v:any)=>v.name===choice);
+    const required=Math.max(1,Number(it.qty||1));
+
+    const current=fixed
+      ?cartQuantity(lines,it,fixed)
+      :needsChoice&&choice
+        ?cartQuantity(lines,it,choice)
+        :!variants.length
+          ?cartQuantity(lines,it,'')
+          :variants.reduce((sum:number,v:any)=>
+            sum+cartQuantity(lines,it,v.name),0);
+
+    const missing=Math.max(0,required-current);
+    const max=choice||fixed
+      ?itemMax(it,choice||fixed)
+      :Number(p.stock||0);
+
+    const available=needsChoice
+      ?!!chosen&&chosen.status!=='soldout'&&Number(chosen.stock??0)>0
+      :validItem(it);
+
+    const image=imageOf(p);
+
+    return(
+      <div key={it.id} className="group flex gap-3 rounded-2xl border border-[#eee2df] bg-white p-3 transition hover:border-[#d8b5bb]">
+        <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f8f1ed] sm:h-28 sm:w-24">
+          {image?(
+            <img src={image} alt={p.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>
+          ):(
+            <div className="flex h-full items-center justify-center text-2xl text-[#c4a5a5]">✧</div>
+          )}
+
+          {missing===0&&(
+            <div className="absolute inset-0 flex items-center justify-center bg-[#593b48]/35">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg text-[#8d5366]">✓</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex-1">
+            <p className="text-sm font-medium leading-snug text-[#593b48]">{p.name}</p>
+
+            {fixed&&(
+              <p className="mt-1 text-xs text-[#967b80]">Variante : {fixed}</p>
+            )}
+
+            <p className="mt-2 font-semibold text-[#80606a]">
+              {eur(itemPrice(it,choice||fixed))}
+            </p>
+
+            {needsChoice&&(
+              <select
+                value={choice}
+                onChange={e=>setSelected(s=>({...s,[key]:e.target.value}))}
+                className="mt-2 w-full rounded-xl border border-[#eadccf] bg-[#fffaf8] px-3 py-2.5 text-xs text-[#593b48] outline-none focus:border-[#b47b82]"
+              >
+                <option value="">Choisir une variante</option>
+                {variants.map((v:any)=>(
+                  <option key={v.name} value={v.name} disabled={v.status==='soldout'||Number(v.stock??0)<=0}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] text-[#967b80]">
+              {missing===0?'Quantité complète':`${current}/${required} dans le panier`}
+            </p>
+
+            {missing>0?(
+              <button
+                type="button"
+                disabled={!available||(!choice&&needsChoice)||current>=max||max<=0}
+                onClick={()=>addProduct(it,choice||fixed)}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#8d5366] bg-[#8d5366] px-4 py-2 text-[11px] font-semibold text-white transition hover:border-[#593b48] hover:bg-[#593b48] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span className="text-base leading-none">+</span>
+                Ajouter
+              </button>
+            ):(
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f7eef0] px-3 py-2 text-[10px] font-semibold text-[#8d5366]">
+                ✓ Ajouté
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return(
+    <section className="overflow-hidden rounded-[28px] border border-[#eadccf] bg-[#fffaf8] shadow-[0_12px_40px_rgba(89,59,72,0.06)]">
+
+      <div className="px-5 pb-5 pt-7 text-center sm:px-8">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b47b82]">
+          BEAUTY_BYP NDD
         </p>
 
-        <h2 className="mt-2 font-serif text-2xl text-[#593b48]">
-          Profitez de nos offres
+        <h2 className="mt-2 font-serif text-2xl text-[#593b48] sm:text-3xl">
+          Complétez votre panier
         </h2>
 
-        <p className="mt-2 text-sm text-[#806d70]">
-          Ajoutez les articles manquants et profitez automatiquement de vos avantages.
+        <p className="mx-auto mt-2 max-w-lg text-xs leading-relaxed text-[#806d70] sm:text-sm">
+          Découvrez les produits associés et profitez de nos offres exclusives.
         </p>
+
+        <div className="mx-auto mt-4 h-px w-14 bg-[#d8b5bb]"/>
       </div>
 
       {packs.map((o:any)=>{
@@ -196,9 +294,7 @@ export default function CartOfferUpsell(){
           const variants=variantsOf(p);
           const variant=it.variant||'';
 
-          if(variant){
-            return cartQuantity(lines,it,variant)>=Number(it.qty||1);
-          }
+          if(variant)return cartQuantity(lines,it,variant)>=Number(it.qty||1);
 
           if(variants.length){
             return variants.reduce((sum:number,v:any)=>
@@ -209,159 +305,70 @@ export default function CartOfferUpsell(){
           return cartQuantity(lines,it,'')>=Number(it.qty||1);
         });
 
+        const regularTotal=items.reduce((sum:number,it:any)=>{
+          const p=productOf(it);
+          if(!p)return sum;
+
+          const variants=variantsOf(p);
+          const variant=it.variant||'';
+          const price=variant
+            ?itemPrice(it,variant)
+            :variants.length
+              ?Math.min(...variants.map((v:any)=>Number(v.price??p.price??0)))
+              :Number(p.price||0);
+
+          return sum+price*Math.max(1,Number(it.qty||1));
+        },0);
+
+        const saving=Math.max(0,regularTotal-Number(o.pack_price));
+
         return(
-          <div key={`pack-${o.id}`} className="mt-6 rounded-2xl border border-[#eadccf] bg-white p-4 sm:p-5">
-
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47b82]">
-              Pack exclusif
-            </p>
-
-            <h3 className="mt-2 font-serif text-xl text-[#593b48]">
-              {o.title}
-            </h3>
-
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-[#fff8f5] p-3">
+          <div key={`pack-${o.id}`} className="mx-4 mb-5 overflow-hidden rounded-2xl border border-[#eadccf] bg-white sm:mx-7">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-[#f8eeee] to-[#fff8f3] px-4 py-4 sm:px-5">
               <div>
-                <p className="text-xs text-[#806d70]">
-                  Prix fixe du pack
-                </p>
-                <p className="font-serif text-2xl text-[#593b48]">
-                  {eur(Number(o.pack_price))}
-                </p>
+                <span className="inline-block rounded-full bg-white px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8d5366]">
+                  Offre exclusive
+                </span>
+                <h3 className="mt-2 font-serif text-xl text-[#593b48]">{o.title}</h3>
               </div>
 
-              <span className="rounded-full bg-[#f5e5e6] px-3 py-2 text-[10px] font-semibold text-[#8d5366]">
-                {complete?'Pack complet':'Remise automatique'}
-              </span>
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-wider text-[#967b80]">Prix du pack</p>
+                <p className="font-serif text-2xl text-[#593b48]">{eur(Number(o.pack_price))}</p>
+                {saving>0&&(
+                  <p className="text-[10px] font-semibold text-[#8d5366]">
+                    Économisez {eur(saving)}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className="mt-4 space-y-3">
-              {items.map((it:any)=>{
-                const p=productOf(it);
-                if(!p)return null;
+            <div className="p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-[#593b48]">Les produits de votre pack</p>
+                <span className="rounded-full bg-[#f7eef0] px-3 py-1 text-[10px] font-semibold text-[#8d5366]">
+                  {complete?'Pack complet':'À compléter'}
+                </span>
+              </div>
 
-                const variants=variantsOf(p);
-                const fixed=it.variant||'';
-                const key=`${o.id}-${it.id}`;
-                const needsChoice=variants.length>0&&!fixed;
-                const choice=selected[key]??fixed;
-                const chosen=variants.find((v:any)=>v.name===choice);
+              <div className="space-y-3">
+                {items.map((it:any)=>productCard(it,o))}
+              </div>
 
-                const required=Math.max(1,Number(it.qty||1));
-
-                const current=fixed
-                  ?cartQuantity(lines,it,fixed)
-                  :needsChoice&&choice
-                    ?cartQuantity(lines,it,choice)
-                    :!variants.length
-                      ?cartQuantity(lines,it,'')
-                      :variants.reduce((sum:number,v:any)=>
-                        sum+cartQuantity(lines,it,v.name),0);
-
-                const missing=Math.max(0,required-current);
-                const max=choice||fixed
-                  ?itemMax(it,choice||fixed)
-                  :Number(p.stock||0);
-
-                const image=Array.isArray(p.images)?p.images[0]:p.images;
-
-                const available=needsChoice
-                  ?!!chosen&&chosen.status!=='soldout'&&Number(chosen.stock??0)>0
-                  :validItem(it);
-
-                return(
-                  <div key={it.id} className="flex gap-3 rounded-xl border border-[#f0e7e2] p-3">
-
-                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-[#f8f1ed]">
-                      {image&&(
-                        <img
-                          src={image}
-                          alt={p.name}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <p className="text-sm font-medium text-[#593b48]">
-                        {p.name}
-                      </p>
-
-                      {fixed&&(
-                        <p className="mt-1 text-xs text-[#806d70]">
-                          Variante : {fixed}
-                        </p>
-                      )}
-
-                      <p className="mt-1 text-sm font-semibold text-[#80606a]">
-                        {eur(itemPrice(it,choice||fixed))}
-                      </p>
-
-                      {needsChoice&&(
-                        <select
-                          value={choice}
-                          onChange={e=>setSelected(s=>({
-                            ...s,
-                            [key]:e.target.value
-                          }))}
-                          className="mt-2 w-full rounded-lg border border-[#eadccf] bg-white px-2 py-2 text-xs"
-                        >
-                          <option value="">Choisir une variante</option>
-                          {variants.map((v:any)=>(
-                            <option
-                              key={v.name}
-                              value={v.name}
-                              disabled={v.status==='soldout'||Number(v.stock??0)<=0}
-                            >
-                              {v.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-
-                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs text-[#806d70]">
-                          {missing===0
-                            ?'Quantité complète'
-                            :`${current}/${required} dans le panier`}
-                        </p>
-
-                        {missing>0&&(
-                          <button
-                            type="button"
-                            disabled={!available||(!choice&&needsChoice)||current>=max||max<=0}
-                            onClick={()=>addProduct(it,choice||fixed)}
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#8d5366] text-xl font-medium text-white transition hover:bg-[#593b48] disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label={`Ajouter ${p.name}`}
-                          >
-                            +
-                          </button>
-                        )}
-
-                        {missing===0&&(
-                          <span className="text-xs font-semibold text-[#8d5366]">
-                            ✓ Ajouté
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="mt-4 rounded-xl bg-[#fff8f5] px-4 py-3 text-center">
+                <p className="text-xs leading-relaxed text-[#806d70]">
+                  {complete
+                    ?'Votre pack est complet. Son prix spécial sera calculé automatiquement.'
+                    :'Ajoutez les produits manquants : le prix spécial sera appliqué automatiquement lorsque toutes les quantités seront réunies.'}
+                </p>
+              </div>
             </div>
-
-            <p className="mt-4 text-center text-xs leading-relaxed text-[#806d70]">
-              {complete
-                ?'Votre pack est complet. Son prix sera calculé automatiquement dans le panier.'
-                :'Ajoutez les produits manquants : la réduction du pack sera calculée automatiquement lorsque toutes les quantités seront réunies.'}
-            </p>
           </div>
         );
       })}
 
       {freeOffers.map((o:any)=>{
         const items=(o.offer_items||[]).filter(validItem);
-
         if(!items.length)return null;
 
         const total=items.reduce((sum:number,it:any)=>{
@@ -370,9 +377,7 @@ export default function CartOfferUpsell(){
 
           const variants=variantsOf(p);
 
-          if(it.variant){
-            return sum+cartQuantity(lines,it,it.variant);
-          }
+          if(it.variant)return sum+cartQuantity(lines,it,it.variant);
 
           if(variants.length){
             return sum+variants.reduce((s:number,v:any)=>
@@ -387,109 +392,31 @@ export default function CartOfferUpsell(){
         const missing=Math.max(0,required-total);
 
         return(
-          <div key={`free-${o.id}`} className="mt-6 rounded-2xl border border-[#eadccf] bg-white p-4 sm:p-5">
+          <div key={`free-${o.id}`} className="mx-4 mb-5 overflow-hidden rounded-2xl border border-[#eadccf] bg-white sm:mx-7">
+            <div className="bg-gradient-to-r from-[#f8eeee] to-[#fff8f3] px-4 py-4 sm:px-5">
+              <span className="inline-block rounded-full bg-white px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8d5366]">
+                Offre spéciale
+              </span>
 
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47b82]">
-              Offre spéciale
-            </p>
+              <h3 className="mt-2 font-serif text-xl text-[#593b48]">{o.title}</h3>
 
-            <h3 className="mt-2 font-serif text-xl text-[#593b48]">
-              {o.title}
-            </h3>
+              <p className="mt-2 text-xs leading-relaxed text-[#806d70]">
+                {`Ajoutez encore ${missing} article${missing>1?'s':''} de cette sélection pour profiter de votre offre. La réduction sera calculée automatiquement.`}
+              </p>
+            </div>
 
-            <p className="mt-2 text-sm leading-relaxed text-[#806d70]">
-              Ajoutez encore {missing} article{missing>1?'s':''} de cette sélection pour profiter de votre offre. La réduction sera calculée automatiquement.
-            </p>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {items.map((it:any)=>{
-                const p=productOf(it);
-                if(!p)return null;
-
-                const variants=variantsOf(p);
-                const fixed=it.variant||'';
-                const key=`${o.id}-${it.id}`;
-                const needsChoice=variants.length>0&&!fixed;
-                const choice=selected[key]??fixed;
-                const chosen=variants.find((v:any)=>v.name===choice);
-                const max=choice||fixed
-                  ?itemMax(it,choice||fixed)
-                  :Number(p.stock||0);
-
-                const current=choice||fixed
-                  ?cartQuantity(lines,it,choice||fixed)
-                  :!variants.length
-                    ?cartQuantity(lines,it,'')
-                    :variants.reduce((sum:number,v:any)=>
-                      sum+cartQuantity(lines,it,v.name),0);
-
-                const image=Array.isArray(p.images)?p.images[0]:p.images;
-                const available=needsChoice
-                  ?!!chosen&&chosen.status!=='soldout'&&Number(chosen.stock??0)>0
-                  :validItem(it);
-
-                return(
-                  <div key={it.id} className="flex gap-3 rounded-xl border border-[#f0e7e2] p-3">
-
-                    <div className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-[#f8f1ed]">
-                      {image&&(
-                        <img
-                          src={image}
-                          alt={p.name}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    </div>
-
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <p className="line-clamp-2 text-sm font-medium text-[#593b48]">
-                        {p.name}
-                      </p>
-
-                      <p className="mt-1 text-sm font-semibold text-[#80606a]">
-                        {eur(itemPrice(it,choice||fixed))}
-                      </p>
-
-                      {needsChoice&&(
-                        <select
-                          value={choice}
-                          onChange={e=>setSelected(s=>({
-                            ...s,
-                            [key]:e.target.value
-                          }))}
-                          className="mt-2 w-full rounded-lg border border-[#eadccf] bg-white px-2 py-2 text-xs"
-                        >
-                          <option value="">Choisir une variante</option>
-                          {variants.map((v:any)=>(
-                            <option
-                              key={v.name}
-                              value={v.name}
-                              disabled={v.status==='soldout'||Number(v.stock??0)<=0}
-                            >
-                              {v.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-
-                      <button
-                        type="button"
-                        disabled={!available||(!choice&&needsChoice)||current>=max||max<=0||missing<=0}
-                        onClick={()=>addProduct(it,choice||fixed)}
-                        className="mt-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#8d5366] text-xl text-white transition hover:bg-[#593b48] disabled:opacity-40"
-                        aria-label={`Ajouter ${p.name}`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
+              {items.map((it:any)=>productCard(it,o))}
             </div>
           </div>
         );
       })}
 
+      <div className="px-5 pb-5 text-center">
+        <p className="text-[9px] tracking-wider text-[#b49b9c]">
+          BEAUTY_BYP NDD · BEAUTÉ & ÉLÉGANCE
+        </p>
+      </div>
     </section>
   );
 }
