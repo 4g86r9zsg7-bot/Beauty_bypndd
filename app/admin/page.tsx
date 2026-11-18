@@ -1,3 +1,4 @@
+
 'use client';import {useEffect,useState} from 'react';import {supabase,eur} from '@/lib/supabase';import AdminHome from '@/components/AdminHome';
 const ST=['pending','confirmed','preparing','shipped','delivered','cancelled'];const SL:any={pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',shipped:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
 const NEXT:Record<string,[string,string][]>={pending:[['confirmed','Confirmer'],['cancelled','Annuler']],confirmed:[['preparing','En préparation'],['cancelled','Annuler']],preparing:[['shipped','En livraison'],['cancelled','Annuler']],shipped:[['delivered','Livrée'],['cancelled','Annuler']],delivered:[],cancelled:[['pending','Remettre en attente']]};
@@ -17,7 +18,7 @@ useEffect(()=>{if(!ok)return;const t=setInterval(()=>{load()},30000);return()=>c
 async function login(e:any){e.preventDefault();const {error}=await supabase.auth.signInWithPassword({email:em,password:pw});if(error)setMsg(error.message);else check()}
 if(ok===null)return <p>Chargement…</p>;
 if(!ok)return <form onSubmit={login} className="max-w-sm mx-auto space-y-3"><h1 className="font-serif text-3xl">Administration</h1><input type="email" required placeholder="Email" value={em} onChange={e=>setEm(e.target.value)} className="w-full border p-3"/><input type="password" required placeholder="Mot de passe" value={pw} onChange={e=>setPw(e.target.value)} className="w-full border p-3"/><button className="w-full bg-ink text-white py-3">Se connecter</button><p className="text-sm text-red-700">{msg}</p></form>;
-const revenue=orders.filter(o=>o.status!=='cancelled').reduce((s,o)=>s+Number(o.total),0);
+const revenue=orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.total),0);
 const norm=(x:string)=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const shown=prods.filter(p=>(!search||norm(`${p.name} ${p.brands?.name||''}`).includes(norm(search)))&&(!fb||p.brand_id===fb)&&(!fc||p.category_id===fc)&&(flt==='all'||(flt==='out'&&p.availability==='soldout')||(flt==='hidden'&&!p.active)||(flt==='stock'&&p.availability!=='soldout'&&p.active)));
 const changeStatus=async(id:string,status:string)=>{if(busyId)return;if(status==='cancelled'&&!confirm('Annuler cette commande ? Le stock sera remis si elle avait été confirmée.'))return;setBusyId(id);const {error}=await supabase.rpc('set_order_status',{p_id:id,p_status:status});setBusyId('');setMsg(error?error.message:`Statut mis à jour : ${SL[status]}`);await load()};
@@ -53,7 +54,18 @@ const del=async(id:string)=>{if(confirm('Supprimer ce produit ?')){await supabas
 const quick=async(t:'brands'|'categories')=>{const n=prompt('Nom ?');if(!n)return;await supabase.from(t).insert(t==='brands'?{name:n}:{name:n,slug:n.toLowerCase().replace(/[^a-z0-9]+/g,'-')});load()};
 return <div><div className="flex gap-2 flex-wrap mb-4">{[['home','Tableau de bord'],['orders','Commandes'],['products','Produits'],['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' masqués':revs.length})`],['promos','Codes promo'],['new','Ajouter un produit']].map(([k,l])=><button key={k} onClick={()=>{if(k==='new'){setEdit(null);setImgs([]);setVrows([])}setTab(k)}} className={`px-4 py-2 border ${tab===k?'bg-ink text-white':''}`}>{l}</button>)}<a href="/admin/offres" className="px-4 py-2 border">Offres &amp; Packs</a><a href="/admin/categories" className="px-4 py-2 border">Catégories</a><a href="/admin/banniere" className="px-4 py-2 border">Bannière</a><button onClick={()=>supabase.auth.signOut().then(()=>setOk(false))} className="ml-auto underline text-sm">Déconnexion</button></div>
 <p className="text-sm mb-4">Chiffre d'affaires : <b>{eur(revenue)}</b> · Commandes : {orders.length} · En attente : {orders.filter(o=>o.status==='pending').length}</p>{msg&&<p className="text-sm mb-2">{msg}</p>}
-{tab==='home'&&<AdminHome go={(t:string)=>{if(t==='new'){setEdit(null);setImgs([]);setVrows([])}setTab(t);window.scrollTo({top:0})}} stats={{orders:orders.length,pending:orders.filter(o=>o.status==='pending').length,revenue:eur(revenue),products:prods.length,low:lowS.length,out:outS.length,hiddenReviews:revs.filter(r=>!r.published).length,promos:promos.filter((c:any)=>c.active).length}}/>}
+{tab==='home'&&<AdminHome go={(t:string)=>{if(t==='new'){setEdit(null);setImgs([]);setVrows([])}setTab(t);window.scrollTo({top:0})}} stats={{
+orders:orders.length,
+pending:orders.filter(o=>o.status==='pending').length,
+revenue:eur(revenue),
+products:prods.length,
+low:lowS.length,
+out:outS.length,
+hiddenReviews:revs.filter(r=>!r.published).length,
+promos:promos.filter((c:any)=>c.active).length,
+orderRows:orders,
+productRows:prods
+}}/>}
 {tab==='promos'&&<div className="space-y-4"><form onSubmit={savePromo} className="grid gap-2 rounded-2xl border border-sand bg-white p-4 text-sm"><b>Créer ou modifier un code</b>
 <input value={pf.code||''} onChange={e=>setPf({...pf,code:e.target.value})} placeholder="Code (ex : BIENVENUE10)" className="border p-2 uppercase"/>
 <div className="flex gap-2"><select value={pf.kind} onChange={e=>setPf({...pf,kind:e.target.value})} className="border p-2"><option value="percent">Pourcentage (%)</option><option value="fixed">Montant fixe (DH)</option></select><input type="number" step="0.01" value={pf.value??''} onChange={e=>setPf({...pf,value:e.target.value})} placeholder="Valeur" className="w-28 border p-2"/></div>
