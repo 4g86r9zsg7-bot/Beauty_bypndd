@@ -25,12 +25,14 @@ export default function Suggestions({
   const [products,setProducts]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
 
+  const excludeKey=exclude.join(',');
+
   const excludedIds=useMemo(
     ()=>new Set([
       ...exclude,
       ...(excludeCart?(lines||[]).map((l:any)=>l.id):[])
     ]),
-    [exclude.join(','),excludeCart,lines]
+    [excludeKey,excludeCart,lines]
   );
 
   useEffect(()=>{
@@ -39,12 +41,19 @@ export default function Suggestions({
     const load=async()=>{
       setLoading(true);
 
-      const {data,error}=await supabase
+      let query=supabase
         .from('products')
         .select('*,brands(name)')
         .eq('active',true)
         .order('created_at',{ascending:false})
         .limit(100);
+
+      // Sur une fiche produit, on impose la même catégorie.
+      if(categoryId){
+        query=query.eq('category_id',categoryId);
+      }
+
+      const {data,error}=await query;
 
       if(!active)return;
 
@@ -60,31 +69,21 @@ export default function Suggestions({
         return Number(p.stock||0)>0;
       };
 
-      const score=(p:any)=>{
-        let points=0;
-
-        if(categoryId&&p.category_id===categoryId)points+=60;
-        if(brandId&&p.brand_id===brandId)points+=35;
-
-        if(available(p))points+=30;
-        if(p.availability==='last')points+=5;
-
-        if(p.is_bestseller)points+=25;
-        if(p.is_new)points+=15;
-
-        if(p.old_price&&Number(p.old_price)>Number(p.price))points+=10;
-
-        points+=Math.min(Number(p.sold)||0,20);
-
-        if(p.availability==='preorder')points+=5;
-        if(p.availability==='arrival')points+=3;
-
-        return points;
-      };
-
       const ranked=data
         .filter((p:any)=>!excludedIds.has(p.id))
-        .map((p:any)=>({product:p,score:score(p)}))
+        .map((p:any)=>{
+          let score=0;
+
+          if(brandId&&p.brand_id===brandId)score+=50;
+          if(p.is_bestseller)score+=25;
+          if(p.is_new)score+=15;
+          if(available(p))score+=30;
+          if(p.old_price&&Number(p.old_price)>Number(p.price))score+=10;
+
+          score+=Math.min(Number(p.sold)||0,20);
+
+          return {product:p,score};
+        })
         .sort((a:any,b:any)=>b.score-a.score);
 
       setProducts(ranked.slice(0,limit).map((x:any)=>x.product));
