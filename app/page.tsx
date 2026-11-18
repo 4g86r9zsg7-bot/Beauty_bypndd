@@ -1,6 +1,7 @@
 
+
 import Link from 'next/link';
-import {supabase} from '@/lib/supabase';
+import {supabase,eur} from '@/lib/supabase';
 import Shortcuts from '@/components/Shortcuts';
 import Hero from '@/components/Hero';
 import Shelf from '@/components/Shelf';
@@ -33,21 +34,40 @@ const uniq=(a:any[]|null)=>{
 
 export default async function Home(){
 
-  const [{data:c},{data:b}]=await Promise.all([
+  const [{data:c},{data:b},{data:promoData}]=await Promise.all([
     supabase.from('categories')
       .select('*')
       .order('position',{nullsFirst:false})
       .order('name'),
     supabase.from('brands')
       .select('*')
-      .order('name')
+      .order('name'),
+    supabase.from('promo_codes')
+      .select('*')
+      .eq('active',true)
+      .order('created_at',{ascending:false})
   ]);
 
   const cats=uniq(c);
   const brands=uniq(b);
   const top=cats.filter((x:any)=>!x.parent_id&&x.slug!=='sacs-accessoires');
 
-  const nowIso=new Date().toISOString();
+  const now=new Date();
+
+  const promoCodes=(promoData||[]).filter((p:any)=>{
+    const starts=p.starts_at?new Date(p.starts_at):null;
+    const ends=p.expires_at?new Date(p.expires_at):null;
+    const max=p.max_uses==null?null:Number(p.max_uses);
+    const uses=Number(p.uses||0);
+    const value=p.kind==='percent'?Number(p.percent):Number(p.amount);
+
+    return (!starts||starts<=now)
+      &&(!ends||ends>now)
+      &&(max===null||uses<max)
+      &&value>0;
+  }).slice(0,4);
+
+  const nowIso=now.toISOString();
 
   const {count:offerCount}=await supabase
     .from('offers')
@@ -204,6 +224,70 @@ export default async function Home(){
           </Link>
 
         </div>
+
+        {/* CODES PROMO */}
+        {promoCodes.length>0&&(
+          <section className="relative mt-7 overflow-hidden rounded-[26px] border border-[#C6A15B]/45 bg-gradient-to-br from-[#fff8fa] via-white to-[#f8eaf0] px-5 py-8 shadow-sm sm:px-8">
+
+            <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#C6A15B]/10 blur-3xl"/>
+            <div className="relative">
+
+              <div className="text-center">
+                <p className="text-[10px] uppercase tracking-[0.35em] text-[#98783b]">
+                  Un petit cadeau pour vous
+                </p>
+                <h2 className="mt-3 font-serif text-3xl text-plum sm:text-4xl">
+                  Codes promo exclusifs
+                </h2>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/65">
+                  Profitez de vos réductions en saisissant l'un de ces codes dans votre panier.
+                </p>
+                <div className="mx-auto mt-4 h-px w-16 bg-[#C6A15B]"/>
+              </div>
+
+              <div className="mx-auto mt-7 grid max-w-4xl gap-4 sm:grid-cols-2">
+                {promoCodes.map((p:any)=>(
+                  <div
+                    key={p.id||p.code}
+                    className="relative overflow-hidden rounded-2xl border border-[#ead8df] bg-white/90 p-5 text-center shadow-sm"
+                  >
+                    <span className="text-[9px] uppercase tracking-[0.25em] text-[#98783b]">
+                      Votre code privilège
+                    </span>
+
+                    <p className="mt-2 break-all font-serif text-2xl font-semibold tracking-[0.12em] text-plum">
+                      {p.code}
+                    </p>
+
+                    <p className="mt-2 font-serif text-3xl text-rose">
+                      {p.kind==='percent'
+                        ?`-${Number(p.percent)} %`
+                        :`-${eur(Number(p.amount))}`}
+                    </p>
+
+                    <p className="mt-2 text-[10px] text-ink/55">
+                      À saisir dans votre panier
+                    </p>
+
+                    {p.expires_at&&(
+                      <p className="mt-2 text-[10px] text-[#98783b]">
+                        Valable jusqu'au {new Date(p.expires_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
+
+                    <Link
+                      href="/categorie/tous"
+                      className="mt-4 inline-flex rounded-full border border-[#C6A15B] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-plum transition hover:bg-[#fdf3f7]"
+                    >
+                      En profiter
+                    </Link>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          </section>
+        )}
 
         {/* CATEGORIES */}
         <section className="mt-16 rounded-3xl bg-[#FCF8F8] px-3 py-10 sm:px-6 md:py-12">
