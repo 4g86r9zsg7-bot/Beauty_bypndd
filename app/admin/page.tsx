@@ -1,122 +1,1462 @@
 
-'use client';import {useEffect,useState} from 'react';import {supabase,eur} from '@/lib/supabase';import AdminHome from '@/components/AdminHome';
-const ST=['pending','confirmed','preparing','shipped','delivered','cancelled'];const SL:any={pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',shipped:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
-const NEXT:Record<string,[string,string][]>={pending:[['confirmed','Confirmer'],['cancelled','Annuler']],confirmed:[['preparing','En préparation'],['cancelled','Annuler']],preparing:[['shipped','En livraison'],['cancelled','Annuler']],shipped:[['delivered','Livrée'],['cancelled','Annuler']],delivered:[],cancelled:[['pending','Remettre en attente']]};
-const NMSG:Record<string,string>={confirmed:'est confirmée. Livraison en 24 à 48 h.',preparing:'est en préparation.',shipped:'est en cours de livraison.',delivered:'a été livrée. Merci de votre confiance !',cancelled:'a été annulée. Contactez-nous pour toute question.'};
-const waNum=(t:string)=>{const d=String(t||'').replace(/\D/g,'');return d.startsWith('0')?'212'+d.slice(1):d};
-const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>typeof x==='string'?{name:x,stock:p.stock||0,status:'available',price:'',images:[],files:[]}:{name:x.name,stock:x.stock??0,status:x.status||'available',price:x.price??'',images:x.images||(x.image?[x.image]:[]),files:[]});
-const hasObjVars=(p:any)=>Array.isArray(p.variants)&&p.variants.some((x:any)=>typeof x==='object');
-const autoAv=(av:string,n:number)=>['available','last','soldout'].includes(av)?(n<=0?'soldout':n<=3?'last':'available'):av;
-export default function Admin(){const [ok,setOk]=useState<boolean|null>(null);const [em,setEm]=useState('');const [pw,setPw]=useState('');const [tab,setTab]=useState('home');
-const [orders,setO]=useState<any[]>([]);const [prods,setP]=useState<any[]>([]);const [cats,setC]=useState<any[]>([]);const [brands,setB]=useState<any[]>([]);const [msg,setMsg]=useState('');
-const [edit,setEdit]=useState<any>(null);const [imgs,setImgs]=useState<string[]>([]);const [search,setSearch]=useState('');const [flt,setFlt]=useState('all');const [vrows,setVrows]=useState<any[]>([]);const [busyId,setBusyId]=useState('');const [revs,setRevs]=useState<any[]>([]);const [promos,setPromos]=useState<any[]>([]);const [pf,setPf]=useState<any>({kind:'percent',active:true});const [of,setOf]=useState('all');const [oq,setOq]=useState('');const [fb,setFb]=useState('');const [fc,setFc]=useState('');
-async function check(){const {data:{user}}=await supabase.auth.getUser();if(!user)return setOk(false);const {data}=await supabase.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();setOk(!!data);if(data)load()}
-async function load(){const [o,p,c,b]=await Promise.all([supabase.from('orders').select('*').order('created_at',{ascending:false}),supabase.from('products').select('*,brands(name)').order('created_at',{ascending:false}),supabase.from('categories').select('*'),supabase.from('brands').select('*')]);setO(o.data||[]);setP(p.data||[]);setC(c.data||[]);setB(b.data||[]);const rv=await supabase.from('reviews').select('*,products(name)').order('created_at',{ascending:false});setRevs(rv.data||[]);const pc=await supabase.from('promo_codes').select('*').order('created_at',{ascending:false});setPromos(pc.data||[])}
-useEffect(()=>{check()},[]);
-useEffect(()=>{try{const t=new URLSearchParams(window.location.search).get('tab');if(t&&['home','orders','products','reviews','promos','new'].includes(t))setTab(t)}catch{}},[]);
-useEffect(()=>{if(!ok)return;const t=setInterval(()=>{load()},30000);return()=>clearInterval(t)},[ok]);
-async function login(e:any){e.preventDefault();const {error}=await supabase.auth.signInWithPassword({email:em,password:pw});if(error)setMsg(error.message);else check()}
-if(ok===null)return <p>Chargement…</p>;
-if(!ok)return <form onSubmit={login} className="max-w-sm mx-auto space-y-3"><h1 className="font-serif text-3xl">Administration</h1><input type="email" required placeholder="Email" value={em} onChange={e=>setEm(e.target.value)} className="w-full border p-3"/><input type="password" required placeholder="Mot de passe" value={pw} onChange={e=>setPw(e.target.value)} className="w-full border p-3"/><button className="w-full bg-ink text-white py-3">Se connecter</button><p className="text-sm text-red-700">{msg}</p></form>;
-const revenue=orders.filter(o=>o.status==='delivered').reduce((s,o)=>s+Number(o.total),0);
-const norm=(x:string)=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-const shown=prods.filter(p=>(!search||norm(`${p.name} ${p.brands?.name||''}`).includes(norm(search)))&&(!fb||p.brand_id===fb)&&(!fc||p.category_id===fc)&&(flt==='all'||(flt==='out'&&p.availability==='soldout')||(flt==='hidden'&&!p.active)||(flt==='stock'&&p.availability!=='soldout'&&p.active)));
-const changeStatus=async(id:string,status:string)=>{if(busyId)return;if(status==='cancelled'&&!confirm('Annuler cette commande ? Le stock sera remis si elle avait été confirmée.'))return;setBusyId(id);const {error}=await supabase.rpc('set_order_status',{p_id:id,p_status:status});setBusyId('');setMsg(error?error.message:`Statut mis à jour : ${SL[status]}`);await load()};
-const shownO=orders.filter(o=>(of==='all'||o.status===of)&&(!oq||norm(`${o.number} ${o.name} ${o.phone} ${o.city}`).includes(norm(oq))));
-const lowS=prods.filter(p=>p.active&&!['preorder','arrival','soldout'].includes(p.availability)&&p.stock>0&&p.stock<=3);const outS=prods.filter(p=>p.active&&p.availability==='soldout');
-const exportCsv=()=>{const r=[['N','Date','Client','Tel','Ville','Adresse','Total','Statut'],...orders.map(o=>[o.number,o.created_at,o.name,o.phone,o.city,o.address,o.total,o.status])];const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r.map(x=>x.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}));a.download='commandes.csv';a.click()};
-async function saveProduct(e:any){e.preventDefault();const form=e.target;const fd=new FormData(form);const urls:string[]=[];
-for(const file of Array.from((form.images as HTMLInputElement).files||[])){const path=`${Date.now()}-${file.name.replace(/[^\w.]/g,'_')}`;const {error}=await supabase.storage.from('product-images').upload(path,file);if(!error)urls.push(supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl)}
-const name=String(fd.get('name'));
-const upload=async(file:File)=>{const path=`${Date.now()}-${Math.random().toString(36).slice(2,6)}-${file.name.replace(/[^\w.]/g,'_')}`;const {error}=await supabase.storage.from('product-images').upload(path,file);return error?null:supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl};
-const vars:any[]=[];for(const r of vrows){if(!String(r.name).trim())continue;const ups:string[]=[];for(const f of (r.files||[])){const u=await upload(f);if(u)ups.push(u)}const vi=[...(r.images||[]),...ups];const o:any={name:String(r.name).trim(),stock:Math.max(0,parseInt(String(r.stock))||0),status:r.status||'available'};const pr=parseFloat(String(r.price).replace(',','.'));if(String(r.price).trim()!==''&&isFinite(pr))o.price=pr;if(vi.length){o.images=vi;o.image=vi[0]}vars.push(o)}
-const general=[...imgs,...urls];
-let stock=Number(fd.get('stock')||0);if(vars.length)stock=vars.filter((x:any)=>['available','last'].includes(x.status)).reduce((s:number,x:any)=>s+x.stock,0);
-let av=autoAv(String(fd.get('av')),stock);
-if(vars.length){av=stock>0?(stock<=3?'last':'available'):vars.some((x:any)=>x.status==='arrival')?'arrival':vars.some((x:any)=>x.status==='preorder'||(['available','last'].includes(x.status)&&x.stock<=0))?'preorder':'soldout'}
-const row:any={name,brand_id:fd.get('brand')||null,category_id:fd.get('cat')||null,description:fd.get('desc'),price:Number(fd.get('price')),old_price:fd.get('old')?Number(fd.get('old')):null,stock,availability:av,variants:vars,is_new:fd.get('new')==='on',is_bestseller:fd.get('best')==='on',featured:fd.get('feat')==='on',images:general.length?general:(vars.find((x:any)=>x.image)?[vars.find((x:any)=>x.image).image]:[])};
-const slug=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString(36);
-const {error}=edit?await supabase.from('products').update(row).eq('id',edit.id):await supabase.from('products').insert({...row,slug});
-setMsg(error?error.message:(edit?'Produit modifié':'Produit ajouté'));if(!error){setEdit(null);setImgs([]);setVrows([]);load();setTab('products')}}
-const startEdit=(p:any)=>{setEdit(p);setVrows(toRows(p));setImgs(p.images||[]);setMsg('');setTab('new')};
-const setV=(i:number,patch:any)=>setVrows(vrows.map((r,j)=>j===i?{...r,...patch}:r));
-const toggleRev=async(id:string,published:boolean)=>{await supabase.from('reviews').update({published}).eq('id',id);load()};
-const delRev=async(id:string)=>{if(confirm('Supprimer cet avis ?')){await supabase.from('reviews').delete().eq('id',id);load()}};
-const ld=(x:string)=>{const d=new Date(x);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
-const savePromo=async(e:any)=>{e.preventDefault();const code=String(pf.code||'').trim().toUpperCase();const v=parseFloat(String(pf.value).replace(',','.'));if(!code||!(v>0)){setMsg('Code ou valeur invalide');return}
-const row:any={code,kind:pf.kind,percent:pf.kind==='percent'?Math.min(90,Math.round(v)):null,amount:pf.kind==='fixed'?v:null,starts_at:pf.starts?new Date(pf.starts+'T00:00:00').toISOString():null,expires_at:pf.ends?new Date(pf.ends+'T23:59:59').toISOString():null,max_uses:pf.max?parseInt(pf.max):null,active:pf.active!==false};
-const {error}=await supabase.from('promo_codes').upsert(row,{onConflict:'code'});setMsg(error?error.message:'Code enregistré');if(!error){setPf({kind:'percent',active:true});load()}};
-const editPromo=(c:any)=>setPf({code:c.code,kind:c.kind||'percent',value:c.kind==='fixed'?c.amount:c.percent,starts:c.starts_at?ld(c.starts_at):'',ends:c.expires_at?ld(c.expires_at):'',max:c.max_uses??'',active:c.active});
-const togglePromo=async(c:any)=>{await supabase.from('promo_codes').update({active:!c.active}).eq('code',c.code);load()};
-const delPromo=async(c:any)=>{if(confirm(`Supprimer le code ${c.code} ?`)){await supabase.from('promo_codes').delete().eq('code',c.code);load()}};
-const upd=async(id:string,patch:any)=>{await supabase.from('products').update(patch).eq('id',id);load()};
-const del=async(id:string)=>{if(confirm('Supprimer ce produit ?')){await supabase.from('products').delete().eq('id',id);load()}};
-const quick=async(t:'brands'|'categories')=>{const n=prompt('Nom ?');if(!n)return;await supabase.from(t).insert(t==='brands'?{name:n}:{name:n,slug:n.toLowerCase().replace(/[^a-z0-9]+/g,'-')});load()};
-return <div><div className="flex gap-2 flex-wrap mb-4">{[['home','Tableau de bord'],['orders','Commandes'],['products','Produits'],['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' masqués':revs.length})`],['promos','Codes promo'],['new','Ajouter un produit']].map(([k,l])=><button key={k} onClick={()=>{if(k==='new'){setEdit(null);setImgs([]);setVrows([])}setTab(k)}} className={`px-4 py-2 border ${tab===k?'bg-ink text-white':''}`}>{l}</button>)}<a href="/admin/offres" className="px-4 py-2 border">Offres &amp; Packs</a><a href="/admin/categories" className="px-4 py-2 border">Catégories</a><a href="/admin/banniere" className="px-4 py-2 border">Bannière</a><button onClick={()=>supabase.auth.signOut().then(()=>setOk(false))} className="ml-auto underline text-sm">Déconnexion</button></div>
-<p className="text-sm mb-4">Chiffre d'affaires : <b>{eur(revenue)}</b> · Commandes : {orders.length} · En attente : {orders.filter(o=>o.status==='pending').length}</p>{msg&&<p className="text-sm mb-2">{msg}</p>}
-{tab==='home'&&<AdminHome go={(t:string)=>{if(t==='new'){setEdit(null);setImgs([]);setVrows([])}setTab(t);window.scrollTo({top:0})}} stats={{
-orders:orders.length,
-pending:orders.filter(o=>o.status==='pending').length,
-revenue:eur(revenue),
-products:prods.length,
-low:lowS.length,
-out:outS.length,
-hiddenReviews:revs.filter(r=>!r.published).length,
-promos:promos.filter((c:any)=>c.active).length,
-orderRows:orders,
-productRows:prods
-}}/>}
-{tab==='promos'&&<div className="space-y-4"><form onSubmit={savePromo} className="grid gap-2 rounded-2xl border border-sand bg-white p-4 text-sm"><b>Créer ou modifier un code</b>
-<input value={pf.code||''} onChange={e=>setPf({...pf,code:e.target.value})} placeholder="Code (ex : BIENVENUE10)" className="border p-2 uppercase"/>
-<div className="flex gap-2"><select value={pf.kind} onChange={e=>setPf({...pf,kind:e.target.value})} className="border p-2"><option value="percent">Pourcentage (%)</option><option value="fixed">Montant fixe (DH)</option></select><input type="number" step="0.01" value={pf.value??''} onChange={e=>setPf({...pf,value:e.target.value})} placeholder="Valeur" className="w-28 border p-2"/></div>
-<div className="grid grid-cols-2 gap-2"><label className="text-xs">Début<input type="date" value={pf.starts||''} onChange={e=>setPf({...pf,starts:e.target.value})} className="w-full border p-2"/></label><label className="text-xs">Expiration<input type="date" value={pf.ends||''} onChange={e=>setPf({...pf,ends:e.target.value})} className="w-full border p-2"/></label></div>
-<input type="number" value={pf.max??''} onChange={e=>setPf({...pf,max:e.target.value})} placeholder="Nombre maximal d’utilisations (vide = illimité)" className="border p-2"/>
-<label><input type="checkbox" checked={pf.active!==false} onChange={e=>setPf({...pf,active:e.target.checked})}/> Code actif</label><button className="bg-rose py-3 text-white">Enregistrer le code</button></form>
-{promos.map(c=><div key={c.code} className="rounded-2xl border border-sand bg-white p-4 text-sm"><div className="flex justify-between"><b>{c.code}</b><span className={c.active?'text-plum':'text-red-700'}>{c.active?'Actif':'Désactivé'}</span></div>
-<p>{c.kind==='fixed'?`-${c.amount} DH`:`-${c.percent} %`} · {c.uses||0}{c.max_uses?` / ${c.max_uses}`:''} utilisation(s)</p><p className="text-xs text-ink/60">{c.starts_at?`Du ${new Date(c.starts_at).toLocaleDateString('fr-FR')} `:''}{c.expires_at?`jusqu’au ${new Date(c.expires_at).toLocaleDateString('fr-FR')}`:'sans date de fin'}</p>
-<div className="mt-2 flex gap-3 text-xs"><button type="button" onClick={()=>editPromo(c)} className="underline">Modifier</button><button type="button" onClick={()=>togglePromo(c)} className="underline">{c.active?'Désactiver':'Activer'}</button><button type="button" onClick={()=>delPromo(c)} className="text-red-700 underline">Supprimer</button></div></div>)}</div>}
-{tab==='reviews'&&<div className="space-y-3"><p className="text-sm">{revs.length} avis · {revs.filter(r=>r.published).length} publiés</p>{revs.length===0&&<p className="text-sm text-ink/60">Aucun avis pour le moment : les clientes peuvent noter après la livraison.</p>}{revs.map(r=><div key={r.id} className={`rounded-2xl border bg-white p-4 text-sm ${r.published?'border-sand':'border-red-300'}`}><div className="flex justify-between gap-2"><b>{r.products?.name||'Produit supprimé'}</b><span className="text-rose">{'★'.repeat(r.rating)}<span className="text-sand">{'★'.repeat(5-r.rating)}</span></span></div>{r.comment&&<p className="mt-1">{r.comment}</p>}<p className="mt-1 text-xs text-ink/60">{r.customer_name} · commande n°{r.order_number} · {new Date(r.created_at).toLocaleString('fr-FR')}</p><div className="mt-2 flex gap-3 text-xs"><button type="button" onClick={()=>toggleRev(r.id,!r.published)} className="underline">{r.published?'Masquer':'Publier'}</button><button type="button" onClick={()=>delRev(r.id)} className="text-red-700 underline">Supprimer</button><span className={r.published?'text-plum':'text-red-700'}>{r.published?'Publié':'Masqué'}</span></div></div>)}</div>}
-{tab==='orders'&&<div className="space-y-4">
-<div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{ST.map(st=><button key={st} type="button" onClick={()=>setOf(of===st?'all':st)} className={`rounded-xl border p-3 text-left ${of===st?'border-plum bg-blush/50':'border-sand bg-white'}`}><p className="text-2xl font-semibold text-plum">{orders.filter(o=>o.status===st).length}</p><p className="text-[10px] uppercase tracking-wider">{SL[st]}</p></button>)}</div>
-<div className="rounded-xl border border-sand bg-white p-3 text-sm"><p><b>Stock :</b> {outS.length} épuisé{outS.length>1?'s':''} · {lowS.length} stock faible</p>{lowS.length>0&&<p className="mt-1 text-xs text-ink/60">{lowS.slice(0,8).map(p=>`${p.name} (${p.stock})`).join(' · ')}</p>}</div>
-<div className="flex gap-2"><input value={oq} onChange={e=>setOq(e.target.value)} placeholder="Rechercher : n°, nom, téléphone, ville" className="flex-1 rounded-full border p-3"/><button type="button" onClick={exportCsv} className="text-sm underline">CSV</button></div>
-<p className="text-xs">{shownO.length} commande(s){of!=='all'?` · filtre : ${SL[of]}`:''}</p>
-{shownO.map(o=><div key={o.id} className="rounded-2xl border border-sand bg-white p-4 text-sm"><div className="flex items-start justify-between gap-2"><div><b>#{o.number} · {o.name}</b><p className="text-xs text-ink/60">{new Date(o.created_at).toLocaleString('fr-FR')}</p></div><span className={`rounded-full px-3 py-1 text-xs ${o.status==='cancelled'?'bg-red-100 text-red-700':o.status==='pending'?'bg-blush text-plum':'bg-plum text-white'}`}>{SL[o.status]}</span></div>
-<p className="mt-2"><a href={`tel:${o.phone}`} className="underline">{o.phone}</a> · {o.address}, {o.city}</p>{o.notes&&<p className="text-xs">Note : {o.notes}</p>}
-<ul className="mt-2 divide-y divide-sand">{(o.items||[]).map((i:any,k:number)=><li key={k} className="flex justify-between py-1.5"><span>{i.qty} × {i.name}{i.variant?` (${i.variant})`:''}{i.preorder?' [PRÉCOMMANDE]':''}</span><span>{eur(i.price*i.qty)}</span></li>)}</ul>
-<p className="mt-1 flex justify-between border-t border-sand pt-2 text-xs"><span>Livraison</span><span>{Number(o.delivery_fee)?eur(o.delivery_fee):'Offerte'}</span></p><p className="flex justify-between font-semibold"><span>Total</span><span>{eur(o.total)}</span></p>
-<div className="mt-3 flex flex-wrap gap-2">{NEXT[o.status].map(([st,l])=><button key={st} type="button" disabled={!!busyId} onClick={()=>changeStatus(o.id,st)} className={`rounded-full px-4 py-2 text-xs disabled:opacity-40 ${st==='cancelled'?'border border-red-400 text-red-700':'bg-rose text-white'}`}>{busyId===o.id?'…':l}</button>)}
-{NMSG[o.status]&&<a href={`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(`Bonjour ${String(o.name).split(' ')[0]}, votre commande n°${o.number} ${NMSG[o.status]}`)}`} className="rounded-full border border-plum px-4 py-2 text-xs text-plum">Prévenir sur WhatsApp</a>}</div></div>)}</div>}
-{tab==='products'&&<div className="space-y-2"><div className="text-sm flex gap-4"><button onClick={()=>quick('brands')} className="underline">+ Marque</button><button onClick={()=>quick('categories')} className="underline">+ Catégorie</button></div>
-<p className="text-xs">Plus vendus : {[...prods].sort((a,b)=>b.sold-a.sold).slice(0,3).map(p=>`${p.name} (${p.sold})`).join(', ')||'—'}</p>
-<div className="flex gap-2"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher un produit ou une marque" className="flex-1 border p-3 rounded-full"/><select value={flt} onChange={e=>setFlt(e.target.value)} className="border p-2 rounded-full"><option value="all">Tous</option><option value="stock">En vente</option><option value="out">Épuisés</option><option value="hidden">Masqués</option></select></div>
-<div className="flex gap-2"><select value={fb} onChange={e=>setFb(e.target.value)} className="flex-1 border p-2 rounded-full"><option value="">Toutes les marques</option>{brands.map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}</select><select value={fc} onChange={e=>setFc(e.target.value)} className="flex-1 border p-2 rounded-full"><option value="">Toutes les catégories</option>{[...cats].map((c:any)=>({c,l:(cats.find((x:any)=>x.id===c.parent_id)?cats.find((x:any)=>x.id===c.parent_id).name+' › ':'')+c.name})).sort((a:any,b:any)=>a.l.localeCompare(b.l)).map((o:any)=><option key={o.c.id} value={o.c.id}>{o.l}</option>)}</select></div>
-<p className="text-xs">{shown.length} produit(s)</p>
-{shown.map(p=><div key={p.id} className="bg-white p-3 border border-sand text-sm flex flex-wrap gap-2 items-center"><b className="flex-1 min-w-[10rem]">{p.name} {p.availability==='soldout'?<span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-normal text-white">Épuisé</span>:(p.stock>0&&p.stock<=3&&!['preorder','arrival'].includes(p.availability))?<span className="rounded-full bg-rose px-2 py-0.5 text-[10px] font-normal text-white">Stock faible</span>:null}</b>
-<label>Prix <input defaultValue={p.price} onBlur={e=>upd(p.id,{price:Number(e.target.value)})} className="border w-20 p-1"/></label>
-<label>Ancien <input defaultValue={p.old_price??''} onBlur={e=>upd(p.id,{old_price:e.target.value?Number(e.target.value):null})} className="border w-20 p-1"/></label>
-{hasObjVars(p)?<span>Stock : {p.stock} (par variante)</span>:<label>Stock <input defaultValue={p.stock} onBlur={e=>{const n=Number(e.target.value);upd(p.id,{stock:n,availability:autoAv(p.availability,n)})}} className="border w-16 p-1"/></label>}
-<select value={p.availability} onChange={e=>upd(p.id,{availability:e.target.value})} className="border p-1"><option value="available">Disponible</option><option value="arrival">Arrivage</option><option value="preorder">Précommande</option><option value="last">Dernières pièces</option><option value="soldout">Épuisé</option></select>
-<button onClick={()=>startEdit(p)} className="underline font-semibold">Modifier</button><button onClick={()=>upd(p.id,{featured:!p.featured})} className="underline">{p.featured?'★ À la une':'☆ Mettre en avant'}</button><button onClick={()=>upd(p.id,{active:!p.active})} className="underline">{p.active?'Masquer':'Afficher'}</button><button onClick={()=>del(p.id)} className="underline text-red-700">Supprimer</button></div>)}</div>}
-{tab==='new'&&<form key={edit?.id||'new'} onSubmit={saveProduct} className="grid gap-2 max-w-lg"><h2 className="font-serif text-2xl">{edit?`Modifier : ${edit.name}`:'Nouveau produit'}</h2>
-<input name="name" required placeholder="Nom" defaultValue={edit?.name||''} className="border p-2"/>
-<select name="brand" defaultValue={edit?.brand_id||''} className="border p-2"><option value="">Marque</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
-<select name="cat" defaultValue={edit?.category_id||''} className="border p-2"><option value="">Catégorie</option>{[...cats].map((c:any)=>({c,l:(cats.find((x:any)=>x.id===c.parent_id)?cats.find((x:any)=>x.id===c.parent_id).name+' › ':'')+c.name})).sort((a:any,b:any)=>a.l.localeCompare(b.l)).map((o:any)=><option key={o.c.id} value={o.c.id}>{o.l}</option>)}</select>
-<input name="price" type="number" step="0.01" required placeholder="Prix (DH)" defaultValue={edit?.price??''} className="border p-2"/>
-<input name="old" type="number" step="0.01" placeholder="Ancien prix (promo)" defaultValue={edit?.old_price??''} className="border p-2"/>
-<input name="stock" type="number" placeholder="Stock (ignoré s'il y a des variantes)" defaultValue={edit?.stock??''} className="border p-2"/>
-<select name="av" defaultValue={edit?.availability||'available'} className="border p-2"><option value="available">Disponible immédiatement</option><option value="arrival">Arrivage prochainement</option><option value="preorder">Précommande</option><option value="last">Dernières pièces</option><option value="soldout">Stock épuisé</option></select>
-<div className="space-y-3"><p className="text-sm font-semibold">Variantes (teintes, tailles, contenances…)</p>
-{vrows.map((r:any,i:number)=><div key={i} className="border border-sand bg-white p-3 space-y-2">
-<div className="flex gap-2"><input value={r.name} onChange={e=>setV(i,{name:e.target.value})} placeholder="Nom (ex : Rose)" className="flex-1 border p-2"/><button type="button" onClick={()=>setVrows(vrows.filter((_:any,j:number)=>j!==i))} className="text-sm text-red-700 underline">Retirer</button></div>
-<div className="flex gap-2"><input type="number" value={r.stock} onChange={e=>setV(i,{stock:e.target.value})} placeholder="Stock" className="w-24 border p-2"/><input type="number" step="0.01" value={r.price} onChange={e=>setV(i,{price:e.target.value})} placeholder="Prix (facultatif)" className="flex-1 border p-2"/></div>
-<select value={r.status||'available'} onChange={e=>setV(i,{status:e.target.value})} className="w-full border p-2"><option value="available">Disponible immédiatement</option><option value="last">Dernières pièces</option><option value="arrival">Arrivage prochainement (réservation)</option><option value="preorder">Précommande</option><option value="soldout">Épuisé</option></select>
-{r.images.length>0&&<div className="flex flex-wrap gap-2">{r.images.map((u:string)=><div key={u} className="relative"><img src={u} alt="" className="h-16 w-14 object-cover"/><button type="button" onClick={()=>setV(i,{images:r.images.filter((x:string)=>x!==u)})} className="absolute right-0 top-0 bg-ink px-1 text-xs text-white">×</button></div>)}</div>}
-<label className="text-xs">Photos de cette variante <input type="file" accept="image/*" multiple onChange={e=>setV(i,{files:Array.from(e.target.files||[])})}/></label>
-{r.files?.length>0&&<p className="text-xs text-plum">{r.files.length} photo(s) à ajouter à l’enregistrement</p>}</div>)}
-<button type="button" onClick={()=>setVrows([...vrows,{name:'',stock:0,status:'available',price:'',images:[],files:[]}])} className="w-full rounded-full border border-plum py-2 text-sm text-plum">+ Ajouter une variante</button></div>
-<textarea name="desc" placeholder="Description" defaultValue={edit?.description||''} className="border p-2"/>
-{imgs.length>0&&<div className="flex gap-2 flex-wrap">{imgs.map(u=><div key={u} className="relative"><img src={u} alt="" className="w-16 h-20 object-cover"/><button type="button" onClick={()=>setImgs(imgs.filter(x=>x!==u))} className="absolute top-0 right-0 bg-ink text-white text-xs px-1">×</button></div>)}</div>}
-<label className="text-sm">Photos générales du produit <input name="images" type="file" accept="image/*" multiple/></label>
-<label><input type="checkbox" name="new" defaultChecked={!!edit?.is_new}/> Nouveau</label><label><input type="checkbox" name="best" defaultChecked={!!edit?.is_bestseller}/> Best-seller</label><label><input type="checkbox" name="feat" defaultChecked={!!edit?.featured}/> Mettre en avant (accueil)</label>
-<button className="bg-ink text-white py-3">{edit?'Enregistrer les modifications':'Enregistrer'}</button></form>}</div>}
+'use client';
+
+import {useEffect,useState} from 'react';
+import {supabase,eur} from '@/lib/supabase';
+import AdminHome from '@/components/AdminHome';
+
+const ST=['pending','confirmed','preparing','shipped','delivered','cancelled'];
+const SL:any={pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',shipped:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
+const NEXT:Record<string,[string,string][]>={
+  pending:[['confirmed','Confirmer'],['cancelled','Annuler']],
+  confirmed:[['preparing','En préparation'],['cancelled','Annuler']],
+  preparing:[['shipped','En livraison'],['cancelled','Annuler']],
+  shipped:[['delivered','Livrée'],['cancelled','Annuler']],
+  delivered:[],
+  cancelled:[['pending','Remettre en attente']]
+};
+const NMSG:Record<string,string>={
+  confirmed:'est confirmée. Livraison en 24 à 48 h.',
+  preparing:'est en préparation.',
+  shipped:'est en cours de livraison.',
+  delivered:'a été livrée. Merci de votre confiance !',
+  cancelled:'a été annulée. Contactez-nous pour toute question.'
+};
+
+const waNum=(t:string)=>{
+  const d=String(t||'').replace(/\D/g,'');
+  return d.startsWith('0')?'212'+d.slice(1):d;
+};
+
+const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>
+  typeof x==='string'
+    ?{name:x,stock:p.stock||0,status:'available',price:'',images:[],files:[],options:null}
+    :{
+      name:x.name,
+      stock:x.stock??0,
+      status:x.status||'available',
+      price:x.price??'',
+      images:x.images||(x.image?[x.image]:[]),
+      files:[],
+      options:x.options||null
+    }
+);
+
+const hasObjVars=(p:any)=>
+  Array.isArray(p.variants)&&p.variants.some((x:any)=>typeof x==='object');
+
+const autoAv=(av:string,n:number)=>
+  ['available','last','soldout'].includes(av)
+    ?(n<=0?'soldout':n<=3?'last':'available')
+    :av;
+
+const getOptionGroups=(p:any)=>{
+  const groups:{name:string;values:string[]}[]=[];
+
+  (p?.variants||[]).forEach((v:any)=>{
+    if(!v?.options||typeof v.options!=='object')return;
+
+    Object.entries(v.options).forEach(([name,value])=>{
+      if(value==null||String(value).trim()==='')return;
+
+      let group=groups.find(g=>g.name===name);
+
+      if(!group){
+        group={name,values:[]};
+        groups.push(group);
+      }
+
+      if(!group.values.includes(String(value))){
+        group.values.push(String(value));
+      }
+    });
+  });
+
+  return groups.map(g=>({
+    name:g.name,
+    values:g.values.join(', ')
+  }));
+};
+
+export default function Admin(){
+  const [ok,setOk]=useState<boolean|null>(null);
+  const [em,setEm]=useState('');
+  const [pw,setPw]=useState('');
+  const [tab,setTab]=useState('home');
+
+  const [orders,setO]=useState<any[]>([]);
+  const [prods,setP]=useState<any[]>([]);
+  const [cats,setC]=useState<any[]>([]);
+  const [brands,setB]=useState<any[]>([]);
+  const [msg,setMsg]=useState('');
+
+  const [edit,setEdit]=useState<any>(null);
+  const [imgs,setImgs]=useState<string[]>([]);
+  const [search,setSearch]=useState('');
+  const [flt,setFlt]=useState('all');
+  const [vrows,setVrows]=useState<any[]>([]);
+  const [optionGroups,setOptionGroups]=useState<any[]>([]);
+  const [busyId,setBusyId]=useState('');
+
+  const [revs,setRevs]=useState<any[]>([]);
+  const [promos,setPromos]=useState<any[]>([]);
+  const [pf,setPf]=useState<any>({kind:'percent',active:true});
+  const [of,setOf]=useState('all');
+  const [oq,setOq]=useState('');
+  const [fb,setFb]=useState('');
+  const [fc,setFc]=useState('');
+
+  async function check(){
+    const {data:{user}}=await supabase.auth.getUser();
+
+    if(!user)return setOk(false);
+
+    const {data}=await supabase
+      .from('admins')
+      .select('user_id')
+      .eq('user_id',user.id)
+      .maybeSingle();
+
+    setOk(!!data);
+
+    if(data)load();
+  }
+
+  async function load(){
+    const [o,p,c,b]=await Promise.all([
+      supabase.from('orders').select('*').order('created_at',{ascending:false}),
+      supabase.from('products').select('*,brands(name)').order('created_at',{ascending:false}),
+      supabase.from('categories').select('*'),
+      supabase.from('brands').select('*')
+    ]);
+
+    setO(o.data||[]);
+    setP(p.data||[]);
+    setC(c.data||[]);
+    setB(b.data||[]);
+
+    const rv=await supabase
+      .from('reviews')
+      .select('*,products(name)')
+      .order('created_at',{ascending:false});
+
+    setRevs(rv.data||[]);
+
+    const pc=await supabase
+      .from('promo_codes')
+      .select('*')
+      .order('created_at',{ascending:false});
+
+    setPromos(pc.data||[]);
+  }
+
+  useEffect(()=>{check()},[]);
+
+  useEffect(()=>{
+    try{
+      const t=new URLSearchParams(window.location.search).get('tab');
+
+      if(t&&['home','orders','products','reviews','promos','new'].includes(t)){
+        setTab(t);
+      }
+    }catch{}
+  },[]);
+
+  useEffect(()=>{
+    if(!ok)return;
+
+    const t=setInterval(()=>{load()},30000);
+
+    return()=>clearInterval(t);
+  },[ok]);
+
+  async function login(e:any){
+    e.preventDefault();
+
+    const {error}=await supabase.auth.signInWithPassword({
+      email:em,
+      password:pw
+    });
+
+    if(error)setMsg(error.message);
+    else check();
+  }
+
+  if(ok===null)return <p>Chargement…</p>;
+
+  if(!ok){
+    return (
+      <form onSubmit={login} className="max-w-sm mx-auto space-y-3">
+        <h1 className="font-serif text-3xl">Administration</h1>
+        <input
+          type="email"
+          required
+          placeholder="Email"
+          value={em}
+          onChange={e=>setEm(e.target.value)}
+          className="w-full border p-3"
+        />
+        <input
+          type="password"
+          required
+          placeholder="Mot de passe"
+          value={pw}
+          onChange={e=>setPw(e.target.value)}
+          className="w-full border p-3"
+        />
+        <button className="w-full bg-ink text-white py-3">
+          Se connecter
+        </button>
+        <p className="text-sm text-red-700">{msg}</p>
+      </form>
+    );
+  }
+
+  const revenue=orders
+    .filter(o=>o.status==='delivered')
+    .reduce((s,o)=>s+Number(o.total),0);
+
+  const norm=(x:string)=>
+    (x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  const shown=prods.filter(p=>
+    (!search||norm(`${p.name} ${p.brands?.name||''}`).includes(norm(search)))&&
+    (!fb||p.brand_id===fb)&&
+    (!fc||p.category_id===fc)&&
+    (
+      flt==='all'||
+      (flt==='out'&&p.availability==='soldout')||
+      (flt==='hidden'&&!p.active)||
+      (flt==='stock'&&p.availability!=='soldout'&&p.active)
+    )
+  );
+
+  const changeStatus=async(id:string,status:string)=>{
+    if(busyId)return;
+
+    if(
+      status==='cancelled'&&
+      !confirm('Annuler cette commande ? Le stock sera remis si elle avait été confirmée.')
+    )return;
+
+    setBusyId(id);
+
+    const {error}=await supabase.rpc('set_order_status',{
+      p_id:id,
+      p_status:status
+    });
+
+    setBusyId('');
+
+    setMsg(error?error.message:`Statut mis à jour : ${SL[status]}`);
+
+    await load();
+  };
+
+  const shownO=orders.filter(o=>
+    (of==='all'||o.status===of)&&
+    (!oq||norm(`${o.number} ${o.name} ${o.phone} ${o.city}`).includes(norm(oq)))
+  );
+
+  const lowS=prods.filter(p=>
+    p.active&&
+    !['preorder','arrival','soldout'].includes(p.availability)&&
+    p.stock>0&&
+    p.stock<=3
+  );
+
+  const outS=prods.filter(p=>p.active&&p.availability==='soldout');
+
+  const exportCsv=()=>{
+    const r=[
+      ['N','Date','Client','Tel','Ville','Adresse','Total','Statut'],
+      ...orders.map(o=>[
+        o.number,o.created_at,o.name,o.phone,o.city,o.address,o.total,o.status
+      ])
+    ];
+
+    const a=document.createElement('a');
+
+    a.href=URL.createObjectURL(
+      new Blob([
+        r.map(x=>
+          x.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')
+        ).join('\n')
+      ],{type:'text/csv'})
+    );
+
+    a.download='commandes.csv';
+    a.click();
+  };
+
+  // Génération d'un nouveau produit ou modification.
+  const resetNew=()=>{
+    setEdit(null);
+    setImgs([]);
+    setVrows([]);
+    setOptionGroups([]);
+    setMsg('');
+  };
+
+  // Génération automatique de toutes les combinaisons.
+  const generateCombinations=()=>{
+    const groups=optionGroups
+      .map(g=>({
+        name:String(g.name||'').trim(),
+        values:String(g.values||'')
+          .split(',')
+          .map((v:string)=>v.trim())
+          .filter(Boolean)
+      }))
+      .filter(g=>g.name&&g.values.length);
+
+    if(groups.length<2){
+      setMsg('Ajoute au moins deux groupes d’options, par exemple Couleur et Taille.');
+      return;
+    }
+
+    if(groups.some(g=>g.values.length===0)){
+      setMsg('Ajoute au moins une valeur dans chaque groupe.');
+      return;
+    }
+
+    if(groups.length>5){
+      setMsg('Tu peux créer jusqu’à 5 groupes d’options.');
+      return;
+    }
+
+    const total=groups.reduce((n,g)=>n*g.values.length,1);
+
+    if(total>200){
+      setMsg('Trop de combinaisons. Réduis le nombre de valeurs.');
+      return;
+    }
+
+    const combinations:any[]=[];
+
+    const build=(index:number,selected:any)=>{
+      if(index===groups.length){
+        const name=groups
+          .map(g=>`${g.name} : ${selected[g.name]}`)
+          .join(' · ');
+
+        const old=vrows.find(r=>
+          r.options&&
+          groups.every(g=>String(r.options[g.name]||'')===selected[g.name])
+        );
+
+        combinations.push({
+          name,
+          options:{...selected},
+          stock:old?.stock??0,
+          status:old?.status||'available',
+          price:old?.price??'',
+          images:old?.images||[],
+          files:old?.files||[]
+        });
+
+        return;
+      }
+
+      const group=groups[index];
+
+      group.values.forEach(value=>{
+        build(index+1,{
+          ...selected,
+          [group.name]:value
+        });
+      });
+    };
+
+    build(0,{});
+
+    setVrows(combinations);
+    setMsg(`${combinations.length} combinaison(s) générée(s). Configure maintenant leur stock et leurs prix.`);
+  };
+
+  async function saveProduct(e:any){
+    e.preventDefault();
+
+    const form=e.target;
+    const fd=new FormData(form);
+    const urls:string[]=[];
+
+    const configuredGroups=optionGroups
+      .map(g=>({
+        name:String(g.name||'').trim(),
+        values:String(g.values||'')
+          .split(',')
+          .map((v:string)=>v.trim())
+          .filter(Boolean)
+      }))
+      .filter(g=>g.name&&g.values.length);
+
+    if(configuredGroups.length>0&&!vrows.some(r=>r.options)){
+      setMsg('Clique d’abord sur « Générer les combinaisons » avant d’enregistrer.');
+      return;
+    }
+
+    for(const file of Array.from((form.images as HTMLInputElement).files||[]) as File[]){
+      const path=`${Date.now()}-${file.name.replace(/[^\w.]/g,'_')}`;
+
+      const {error}=await supabase.storage
+        .from('product-images')
+        .upload(path,file);
+
+      if(!error){
+        urls.push(
+          supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl
+        );
+      }
+    }
+
+    const name=String(fd.get('name'));
+
+    const upload=async(file:File)=>{
+      const path=`${Date.now()}-${Math.random().toString(36).slice(2,6)}-${file.name.replace(/[^\w.]/g,'_')}`;
+
+      const {error}=await supabase.storage
+        .from('product-images')
+        .upload(path,file);
+
+      return error
+        ?null
+        :supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+    };
+
+    const vars:any[]=[];
+
+    for(const r of vrows){
+      if(!String(r.name).trim())continue;
+
+      const ups:string[]=[];
+
+      for(const f of (r.files||[])){
+        const u=await upload(f);
+        if(u)ups.push(u);
+      }
+
+      const vi=[...(r.images||[]),...ups];
+
+      const o:any={
+        name:String(r.name).trim(),
+        stock:Math.max(0,parseInt(String(r.stock))||0),
+        status:r.status||'available'
+      };
+
+      if(r.options&&typeof r.options==='object'){
+        o.options=r.options;
+      }
+
+      const pr=parseFloat(String(r.price).replace(',','.'));
+
+      if(String(r.price).trim()!==''&&isFinite(pr)){
+        o.price=pr;
+      }
+
+      if(vi.length){
+        o.images=vi;
+        o.image=vi[0];
+      }
+
+      vars.push(o);
+    }
+
+    const general=[...imgs,...urls];
+
+    let stock=Number(fd.get('stock')||0);
+
+    if(vars.length){
+      stock=vars
+        .filter((x:any)=>['available','last'].includes(x.status))
+        .reduce((s:number,x:any)=>s+x.stock,0);
+    }
+
+    let av=autoAv(String(fd.get('av')),stock);
+
+    if(vars.length){
+      av=stock>0
+        ?(stock<=3?'last':'available')
+        :vars.some((x:any)=>x.status==='arrival')
+        ?'arrival'
+        :vars.some((x:any)=>
+          x.status==='preorder'||
+          (['available','last'].includes(x.status)&&x.stock<=0)
+        )
+        ?'preorder'
+        :'soldout';
+    }
+
+    const row:any={
+      name,
+      brand_id:fd.get('brand')||null,
+      category_id:fd.get('cat')||null,
+      description:fd.get('desc'),
+      price:Number(fd.get('price')),
+      old_price:fd.get('old')?Number(fd.get('old')):null,
+      stock,
+      availability:av,
+      variants:vars,
+      is_new:fd.get('new')==='on',
+      is_bestseller:fd.get('best')==='on',
+      featured:fd.get('feat')==='on',
+      images:general.length
+        ?general
+        :(vars.find((x:any)=>x.image)?[vars.find((x:any)=>x.image).image]:[])
+    };
+
+    const slug=name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'-')+
+      '-'+Date.now().toString(36);
+
+    const {error}=edit
+      ?await supabase.from('products').update(row).eq('id',edit.id)
+      :await supabase.from('products').insert({...row,slug});
+
+    setMsg(error?error.message:(edit?'Produit modifié':'Produit ajouté'));
+
+    if(!error){
+      resetNew();
+      load();
+      setTab('products');
+    }
+  }
+
+  const startEdit=(p:any)=>{
+    setEdit(p);
+    setVrows(toRows(p));
+    setOptionGroups(getOptionGroups(p));
+    setImgs(p.images||[]);
+    setMsg('');
+    setTab('new');
+  };
+
+  const setV=(i:number,patch:any)=>
+    setVrows(previous=>previous.map((r,j)=>j===i?{...r,...patch}:r));
+
+  const toggleRev=async(id:string,published:boolean)=>{
+    await supabase.from('reviews').update({published}).eq('id',id);
+    load();
+  };
+
+  const delRev=async(id:string)=>{
+    if(confirm('Supprimer cet avis ?')){
+      await supabase.from('reviews').delete().eq('id',id);
+      load();
+    }
+  };
+
+  const ld=(x:string)=>{
+    const d=new Date(x);
+
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+
+  const savePromo=async(e:any)=>{
+    e.preventDefault();
+
+    const code=String(pf.code||'').trim().toUpperCase();
+    const v=parseFloat(String(pf.value).replace(',','.'));
+
+    if(!code||!(v>0)){
+      setMsg('Code ou valeur invalide');
+      return;
+    }
+
+    const row:any={
+      code,
+      kind:pf.kind,
+      percent:pf.kind==='percent'?Math.min(90,Math.round(v)):null,
+      amount:pf.kind==='fixed'?v:null,
+      starts_at:pf.starts?new Date(pf.starts+'T00:00:00').toISOString():null,
+      expires_at:pf.ends?new Date(pf.ends+'T23:59:59').toISOString():null,
+      max_uses:pf.max?parseInt(pf.max):null,
+      active:pf.active!==false
+    };
+
+    const {error}=await supabase.from('promo_codes').upsert(row,{onConflict:'code'});
+
+    setMsg(error?error.message:'Code enregistré');
+
+    if(!error){
+      setPf({kind:'percent',active:true});
+      load();
+    }
+  };
+
+  const editPromo=(c:any)=>setPf({
+    code:c.code,
+    kind:c.kind||'percent',
+    value:c.kind==='fixed'?c.amount:c.percent,
+    starts:c.starts_at?ld(c.starts_at):'',
+    ends:c.expires_at?ld(c.expires_at):'',
+    max:c.max_uses??'',
+    active:c.active
+  });
+
+  const togglePromo=async(c:any)=>{
+    await supabase.from('promo_codes').update({active:!c.active}).eq('code',c.code);
+    load();
+  };
+
+  const delPromo=async(c:any)=>{
+    if(confirm(`Supprimer le code ${c.code} ?`)){
+      await supabase.from('promo_codes').delete().eq('code',c.code);
+      load();
+    }
+  };
+
+  const upd=async(id:string,patch:any)=>{
+    await supabase.from('products').update(patch).eq('id',id);
+    load();
+  };
+
+  const del=async(id:string)=>{
+    if(confirm('Supprimer ce produit ?')){
+      await supabase.from('products').delete().eq('id',id);
+      load();
+    }
+  };
+
+  const quick=async(t:'brands'|'categories')=>{
+    const n=prompt('Nom ?');
+
+    if(!n)return;
+
+    await supabase.from(t).insert(
+      t==='brands'
+        ?{name:n}
+        :{name:n,slug:n.toLowerCase().replace(/[^a-z0-9]+/g,'-')}
+    );
+
+    load();
+  };
+
+  return (
+    <div>
+      <div className="flex gap-2 flex-wrap mb-4">
+        {[
+          ['home','Tableau de bord'],
+          ['orders','Commandes'],
+          ['products','Produits'],
+          ['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' masqués':revs.length})`],
+          ['promos','Codes promo'],
+          ['new','Ajouter un produit']
+        ].map(([k,l])=>(
+          <button
+            key={k}
+            onClick={()=>{
+              if(k==='new')resetNew();
+              setTab(k);
+            }}
+            className={`px-4 py-2 border ${tab===k?'bg-ink text-white':''}`}
+          >
+            {l}
+          </button>
+        ))}
+
+        <a href="/admin/offres" className="px-4 py-2 border">
+          Offres &amp; Packs
+        </a>
+
+        <a href="/admin/categories" className="px-4 py-2 border">
+          Catégories
+        </a>
+
+        <a href="/admin/banniere" className="px-4 py-2 border">
+          Bannière
+        </a>
+
+        <button
+          onClick={()=>supabase.auth.signOut().then(()=>setOk(false))}
+          className="ml-auto underline text-sm"
+        >
+          Déconnexion
+        </button>
+      </div>
+
+      <p className="text-sm mb-4">
+        Chiffre d'affaires : <b>{eur(revenue)}</b>
+        {' '}· Commandes : {orders.length}
+        {' '}· En attente : {orders.filter(o=>o.status==='pending').length}
+      </p>
+
+      {msg&&<p className="text-sm mb-2">{msg}</p>}
+
+      {tab==='home'&&(
+        <AdminHome
+          go={(t:string)=>{
+            if(t==='new')resetNew();
+            setTab(t);
+            window.scrollTo({top:0});
+          }}
+          stats={{
+            orders:orders.length,
+            pending:orders.filter(o=>o.status==='pending').length,
+            revenue:eur(revenue),
+            products:prods.length,
+            low:lowS.length,
+            out:outS.length,
+            hiddenReviews:revs.filter(r=>!r.published).length,
+            promos:promos.filter((c:any)=>c.active).length,
+            orderRows:orders,
+            productRows:prods
+          }}
+        />
+      )}
+
+      {tab==='promos'&&(
+        <div className="space-y-4">
+          <form
+            onSubmit={savePromo}
+            className="grid gap-2 rounded-2xl border border-sand bg-white p-4 text-sm"
+          >
+            <b>Créer ou modifier un code</b>
+
+            <input
+              value={pf.code||''}
+              onChange={e=>setPf({...pf,code:e.target.value})}
+              placeholder="Code (ex : BIENVENUE10)"
+              className="border p-2 uppercase"
+            />
+
+            <div className="flex gap-2">
+              <select
+                value={pf.kind}
+                onChange={e=>setPf({...pf,kind:e.target.value})}
+                className="border p-2"
+              >
+                <option value="percent">Pourcentage (%)</option>
+                <option value="fixed">Montant fixe (DH)</option>
+              </select>
+
+              <input
+                type="number"
+                step="0.01"
+                value={pf.value??''}
+                onChange={e=>setPf({...pf,value:e.target.value})}
+                placeholder="Valeur"
+                className="w-28 border p-2"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs">
+                Début
+                <input
+                  type="date"
+                  value={pf.starts||''}
+                  onChange={e=>setPf({...pf,starts:e.target.value})}
+                  className="w-full border p-2"
+                />
+              </label>
+
+              <label className="text-xs">
+                Expiration
+                <input
+                  type="date"
+                  value={pf.ends||''}
+                  onChange={e=>setPf({...pf,ends:e.target.value})}
+                  className="w-full border p-2"
+                />
+              </label>
+            </div>
+
+            <input
+              type="number"
+              value={pf.max??''}
+              onChange={e=>setPf({...pf,max:e.target.value})}
+              placeholder="Nombre maximal d’utilisations (vide = illimité)"
+              className="border p-2"
+            />
+
+            <label>
+              <input
+                type="checkbox"
+                checked={pf.active!==false}
+                onChange={e=>setPf({...pf,active:e.target.checked})}
+              />
+              {' '}Code actif
+            </label>
+
+            <button className="bg-rose py-3 text-white">
+              Enregistrer le code
+            </button>
+          </form>
+
+          {promos.map(c=>(
+            <div key={c.code} className="rounded-2xl border border-sand bg-white p-4 text-sm">
+              <div className="flex justify-between">
+                <b>{c.code}</b>
+                <span className={c.active?'text-plum':'text-red-700'}>
+                  {c.active?'Actif':'Désactivé'}
+                </span>
+              </div>
+
+              <p>
+                {c.kind==='fixed'?`-${c.amount} DH`:`-${c.percent} %`}
+                {' '}· {c.uses||0}{c.max_uses?` / ${c.max_uses}`:''} utilisation(s)
+              </p>
+
+              <p className="text-xs text-ink/60">
+                {c.starts_at?`Du ${new Date(c.starts_at).toLocaleDateString('fr-FR')} `:''}
+                {c.expires_at?`jusqu’au ${new Date(c.expires_at).toLocaleDateString('fr-FR')}`:'sans date de fin'}
+              </p>
+
+              <div className="mt-2 flex gap-3 text-xs">
+                <button type="button" onClick={()=>editPromo(c)} className="underline">
+                  Modifier
+                </button>
+                <button type="button" onClick={()=>togglePromo(c)} className="underline">
+                  {c.active?'Désactiver':'Activer'}
+                </button>
+                <button type="button" onClick={()=>delPromo(c)} className="text-red-700 underline">
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='reviews'&&(
+        <div className="space-y-3">
+          <p className="text-sm">
+            {revs.length} avis · {revs.filter(r=>r.published).length} publiés
+          </p>
+
+          {revs.length===0&&(
+            <p className="text-sm text-ink/60">
+              Aucun avis pour le moment : les clientes peuvent noter après la livraison.
+            </p>
+          )}
+
+          {revs.map(r=>(
+            <div
+              key={r.id}
+              className={`rounded-2xl border bg-white p-4 text-sm ${r.published?'border-sand':'border-red-300'}`}
+            >
+              <div className="flex justify-between gap-2">
+                <b>{r.products?.name||'Produit supprimé'}</b>
+                <span className="text-rose">
+                  {'★'.repeat(r.rating)}
+                  <span className="text-sand">{'★'.repeat(5-r.rating)}</span>
+                </span>
+              </div>
+
+              {r.comment&&<p className="mt-1">{r.comment}</p>}
+
+              <p className="mt-1 text-xs text-ink/60">
+                {r.customer_name} · commande n°{r.order_number}
+                {' '}· {new Date(r.created_at).toLocaleString('fr-FR')}
+              </p>
+
+              <div className="mt-2 flex gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={()=>toggleRev(r.id,!r.published)}
+                  className="underline"
+                >
+                  {r.published?'Masquer':'Publier'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={()=>delRev(r.id)}
+                  className="text-red-700 underline"
+                >
+                  Supprimer
+                </button>
+
+                <span className={r.published?'text-plum':'text-red-700'}>
+                  {r.published?'Publié':'Masqué'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='orders'&&(
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {ST.map(st=>(
+              <button
+                key={st}
+                type="button"
+                onClick={()=>setOf(of===st?'all':st)}
+                className={`rounded-xl border p-3 text-left ${of===st?'border-plum bg-blush/50':'border-sand bg-white'}`}
+              >
+                <p className="text-2xl font-semibold text-plum">
+                  {orders.filter(o=>o.status===st).length}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider">{SL[st]}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-sand bg-white p-3 text-sm">
+            <p>
+              <b>Stock :</b> {outS.length} épuisé{outS.length>1?'s':''}
+              {' '}· {lowS.length} stock faible
+            </p>
+
+            {lowS.length>0&&(
+              <p className="mt-1 text-xs text-ink/60">
+                {lowS.slice(0,8).map(p=>`${p.name} (${p.stock})`).join(' · ')}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              value={oq}
+              onChange={e=>setOq(e.target.value)}
+              placeholder="Rechercher : n°, nom, téléphone, ville"
+              className="flex-1 rounded-full border p-3"
+            />
+            <button type="button" onClick={exportCsv} className="text-sm underline">
+              CSV
+            </button>
+          </div>
+
+          <p className="text-xs">
+            {shownO.length} commande(s){of!=='all'?` · filtre : ${SL[of]}`:''}
+          </p>
+
+          {shownO.map(o=>(
+            <div key={o.id} className="rounded-2xl border border-sand bg-white p-4 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <b>#{o.number} · {o.name}</b>
+                  <p className="text-xs text-ink/60">
+                    {new Date(o.created_at).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+
+                <span className={`rounded-full px-3 py-1 text-xs ${o.status==='cancelled'?'bg-red-100 text-red-700':o.status==='pending'?'bg-blush text-plum':'bg-plum text-white'}`}>
+                  {SL[o.status]}
+                </span>
+              </div>
+
+              <p className="mt-2">
+                <a href={`tel:${o.phone}`} className="underline">{o.phone}</a>
+                {' '}· {o.address}, {o.city}
+              </p>
+
+              {o.notes&&<p className="text-xs">Note : {o.notes}</p>}
+
+              <ul className="mt-2 divide-y divide-sand">
+                {(o.items||[]).map((i:any,k:number)=>(
+                  <li key={k} className="flex justify-between py-1.5">
+                    <span>
+                      {i.qty} × {i.name}
+                      {i.variant?` (${i.variant})`:''}
+                      {i.preorder?' [PRÉCOMMANDE]':''}
+                    </span>
+                    <span>{eur(i.price*i.qty)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-1 flex justify-between border-t border-sand pt-2 text-xs">
+                <span>Livraison</span>
+                <span>{Number(o.delivery_fee)?eur(o.delivery_fee):'Offerte'}</span>
+              </p>
+
+              <p className="flex justify-between font-semibold">
+                <span>Total</span>
+                <span>{eur(o.total)}</span>
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {NEXT[o.status].map(([st,l])=>(
+                  <button
+                    key={st}
+                    type="button"
+                    disabled={!!busyId}
+                    onClick={()=>changeStatus(o.id,st)}
+                    className={`rounded-full px-4 py-2 text-xs disabled:opacity-40 ${st==='cancelled'?'border border-red-400 text-red-700':'bg-rose text-white'}`}
+                  >
+                    {busyId===o.id?'…':l}
+                  </button>
+                ))}
+
+                {NMSG[o.status]&&(
+                  <a
+                    href={`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(`Bonjour ${String(o.name).split(' ')[0]}, votre commande n°${o.number} ${NMSG[o.status]}`)}`}
+                    className="rounded-full border border-plum px-4 py-2 text-xs text-plum"
+                  >
+                    Prévenir sur WhatsApp
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='products'&&(
+        <div className="space-y-2">
+          <div className="text-sm flex gap-4">
+            <button onClick={()=>quick('brands')} className="underline">+ Marque</button>
+            <button onClick={()=>quick('categories')} className="underline">+ Catégorie</button>
+          </div>
+
+          <p className="text-xs">
+            Plus vendus : {[...prods].sort((a,b)=>b.sold-a.sold).slice(0,3).map(p=>`${p.name} (${p.sold})`).join(', ')||'—'}
+          </p>
+
+          <div className="flex gap-2">
+            <input
+              value={search}
+              onChange={e=>setSearch(e.target.value)}
+              placeholder="Rechercher un produit ou une marque"
+              className="flex-1 border p-3 rounded-full"
+            />
+
+            <select
+              value={flt}
+              onChange={e=>setFlt(e.target.value)}
+              className="border p-2 rounded-full"
+            >
+              <option value="all">Tous</option>
+              <option value="stock">En vente</option>
+              <option value="out">Épuisés</option>
+              <option value="hidden">Masqués</option>
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <select
+              value={fb}
+              onChange={e=>setFb(e.target.value)}
+              className="flex-1 border p-2 rounded-full"
+            >
+              <option value="">Toutes les marques</option>
+              {brands.map((b:any)=>(
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={fc}
+              onChange={e=>setFc(e.target.value)}
+              className="flex-1 border p-2 rounded-full"
+            >
+              <option value="">Toutes les catégories</option>
+              {[...cats].map((c:any)=>({
+                c,
+                l:(cats.find((x:any)=>x.id===c.parent_id)?cats.find((x:any)=>x.id===c.parent_id).name+' › ':'')+c.name
+              })).sort((a:any,b:any)=>a.l.localeCompare(b.l)).map((o:any)=>(
+                <option key={o.c.id} value={o.c.id}>{o.l}</option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-xs">{shown.length} produit(s)</p>
+
+          {shown.map(p=>(
+            <div key={p.id} className="bg-white p-3 border border-sand text-sm flex flex-wrap gap-2 items-center">
+              <b className="flex-1 min-w-[10rem]">
+                {p.name}
+                {p.availability==='soldout'
+                  ?<span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-normal text-white">Épuisé</span>
+                  :(p.stock>0&&p.stock<=3&&!['preorder','arrival'].includes(p.availability))
+                  ?<span className="rounded-full bg-rose px-2 py-0.5 text-[10px] font-normal text-white">Stock faible</span>
+                  :null}
+              </b>
+
+              <label>
+                Prix
+                <input
+                  defaultValue={p.price}
+                  onBlur={e=>upd(p.id,{price:Number(e.target.value)})}
+                  className="border w-20 p-1"
+                />
+              </label>
+
+              <label>
+                Ancien
+                <input
+                  defaultValue={p.old_price??''}
+                  onBlur={e=>upd(p.id,{old_price:e.target.value?Number(e.target.value):null})}
+                  className="border w-20 p-1"
+                />
+              </label>
+
+              {hasObjVars(p)
+                ?<span>Stock : {p.stock} (par variante)</span>
+                :<label>
+                  Stock
+                  <input
+                    defaultValue={p.stock}
+                    onBlur={e=>{
+                      const n=Number(e.target.value);
+                      upd(p.id,{stock:n,availability:autoAv(p.availability,n)});
+                    }}
+                    className="border w-16 p-1"
+                  />
+                </label>}
+
+              <select
+                value={p.availability}
+                onChange={e=>upd(p.id,{availability:e.target.value})}
+                className="border p-1"
+              >
+                <option value="available">Disponible</option>
+                <option value="arrival">Arrivage</option>
+                <option value="preorder">Précommande</option>
+                <option value="last">Dernières pièces</option>
+                <option value="soldout">Épuisé</option>
+              </select>
+
+              <button onClick={()=>startEdit(p)} className="underline font-semibold">
+                Modifier
+              </button>
+
+              <button onClick={()=>upd(p.id,{featured:!p.featured})} className="underline">
+                {p.featured?'★ À la une':'☆ Mettre en avant'}
+              </button>
+
+              <button onClick={()=>upd(p.id,{active:!p.active})} className="underline">
+                {p.active?'Masquer':'Afficher'}
+              </button>
+
+              <button onClick={()=>del(p.id)} className="underline text-red-700">
+                Supprimer
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='new'&&(
+        <form
+          key={edit?.id||'new'}
+          onSubmit={saveProduct}
+          className="grid gap-3 max-w-lg"
+        >
+          <h2 className="font-serif text-2xl">
+            {edit?`Modifier : ${edit.name}`:'Nouveau produit'}
+          </h2>
+
+          <input
+            name="name"
+            required
+            placeholder="Nom"
+            defaultValue={edit?.name||''}
+            className="border p-2"
+          />
+
+          <select name="brand" defaultValue={edit?.brand_id||''} className="border p-2">
+            <option value="">Marque</option>
+            {brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+
+          <select name="cat" defaultValue={edit?.category_id||''} className="border p-2">
+            <option value="">Catégorie</option>
+            {[...cats].map((c:any)=>({
+              c,
+              l:(cats.find((x:any)=>x.id===c.parent_id)?cats.find((x:any)=>x.id===c.parent_id).name+' › ':'')+c.name
+            })).sort((a:any,b:any)=>a.l.localeCompare(b.l)).map((o:any)=>(
+              <option key={o.c.id} value={o.c.id}>{o.l}</option>
+            ))}
+          </select>
+
+          <input
+            name="price"
+            type="number"
+            step="0.01"
+            required
+            placeholder="Prix (DH)"
+            defaultValue={edit?.price??''}
+            className="border p-2"
+          />
+
+          <input
+            name="old"
+            type="number"
+            step="0.01"
+            placeholder="Ancien prix (promo)"
+            defaultValue={edit?.old_price??''}
+            className="border p-2"
+          />
+
+          <input
+            name="stock"
+            type="number"
+            placeholder="Stock (ignoré s'il y a des variantes)"
+            defaultValue={edit?.stock??''}
+            className="border p-2"
+          />
+
+          <select name="av" defaultValue={edit?.availability||'available'} className="border p-2">
+            <option value="available">Disponible immédiatement</option>
+            <option value="arrival">Arrivage prochainement</option>
+            <option value="preorder">Précommande</option>
+            <option value="last">Dernières pièces</option>
+            <option value="soldout">Stock épuisé</option>
+          </select>
+
+          {/* OPTIONS MULTIPLES */}
+          <div className="rounded-2xl border-2 border-plum/20 bg-blush/20 p-4 space-y-3">
+            <div>
+              <h3 className="font-semibold text-plum">
+                Options multiples
+              </h3>
+              <p className="mt-1 text-xs text-ink/70">
+                Pour les produits avec plusieurs choix, comme la couleur et la taille.
+                Chaque combinaison aura son propre stock.
+              </p>
+            </div>
+
+            {optionGroups.map((g:any,i:number)=>(
+              <div key={i} className="rounded-xl border border-sand bg-white p-3 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    value={g.name}
+                    onChange={e=>setOptionGroups(previous=>previous.map((x,j)=>j===i?{...x,name:e.target.value}:x))}
+                    placeholder="Nom du groupe (ex : Couleur)"
+                    className="min-w-0 flex-1 border p-2"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={()=>setOptionGroups(previous=>previous.filter((_,j)=>j!==i))}
+                    className="text-xs text-red-700 underline"
+                  >
+                    Retirer
+                  </button>
+                </div>
+
+                <input
+                  value={g.values}
+                  onChange={e=>setOptionGroups(previous=>previous.map((x,j)=>j===i?{...x,values:e.target.value}:x))}
+                  placeholder="Valeurs séparées par des virgules : Noir, Blanc, Rose"
+                  className="w-full border p-2 text-sm"
+                />
+
+                <p className="text-[11px] text-ink/50">
+                  Sépare chaque valeur par une virgule.
+                </p>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={()=>setOptionGroups(previous=>[
+                ...previous,
+                {name:'',values:''}
+              ])}
+              className="w-full rounded-full border border-plum py-2 text-sm text-plum"
+            >
+              + Ajouter un groupe d’options
+            </button>
+
+            {optionGroups.length>0&&(
+              <button
+                type="button"
+                onClick={generateCombinations}
+                className="w-full rounded-full bg-plum py-3 text-sm font-semibold text-white"
+              >
+                Générer les combinaisons
+              </button>
+            )}
+
+            <p className="text-xs text-ink/60">
+              Exemple : Couleur = Noir, Blanc · Taille = S, M, L.
+              Le système créera automatiquement 6 combinaisons.
+            </p>
+          </div>
+
+          {/* VARIANTES ET COMBINAISONS */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold">
+                Variantes et stocks
+              </p>
+              <p className="text-xs text-ink/60">
+                Configure ici le stock, le prix et les photos de chaque combinaison.
+              </p>
+            </div>
+
+            {vrows.map((r:any,i:number)=>(
+              <div key={i} className="border border-sand bg-white p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    {r.options
+                      ?<div>
+                        <p className="font-semibold text-sm text-plum">
+                          {r.name}
+                        </p>
+                        <p className="text-[11px] text-ink/50">
+                          Combinaison automatique
+                        </p>
+                      </div>
+                      :<input
+                        value={r.name}
+                        onChange={e=>setV(i,{name:e.target.value})}
+                        placeholder="Nom (ex : Rose)"
+                        className="w-full border p-2"
+                      />}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={()=>setVrows(previous=>previous.filter((_,j)=>j!==i))}
+                    className="text-sm text-red-700 underline"
+                  >
+                    Retirer
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <label className="flex-1 text-xs">
+                    Stock
+                    <input
+                      type="number"
+                      min="0"
+                      value={r.stock}
+                      onChange={e=>setV(i,{stock:e.target.value})}
+                      placeholder="Stock"
+                      className="w-full border p-2"
+                    />
+                  </label>
+
+                  <label className="flex-1 text-xs">
+                    Prix personnalisé (facultatif)
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={r.price}
+                      onChange={e=>setV(i,{price:e.target.value})}
+                      placeholder="Prix du produit"
+                      className="w-full border p-2"
+                    />
+                  </label>
+                </div>
+
+                <select
+                  value={r.status||'available'}
+                  onChange={e=>setV(i,{status:e.target.value})}
+                  className="w-full border p-2"
+                >
+                  <option value="available">Disponible immédiatement</option>
+                  <option value="last">Dernières pièces</option>
+                  <option value="arrival">Arrivage prochainement (réservation)</option>
+                  <option value="preorder">Précommande</option>
+                  <option value="soldout">Épuisé</option>
+                </select>
+
+                {r.images.length>0&&(
+                  <div className="flex flex-wrap gap-2">
+                    {r.images.map((u:string)=>(
+                      <div key={u} className="relative">
+                        <img src={u} alt="" className="h-16 w-14 object-cover"/>
+                        <button
+                          type="button"
+                          onClick={()=>setV(i,{images:r.images.filter((x:string)=>x!==u)})}
+                          className="absolute right-0 top-0 bg-ink px-1 text-xs text-white"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label className="text-xs">
+                  Photos de cette variante
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={e=>setV(i,{files:Array.from(e.target.files||[])})}
+                  />
+                </label>
+
+                {r.files?.length>0&&(
+                  <p className="text-xs text-plum">
+                    {r.files.length} photo(s) à ajouter à l’enregistrement
+                  </p>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={()=>setVrows(previous=>[
+                ...previous,
+                {
+                  name:'',
+                  stock:0,
+                  status:'available',
+                  price:'',
+                  images:[],
+                  files:[],
+                  options:null
+                }
+              ])}
+              className="w-full rounded-full border border-plum py-2 text-sm text-plum"
+            >
+              + Ajouter une variante simple
+            </button>
+          </div>
+
+          <textarea
+            name="desc"
+            placeholder="Description"
+            defaultValue={edit?.description||''}
+            className="border p-2"
+          />
+
+          {imgs.length>0&&(
+            <div className="flex gap-2 flex-wrap">
+              {imgs.map(u=>(
+                <div key={u} className="relative">
+                  <img src={u} alt="" className="w-16 h-20 object-cover"/>
+                  <button
+                    type="button"
+                    onClick={()=>setImgs(imgs.filter(x=>x!==u))}
+                    className="absolute top-0 right-0 bg-ink text-white text-xs px-1"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <label className="text-sm">
+            Photos générales du produit
+            <input name="images" type="file" accept="image/*" multiple/>
+          </label>
+
+          <label>
+            <input type="checkbox" name="new" defaultChecked={!!edit?.is_new}/>
+            {' '}Nouveau
+          </label>
+
+          <label>
+            <input type="checkbox" name="best" defaultChecked={!!edit?.is_bestseller}/>
+            {' '}Best-seller
+          </label>
+
+          <label>
+            <input type="checkbox" name="feat" defaultChecked={!!edit?.featured}/>
+            {' '}Mettre en avant (accueil)
+          </label>
+
+          <button className="bg-ink text-white py-3">
+            {edit?'Enregistrer les modifications':'Enregistrer'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
