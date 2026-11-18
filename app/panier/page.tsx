@@ -1,4 +1,4 @@
-
+ 
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {useCart} from '@/lib/cart';
 import {supabase,eur,WA} from '@/lib/supabase';
 import Suggestions from '@/components/Suggestions';
+import CartOfferUpsell from '@/components/CartOfferUpsell';
 import {DELIVERY,PREORDER} from '@/lib/shop';
 
 const bag=<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8.5h14l-1 11.5H6z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/></svg>;
@@ -70,7 +71,6 @@ export default function Panier(){
   const hasOffer=od>0||lines.some((l:any)=>l.offer);
   const disc=!hasOffer&&pr?.ok?Number(pr.discount):0;
 
-  // Progression vers la livraison gratuite
   const freeOver=Number(cfg?.free_over||0);
   const deliveryBase=Math.max(0,subtotal-disc-od);
   const freeDeliveryReached=Boolean(
@@ -88,7 +88,6 @@ export default function Panier(){
     ?Math.min(100,Math.max(0,(deliveryBase/freeOver)*100))
     :0;
 
-  // Calcul des économies réellement appliquées
   const totalSavings=Math.max(0,disc+od);
   const originalTotal=subtotal+fee;
   const finalTotal=subtotal-disc-od+fee;
@@ -152,7 +151,6 @@ export default function Panier(){
 
   const btn="rounded-full py-4 text-center text-xs font-semibold uppercase tracking-[0.16em] transition active:scale-[0.98]";
 
-  // CONFIRMATION DE COMMANDE
   if(order){
     const its:any[]=order.items||[];
     const hasPre=its.some(i=>i.preorder);
@@ -306,7 +304,6 @@ export default function Panier(){
     );
   }
 
-  // PANIER VIDE
   if(!lines.length){
     return(
       <>
@@ -341,7 +338,6 @@ export default function Panier(){
     );
   }
 
-  // PANIER AVEC ARTICLES
   return(
     <>
       <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
@@ -367,7 +363,6 @@ export default function Panier(){
 
           <div className="space-y-6">
 
-            {/* ARTICLES */}
             <section className={card}>
               <div className="mb-2 flex items-center justify-between">
                 <h2 className={h2}>Vos articles</h2>
@@ -469,7 +464,8 @@ export default function Panier(){
               ))}
             </section>
 
-            {/* LIVRAISON */}
+            <CartOfferUpsell/>
+
             <section className={card}>
               <div className="mb-5">
                 <h2 className={h2}>Informations de livraison</h2>
@@ -528,12 +524,10 @@ export default function Panier(){
             </section>
           </div>
 
-          {/* RÉCAPITULATIF */}
           <aside className="space-y-4 lg:sticky lg:top-28">
             <section className={card}>
               <h2 className={h2}>Récapitulatif</h2>
 
-              {/* BARRE DE PROGRESSION LIVRAISON GRATUITE */}
               {freeOver>0&&(
                 <div className="mt-5 rounded-2xl border border-rose/15 bg-gradient-to-br from-blush/50 to-white p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -600,7 +594,6 @@ export default function Panier(){
                 )}
               </div>
 
-              {/* VOS ÉCONOMIES */}
               {totalSavings>0&&(
                 <div className="mt-5 rounded-2xl border border-rose/20 bg-blush/30 p-4">
                   <div className="flex items-center gap-2">
@@ -656,7 +649,6 @@ export default function Panier(){
                 </p>
               </div>
 
-              {/* CODE PROMO */}
               <div className="mt-5">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink/70">
                   Code promotionnel
@@ -699,7 +691,6 @@ export default function Panier(){
                 )}
               </div>
 
-              {/* ACCORD PRÉCOMMANDE */}
               {lines.some((l:any)=>l.pre)&&(
                 <label className="mt-5 flex cursor-pointer gap-3 rounded-xl border border-plum/20 bg-blush/30 p-3 text-xs leading-relaxed">
                   <input
