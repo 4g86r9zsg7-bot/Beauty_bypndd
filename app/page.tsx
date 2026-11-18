@@ -6,6 +6,8 @@ export default async function Home(){
 const [{data:c},{data:b}]=await Promise.all([supabase.from('categories').select('*').order('position',{nullsFirst:false}).order('name'),supabase.from('brands').select('*').order('name')]);
 const cats=uniq(c),brands=uniq(b);
 const top=cats.filter((x:any)=>!x.parent_id&&x.slug!=='sacs-accessoires');
+const nowIso=new Date().toISOString();
+const {count:offerCount}=await supabase.from('offers').select('id',{count:'exact',head:true}).eq('active',true).or(`starts_at.is.null,starts_at.lte.${nowIso}`).or(`ends_at.is.null,ends_at.gt.${nowIso}`);
 const coffretsId=cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id??'00000000-0000-0000-0000-000000000000';
 const defs:{tone:string;title:string;href:string;f:(q:any)=>any}[]=[
 {tone:'nouveautes',title:'Nouveautés',href:'/categorie/nouveautes',f:q=>q.eq('is_new',true).not('availability','in','(arrival,preorder)')},
@@ -28,6 +30,7 @@ return items.length?<Shelf key={d.tone} tone={d.tone} title={d.title} href={d.hr
 return <>
 <Shortcuts/>
 <Hero/>
+{(offerCount||0)>0&&<Link href="/offres" className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-[#C6A15B]/60 bg-gradient-to-r from-[#fbeff3] via-white to-[#fbeff3] px-5 py-4 text-plum shadow-sm transition hover:shadow-md"><span><span className="block text-[10px] uppercase tracking-[0.3em] text-[#8a6a22]">Offres exclusives</span><span className="mt-1 block font-serif text-2xl italic">Packs &amp; Offres exclusives</span><span className="mt-0.5 block text-xs text-ink/70">Des sélections à prix avantageux, pour une durée limitée</span></span><span className="text-2xl text-[#C6A15B]" aria-hidden="true">→</span></Link>}
 <Link href="/precommande-shein" className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#14040c] px-5 py-4 text-white transition hover:opacity-90"><span><span className="block text-[10px] uppercase tracking-[0.3em] text-[#EE6FB0]">SHEIN</span><span className="mt-1 block font-serif text-2xl italic">Précommande SHEIN</span><span className="mt-0.5 block text-xs text-white/70">Collez votre panier, obtenez votre prix final en dirhams</span></span><span className="text-2xl text-[#EE6FB0]" aria-hidden="true">→</span></Link>
 
 <section className="mt-14">
