@@ -1,11 +1,11 @@
 
 'use client';
 
+import type {ReactNode} from 'react';
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
-import SearchBox from '@/components/SearchBox';
 
-export default function HeroCarousel({src}:{src:string}){
+export default function HeroCarousel({src,search}:{src:string;search:ReactNode}){
   const [active,setActive]=useState(0);
 
   useEffect(()=>{
@@ -46,10 +46,7 @@ export default function HeroCarousel({src}:{src:string}){
   ];
 
   return (
-    <section
-      className="relative left-1/2 z-10 w-screen -translate-x-1/2 overflow-hidden bg-[#14040c] text-white lg:-mt-6"
-      onMouseEnter={()=>{}}
-    >
+    <section className="relative left-1/2 z-10 w-screen -translate-x-1/2 overflow-hidden bg-[#14040c] text-white lg:-mt-6">
       <div className="relative min-h-[610px] md:min-h-[540px]">
         {slides.map((slide,index)=>(
           <div
@@ -93,21 +90,16 @@ export default function HeroCarousel({src}:{src:string}){
                 <span className="inline-block rounded-full border border-white/30 bg-white/5 px-5 py-2 text-[10px] uppercase tracking-[0.3em] backdrop-blur-sm">
                   {slide.eyebrow}
                 </span>
-
                 <p className="mt-8 text-[11px] uppercase tracking-[0.35em] text-white/75">
                   Beauté, mode &amp; accessoires
                 </p>
-
                 <h1 className="mt-3 max-w-2xl font-serif text-5xl leading-[1.05] md:text-6xl lg:text-7xl">
                   {slide.title}
                 </h1>
-
                 <div className="mt-4 h-[2px] w-44 bg-gradient-to-r from-[#EE6FB0] to-transparent"/>
-
                 <p className="mt-5 max-w-md font-serif text-xl leading-relaxed text-white/90">
                   {slide.subtitle}
                 </p>
-
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link href={slide.href} tabIndex={active===index?0:-1} className="rounded-full bg-[#EE6FB0] px-7 py-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2a0a1b] shadow-[0_0_30px_rgba(238,111,176,.35)] transition hover:brightness-110 active:scale-95">
                     {slide.button} →
@@ -122,37 +114,18 @@ export default function HeroCarousel({src}:{src:string}){
         ))}
 
         <div className="absolute bottom-7 left-0 right-0 z-20 flex items-center justify-center gap-4">
-          <button
-            type="button"
-            aria-label="Bannière précédente"
-            onClick={()=>setActive(current=>(current+2)%3)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/15 text-white transition hover:bg-white/15"
-          >‹</button>
-
+          <button type="button" aria-label="Bannière précédente" onClick={()=>setActive(current=>(current+2)%3)} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/15 text-white transition hover:bg-white/15">‹</button>
           <div className="flex items-center gap-2">
             {slides.map((_,index)=>(
-              <button
-                key={index}
-                type="button"
-                aria-label={`Afficher la bannière ${index+1}`}
-                aria-current={active===index?'true':undefined}
-                onClick={()=>setActive(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${active===index?'w-8 bg-[#EE6FB0]':'w-2 bg-white/55 hover:bg-white'}`}
-              />
+              <button key={index} type="button" aria-label={`Afficher la bannière ${index+1}`} aria-current={active===index?'true':undefined} onClick={()=>setActive(index)} className={`h-2 rounded-full transition-all duration-300 ${active===index?'w-8 bg-[#EE6FB0]':'w-2 bg-white/55 hover:bg-white'}`}/>
             ))}
           </div>
-
-          <button
-            type="button"
-            aria-label="Bannière suivante"
-            onClick={()=>setActive(current=>(current+1)%3)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/15 text-white transition hover:bg-white/15"
-          >›</button>
+          <button type="button" aria-label="Bannière suivante" onClick={()=>setActive(current=>(current+1)%3)} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/35 bg-black/15 text-white transition hover:bg-white/15">›</button>
         </div>
       </div>
 
       <div className="relative z-20 mx-auto -mt-1 max-w-2xl px-5 pb-5 md:-mt-0 md:pb-7">
-        <SearchBox/>
+        {search}
       </div>
     </section>
   );
