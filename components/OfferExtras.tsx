@@ -7,10 +7,9 @@ type OfferItem={
   id:string;
   name:string;
   image?:string|null;
-  slug?:string|null;
   qty:number;
   variant?:string|null;
-  price:number;
+  priceLabel:string;
 };
 
 export function OfferCountdown({endsAt}:{endsAt:string}){
@@ -27,16 +26,11 @@ export function OfferCountdown({endsAt}:{endsAt:string}){
 
   if(remaining===null||remaining<=0)return null;
 
-  const days=Math.floor(remaining/86400000);
-  const hours=Math.floor((remaining%86400000)/3600000);
-  const minutes=Math.floor((remaining%3600000)/60000);
-  const seconds=Math.floor((remaining%60000)/1000);
-
   const units=[
-    {value:days,label:'Jours'},
-    {value:hours,label:'Heures'},
-    {value:minutes,label:'Min'},
-    {value:seconds,label:'Sec'}
+    {value:Math.floor(remaining/86400000),label:'Jours'},
+    {value:Math.floor((remaining%86400000)/3600000),label:'Heures'},
+    {value:Math.floor((remaining%3600000)/60000),label:'Min'},
+    {value:Math.floor((remaining%60000)/1000),label:'Sec'}
   ];
 
   return (
@@ -147,7 +141,7 @@ export function OfferDetails({
                     <p className="mt-1 text-xs text-ink/60">Quantité : {item.qty}</p>
                   </div>
                   <p className="shrink-0 text-sm font-medium text-plum">
-                    {item.price.toFixed(2)} DH
+                    {item.priceLabel}
                   </p>
                 </div>
               ))}
