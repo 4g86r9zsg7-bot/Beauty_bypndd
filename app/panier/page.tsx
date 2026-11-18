@@ -1,5 +1,6 @@
  
 
+
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -93,7 +94,9 @@ export default function Panier(){
     cfg&&freeOver>0&&deliveryBase>=freeOver
   );
 
-  const fee=freeDeliveryReached?0:fee0;
+  // Les frais restent cachés tant que la ville n'est pas renseignée.
+  const hasCity=f.city.trim().length>0;
+  const fee=hasCity?(freeDeliveryReached?0:fee0):0;
   const cur=cfg?.currency||'DH';
 
   const left=freeOver>0
@@ -586,12 +589,14 @@ export default function Panier(){
                   <span className="font-medium">{eur(subtotal,cur)}</span>
                 </p>
 
-                <p className="flex justify-between gap-3">
-                  <span className="text-ink/65">Livraison</span>
-                  <span className="font-medium">
-                    {fee?eur(fee,cur):'Offerte'}
-                  </span>
-                </p>
+                {hasCity&&(
+                  <p className="flex justify-between gap-3">
+                    <span className="text-ink/65">Livraison</span>
+                    <span className="font-medium">
+                      {fee?eur(fee,cur):'Offerte'}
+                    </span>
+                  </p>
+                )}
 
                 {disc>0&&(
                   <p className="flex justify-between gap-3 text-rose">
