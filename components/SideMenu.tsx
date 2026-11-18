@@ -208,29 +208,22 @@ export default function SideMenu(){
                 À découvrir
               </p>
 
-              <div className="grid grid-cols-2 gap-2">
-                <Link href="/categorie/nouveautes" onClick={hide} className="group rounded-xl border border-[#F0DCE5] bg-white p-3 transition hover:bg-[#FCF1F6]">
-                  <span className="block text-[10px] uppercase tracking-[0.13em] text-[#A34D72]">Collection</span>
-                  <span className="mt-1 block font-serif text-lg text-[#702344]">Nouveautés</span>
-                  <span className="mt-2 block text-xs text-[#A34D72]">Découvrir ↗</span>
-                </Link>
-
-                <Link href="/categorie/promotions" onClick={hide} className="group rounded-xl border border-[#EAD7DF] bg-[#F9EDF2] p-3 transition hover:bg-[#F5E3EB]">
-                  <span className="block text-[10px] uppercase tracking-[0.13em] text-[#A34D72]">Petits prix</span>
-                  <span className="mt-1 block font-serif text-lg text-[#702344]">Promotions</span>
-                  <span className="mt-2 block text-xs text-[#A34D72]">Découvrir ↗</span>
-                </Link>
-              </div>
-
-              <Link href="/offres" onClick={hide} className="mt-2 flex items-center justify-between rounded-xl bg-[#702344] px-4 py-3.5 text-white transition hover:bg-[#582039]">
-                <span>
-                  <span className="block text-[9px] uppercase tracking-[0.2em] text-[#F2D7E3]">Sélections spéciales</span>
-                  <span className="mt-1 block font-serif text-lg">Offres exclusives & Packs</span>
-                </span>
-                <span className="text-xl">↗</span>
+              <Link href="/categorie/nouveautes" onClick={hide} className={row}>
+                <span>Nouveautés</span>
+                <span className="text-lg text-[#B68A9D]">›</span>
               </Link>
 
-              <Link href="/categorie/arrivages" onClick={hide} className="mt-2 flex items-center justify-between rounded-xl border border-[#F0DCE5] bg-white px-4 py-3 text-sm text-[#702344] transition hover:bg-[#FCF1F6]">
+              <Link href="/categorie/promotions" onClick={hide} className={row}>
+                <span>Bons plans</span>
+                <span className="text-lg text-[#B68A9D]">›</span>
+              </Link>
+
+              <Link href="/offres" onClick={hide} className={row}>
+                <span>Nos coups de cœur</span>
+                <span className="text-lg text-[#B68A9D]">›</span>
+              </Link>
+
+              <Link href="/categorie/arrivages" onClick={hide} className="mt-3 flex items-center justify-between rounded-xl border border-[#F0DCE5] bg-white px-4 py-3 text-sm text-[#702344] transition hover:bg-[#FCF1F6]">
                 <span>Prochains arrivages</span>
                 <span className="text-lg">›</span>
               </Link>
