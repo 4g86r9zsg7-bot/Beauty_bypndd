@@ -14,47 +14,171 @@ const colorMap:Record<string,string>={
   black:'#171717',
   blanc:'#ffffff',
   white:'#ffffff',
+  ivoire:'#fff8e7',
+  ivory:'#fff8e7',
+  'blanc casse':'#f5f0e6',
+  'blanc cassé':'#f5f0e6',
+
   rose:'#e9a0b5',
   pink:'#e9a0b5',
+  'rose pale':'#f5c5d2',
+  'rose clair':'#f5c5d2',
+  'rose poudre':'#e8c0c8',
+  'rose fuchsia':'#d62976',
+  fuchsia:'#d62976',
+  magenta:'#d62976',
+
   beige:'#d8c2a0',
   nude:'#d8b99b',
+  champagne:'#e8d3a5',
+  creme:'#f0e2c5',
+  'creme':'#f0e2c5',
+
   marron:'#795548',
   brown:'#795548',
   chocolat:'#593b2d',
+  camel:'#bd966b',
+  taupe:'#8b7768',
+  caramel:'#b87943',
+
   rouge:'#c62828',
   red:'#c62828',
   bordeaux:'#701c35',
+  burgundy:'#701c35',
+  grenat:'#701c35',
+
   bleu:'#2874b9',
   blue:'#2874b9',
+  'bleu clair':'#83bde8',
+  'bleu ciel':'#87ceeb',
+  'bleu marine':'#172b4d',
   marine:'#172b4d',
+  turquoise:'#36b9b0',
+  cyan:'#36b9d0',
+
   vert:'#39845b',
   green:'#39845b',
+  'vert clair':'#8bc59b',
+  'vert olive':'#77764a',
   kaki:'#77764a',
+  olive:'#77764a',
+  emeraude:'#087f5b',
+
   gris:'#929292',
   grey:'#929292',
   gray:'#929292',
+  'gris clair':'#d4d4d4',
+  'gris fonce':'#555555',
+
   jaune:'#f3d34a',
   yellow:'#f3d34a',
+  moutarde:'#c49b27',
   orange:'#e98735',
+  corail:'#ef806c',
+
   violet:'#8055a5',
   purple:'#8055a5',
   lilas:'#c5a6d8',
   lavender:'#c5a6d8',
-  doré:'#c5a04b',
+  mauve:'#a77aa9',
+
   dore:'#c5a04b',
   gold:'#c5a04b',
+  or:'#c5a04b',
+  argente:'#c0c0c0',
   argent:'#c0c0c0',
   silver:'#c0c0c0',
+  cuivre:'#b87333',
+  bronze:'#cd7f32',
+
   transparent:'#f4f0e9'
 };
 
+function normalizeColor(value:string){
+  return String(value||'')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[_-]+/g,' ')
+    .replace(/\s+/g,' ');
+}
+
+function isMultiColor(value:string){
+  const key=normalizeColor(value);
+
+  return [
+    'multicolore',
+    'multi couleur',
+    'multicolor',
+    'multicolored',
+    'multicoloured',
+    'arc en ciel',
+    'rainbow',
+    'imprime multicolore'
+  ].includes(key);
+}
+
 function colorValue(value:string){
-  const key=String(value||'').trim().toLowerCase();
-  return colorMap[key]||'#d8c9c1';
+  const key=normalizeColor(value);
+
+  if(isMultiColor(value)){
+    return 'linear-gradient(135deg, #e53935 0%, #e53935 16%, #f5c542 16%, #f5c542 32%, #43a047 32%, #43a047 48%, #2196f3 48%, #2196f3 64%, #8055a5 64%, #8055a5 80%, #e9a0b5 80%, #e9a0b5 100%)';
+  }
+
+  if(/^#[0-9a-f]{3,8}$/i.test(key)){
+    return key;
+  }
+
+  if(colorMap[key]){
+    return colorMap[key];
+  }
+
+  // Reconnaissance des couleurs même lorsqu'elles sont accompagnées
+  // d'une précision comme "bleu clair", "rose pâle" ou "vert olive".
+  const entries=[
+    ['noir','#171717'],
+    ['black','#171717'],
+    ['blanc','#ffffff'],
+    ['white','#ffffff'],
+    ['rose','#e9a0b5'],
+    ['pink','#e9a0b5'],
+    ['beige','#d8c2a0'],
+    ['nude','#d8b99b'],
+    ['marron','#795548'],
+    ['brown','#795548'],
+    ['chocolat','#593b2d'],
+    ['rouge','#c62828'],
+    ['red','#c62828'],
+    ['bordeaux','#701c35'],
+    ['bleu','#2874b9'],
+    ['blue','#2874b9'],
+    ['marine','#172b4d'],
+    ['vert','#39845b'],
+    ['green','#39845b'],
+    ['kaki','#77764a'],
+    ['gris','#929292'],
+    ['grey','#929292'],
+    ['gray','#929292'],
+    ['jaune','#f3d34a'],
+    ['yellow','#f3d34a'],
+    ['orange','#e98735'],
+    ['violet','#8055a5'],
+    ['purple','#8055a5'],
+    ['lilas','#c5a6d8'],
+    ['dore','#c5a04b'],
+    ['gold','#c5a04b'],
+    ['argent','#c0c0c0'],
+    ['silver','#c0c0c0']
+  ];
+
+  const found=entries.find(([name])=>key.includes(name));
+
+  return found?found[1]:'#d8c9c1';
 }
 
 function isColorGroup(name:string){
-  const n=name.toLowerCase();
+  const n=normalizeColor(name);
   return n.includes('couleur')||n.includes('color');
 }
 
@@ -387,6 +511,7 @@ export default function ProductBuy({p}:{p:any}) {
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
                         const color=colorValue(value);
+                        const multi=isMultiColor(value);
 
                         return (
                           <button
@@ -403,8 +528,10 @@ export default function ProductBuy({p}:{p:any}) {
                             }`}
                           >
                             <span
-                              className="h-7 w-7 rounded-full border border-black/10 shadow-inner"
-                              style={{backgroundColor:color}}
+                              className={`h-7 w-7 rounded-full border shadow-inner ${
+                                multi?'border-black/20':'border-black/15'
+                              }`}
+                              style={{background:color}}
                             />
                           </button>
                         );
