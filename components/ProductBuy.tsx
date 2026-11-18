@@ -32,7 +32,7 @@ const colorMap:Record<string,string>={
   nude:'#d8b99b',
   champagne:'#e8d3a5',
   creme:'#f0e2c5',
-  'creme':'#f0e2c5',
+  
 
   marron:'#795548',
   brown:'#795548',
