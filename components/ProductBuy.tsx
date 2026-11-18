@@ -9,6 +9,55 @@ import {useCart} from '@/lib/cart';
 import {WA,eur} from '@/lib/supabase';
 import {DELIVERY,PREORDER} from '@/lib/shop';
 
+const colorMap:Record<string,string>={
+  noir:'#171717',
+  black:'#171717',
+  blanc:'#ffffff',
+  white:'#ffffff',
+  rose:'#e9a0b5',
+  pink:'#e9a0b5',
+  beige:'#d8c2a0',
+  nude:'#d8b99b',
+  marron:'#795548',
+  brown:'#795548',
+  chocolat:'#593b2d',
+  rouge:'#c62828',
+  red:'#c62828',
+  bordeaux:'#701c35',
+  bleu:'#2874b9',
+  blue:'#2874b9',
+  marine:'#172b4d',
+  vert:'#39845b',
+  green:'#39845b',
+  kaki:'#77764a',
+  gris:'#929292',
+  grey:'#929292',
+  gray:'#929292',
+  jaune:'#f3d34a',
+  yellow:'#f3d34a',
+  orange:'#e98735',
+  violet:'#8055a5',
+  purple:'#8055a5',
+  lilas:'#c5a6d8',
+  lavender:'#c5a6d8',
+  doré:'#c5a04b',
+  dore:'#c5a04b',
+  gold:'#c5a04b',
+  argent:'#c0c0c0',
+  silver:'#c0c0c0',
+  transparent:'#f4f0e9'
+};
+
+function colorValue(value:string){
+  const key=String(value||'').trim().toLowerCase();
+  return colorMap[key]||'#d8c9c1';
+}
+
+function isColorGroup(name:string){
+  const n=name.toLowerCase();
+  return n.includes('couleur')||n.includes('color');
+}
+
 export default function ProductBuy({p}:{p:any}) {
   const {add,lines}=useCart();
 
@@ -17,20 +66,70 @@ export default function ProductBuy({p}:{p:any}) {
   );
 
   const vimgs=(x:any):string[]=>x
-    ?(x.images?.length?x.images:x.image?[x.image]:[])
+    ?(Array.isArray(x.images)&&x.images.length
+      ?x.images
+      :x.image?[x.image]:[])
     :[];
 
-  const imgs:string[]=p.images||[];
+  const imgs:string[]=Array.isArray(p.images)?p.images:[];
   const used=new Set(vs.flatMap(vimgs));
   const gen=imgs.filter(u=>!used.has(u));
   const base=gen[0]||imgs[0]||vs.flatMap(vimgs)[0]||'';
 
-  const [v,setV]=useState('');
+  const [legacyV,setLegacyV]=useState('');
+  const [selectedOptions,setSelectedOptions]=useState<Record<string,string>>({});
   const [pic,setPic]=useState<string|null>(null);
   const [done,setDone]=useState(false);
   const [ack,setAck]=useState(false);
 
-  const cur=vs.find(x=>x.name===v);
+  // Détection des groupes d'options enregistrés dans les variantes.
+  const optionGroups:{name:string;values:string[]}[]=[];
+
+  vs.forEach(x=>{
+    if(!x.options||typeof x.options!=='object'||Array.isArray(x.options))return;
+
+    Object.entries(x.options).forEach(([name,value])=>{
+      if(value==null||String(value).trim()==='')return;
+
+      let group=optionGroups.find(g=>g.name===name);
+
+      if(!group){
+        group={name,values:[]};
+        optionGroups.push(group);
+      }
+
+      const val=String(value);
+
+      if(!group.values.includes(val)){
+        group.values.push(val);
+      }
+    });
+  });
+
+  const hasOptionGroups=optionGroups.length>0;
+
+  // Recherche de la combinaison correspondant aux choix du client.
+  const allOptionsSelected=hasOptionGroups&&optionGroups.every(
+    group=>Boolean(selectedOptions[group.name])
+  );
+
+  const selectedCombo=hasOptionGroups&&allOptionsSelected
+    ?vs.find(x=>
+        x.options&&
+        optionGroups.every(
+          group=>String(x.options[group.name]??'')===selectedOptions[group.name]
+        )
+      )
+    :null;
+
+  const v=hasOptionGroups
+    ?(selectedCombo?.name||'')
+    :legacyV;
+
+  const cur=hasOptionGroups
+    ?selectedCombo
+    :vs.find(x=>x.name===legacyV);
+
   const vph=vimgs(cur);
   const thumbs=vph.length>0?vph:gen;
   const shown=(pic&&thumbs.includes(pic)?pic:null)||vph[0]||base;
@@ -64,7 +163,7 @@ export default function ProductBuy({p}:{p:any}) {
   )?.qty||0;
 
   const full=max!=null&&inCart>=max;
-  const needV=hasV&&!v;
+  const needV=hasV&&!cur;
   const needAck=pre&&mode==='cart';
 
   const status=mode==='pre'||needAck
@@ -79,6 +178,7 @@ export default function ProductBuy({p}:{p:any}) {
 
   const label=(x:any)=>{
     const s=x.status||'available';
+
     return s==='arrival'?' · arrivage'
       :s==='preorder'?' · précommande'
       :s==='soldout'?' · épuisé'
@@ -89,6 +189,20 @@ export default function ProductBuy({p}:{p:any}) {
     `https://wa.me/${WA}?text=${encodeURIComponent(
       `Bonjour, ${s} : ${p.name}${v?` (${v})`:''} - ${price} DH`
     )}`;
+
+  const resetSelection=()=>{
+    setPic(null);
+    setDone(false);
+    setAck(false);
+  };
+
+  const chooseOption=(groupName:string,value:string)=>{
+    setSelectedOptions(previous=>({
+      ...previous,
+      [groupName]:value
+    }));
+    resetSelection();
+  };
 
   const btn="flex w-full items-center justify-center rounded-full py-4 px-5 text-xs tracking-[0.16em] uppercase font-semibold transition duration-300 active:scale-[0.98] disabled:opacity-40";
 
@@ -251,8 +365,82 @@ export default function ProductBuy({p}:{p:any}) {
           </div>
         )}
 
-        {/* VARIANTES */}
-        {hasV&&(
+        {/* CHOIX DES OPTIONS : COULEUR, TAILLE, MODÈLE, ETC. */}
+        {hasOptionGroups&&(
+          <div className="mt-7 space-y-6">
+            {optionGroups.map(group=>{
+              const colorGroup=isColorGroup(group.name);
+
+              return (
+                <div key={group.name}>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink">
+                    {group.name}
+                    {selectedOptions[group.name]&&!colorGroup&&(
+                      <span className="ml-2 font-normal normal-case tracking-normal text-plum">
+                        : {selectedOptions[group.name]}
+                      </span>
+                    )}
+                  </p>
+
+                  {colorGroup?(
+                    <div className="flex flex-wrap gap-3">
+                      {group.values.map(value=>{
+                        const on=selectedOptions[group.name]===value;
+                        const color=colorValue(value);
+
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            title={value}
+                            aria-label={`Couleur ${value}`}
+                            aria-pressed={on}
+                            onClick={()=>chooseOption(group.name,value)}
+                            className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
+                              on
+                                ?'border-plum ring-2 ring-rose ring-offset-2'
+                                :'border-black/10 hover:border-rose'
+                            }`}
+                          >
+                            <span
+                              className="h-7 w-7 rounded-full border border-black/10 shadow-inner"
+                              style={{backgroundColor:color}}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ):(
+                    <div className="flex flex-wrap gap-2">
+                      {group.values.map(value=>{
+                        const on=selectedOptions[group.name]===value;
+
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={()=>chooseOption(group.name,value)}
+                            aria-pressed={on}
+                            className={`min-w-12 rounded-full border px-4 py-3 text-xs transition ${
+                              on
+                                ?'border-plum bg-plum text-white shadow-sm'
+                                :'border-plum/25 bg-white text-plum hover:border-rose'
+                            }`}
+                          >
+                            {value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ANCIEN SYSTÈME DE VARIANTES */}
+        {hasV&&!hasOptionGroups&&(
           <div className="mt-7">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink">
               Choisissez votre variante
@@ -260,17 +448,15 @@ export default function ProductBuy({p}:{p:any}) {
 
             <div className="flex flex-wrap gap-2">
               {vs.map(x=>{
-                const on=x.name===v;
+                const on=x.name===legacyV;
 
                 return (
                   <button
                     key={x.name}
                     type="button"
                     onClick={()=>{
-                      setV(x.name);
-                      setPic(null);
-                      setDone(false);
-                      setAck(false);
+                      setLegacyV(x.name);
+                      resetSelection();
                     }}
                     aria-pressed={on}
                     className={`rounded-full border px-4 py-3 text-xs transition ${
@@ -294,7 +480,9 @@ export default function ProductBuy({p}:{p:any}) {
 
           {needV?(
             <p className="rounded-xl bg-blush/40 p-4 text-sm text-plum">
-              Choisissez une variante pour voir ses photos, son prix et sa disponibilité.
+              {hasOptionGroups
+                ?'Choisissez toutes les options pour voir les photos, le prix et la disponibilité de cette combinaison.'
+                :'Choisissez une variante pour voir ses photos, son prix et sa disponibilité.'}
             </p>
           ):mode==='pre'?(
             <a href={wa('je souhaite précommander')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
