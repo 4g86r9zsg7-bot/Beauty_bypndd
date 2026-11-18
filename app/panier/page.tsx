@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -88,6 +87,11 @@ export default function Panier(){
   const progress=freeOver>0
     ?Math.min(100,Math.max(0,(deliveryBase/freeOver)*100))
     :0;
+
+  // Calcul des économies réellement appliquées
+  const totalSavings=Math.max(0,disc+od);
+  const originalTotal=subtotal+fee;
+  const finalTotal=subtotal-disc-od+fee;
 
   const applyPromo=async()=>{
     if(hasOffer||!f.promo.trim())return;
@@ -596,10 +600,59 @@ export default function Panier(){
                 )}
               </div>
 
+              {/* VOS ÉCONOMIES */}
+              {totalSavings>0&&(
+                <div className="mt-5 rounded-2xl border border-rose/20 bg-blush/30 p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-rose">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                    </span>
+
+                    <div>
+                      <p className="text-sm font-semibold text-plum">
+                        Vos économies
+                      </p>
+                      <p className="text-[11px] text-ink/55">
+                        Grâce à vos promotions et offres
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 font-serif text-2xl text-rose">
+                    {eur(totalSavings,cur)}
+                  </p>
+
+                  <div className="mt-2 space-y-1 text-xs text-ink/65">
+                    {disc>0&&(
+                      <p className="flex justify-between">
+                        <span>Code promotionnel</span>
+                        <span>-{eur(disc,cur)}</span>
+                      </p>
+                    )}
+
+                    {od>0&&(
+                      <p className="flex justify-between">
+                        <span>Offres et packs</span>
+                        <span>-{eur(od,cur)}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="mt-5 border-t border-sand pt-4">
+                {totalSavings>0&&(
+                  <p className="mb-2 flex justify-between gap-3 text-xs text-ink/50">
+                    <span>Montant avant réductions</span>
+                    <span>{eur(originalTotal,cur)}</span>
+                  </p>
+                )}
+
                 <p className="flex items-center justify-between gap-3 font-serif text-2xl text-plum">
                   <span>Total</span>
-                  <span>{eur(subtotal-disc-od+fee,cur)}</span>
+                  <span>{eur(finalTotal,cur)}</span>
                 </p>
               </div>
 
