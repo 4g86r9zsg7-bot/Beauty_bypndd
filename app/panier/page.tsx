@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -70,9 +71,23 @@ export default function Panier(){
   const hasOffer=od>0||lines.some((l:any)=>l.offer);
   const disc=!hasOffer&&pr?.ok?Number(pr.discount):0;
 
-  const fee=cfg&&subtotal-disc-od>=cfg.free_over?0:fee0;
+  // Progression vers la livraison gratuite
+  const freeOver=Number(cfg?.free_over||0);
+  const deliveryBase=Math.max(0,subtotal-disc-od);
+  const freeDeliveryReached=Boolean(
+    cfg&&freeOver>0&&deliveryBase>=freeOver
+  );
+
+  const fee=freeDeliveryReached?0:fee0;
   const cur=cfg?.currency||'EUR';
-  const left=cfg?.free_over?cfg.free_over-subtotal:0;
+
+  const left=freeOver>0
+    ?Math.max(0,freeOver-deliveryBase)
+    :0;
+
+  const progress=freeOver>0
+    ?Math.min(100,Math.max(0,(deliveryBase/freeOver)*100))
+    :0;
 
   const applyPromo=async()=>{
     if(hasOffer||!f.promo.trim())return;
@@ -514,6 +529,43 @@ export default function Panier(){
             <section className={card}>
               <h2 className={h2}>Récapitulatif</h2>
 
+              {/* BARRE DE PROGRESSION LIVRAISON GRATUITE */}
+              {freeOver>0&&(
+                <div className="mt-5 rounded-2xl border border-rose/15 bg-gradient-to-br from-blush/50 to-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-plum">
+                      {freeDeliveryReached
+                        ?'Félicitations !'
+                        :'Livraison gratuite'}
+                    </p>
+
+                    <span className="text-xs font-semibold text-rose">
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+
+                  <div
+                    className="mt-3 h-2.5 overflow-hidden rounded-full bg-rose/10"
+                    role="progressbar"
+                    aria-label="Progression vers la livraison gratuite"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(progress)}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-rose to-amber-400 transition-all duration-500"
+                      style={{width:`${progress}%`}}
+                    />
+                  </div>
+
+                  <p className="mt-3 text-xs leading-relaxed text-plum">
+                    {freeDeliveryReached
+                      ?'Vous avez atteint le seuil : la livraison est offerte !'
+                      :<>Plus que <b>{eur(left,cur)}</b> d’achats pour profiter de la livraison gratuite.</>}
+                  </p>
+                </div>
+              )}
+
               <div className="mt-5 space-y-3 text-sm">
                 <p className="flex justify-between gap-3">
                   <span className="text-ink/65">Sous-total</span>
@@ -541,12 +593,6 @@ export default function Panier(){
                     </span>
                     <span className="shrink-0">-{eur(od,cur)}</span>
                   </p>
-                )}
-
-                {fee>0&&left>0&&(
-                  <div className="rounded-xl bg-blush/40 p-3 text-xs leading-relaxed text-plum">
-                    Plus que <b>{eur(left,cur)}</b> pour bénéficier de la livraison offerte.
-                  </div>
                 )}
               </div>
 
