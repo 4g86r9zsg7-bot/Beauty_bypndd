@@ -1,4 +1,5 @@
  
+
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -10,6 +11,17 @@ import CartOfferUpsell from '@/components/CartOfferUpsell';
 import {DELIVERY,PREORDER} from '@/lib/shop';
 
 const bag=<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8.5h14l-1 11.5H6z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/></svg>;
+
+const normalizeCity=(city:string)=>{
+  const normalized=String(city||'')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]/g,'');
+
+  return normalized==='fez'?'fes':normalized;
+};
 
 export default function Panier(){
   const {lines,setQty,remove,clear,subtotal,count}=useCart();
@@ -61,9 +73,13 @@ export default function Panier(){
   },[]);
 
   const zones=cfg?.zones||[];
+  const cityKey=normalizeCity(f.city);
 
-  const fee0=
-    zones.find((z:any)=>z.city.toLowerCase()===f.city.trim().toLowerCase())?.fee
+  const matchingZone=zones.find((z:any)=>
+    z.city!=='*'&&normalizeCity(z.city)===cityKey
+  );
+
+  const fee0=matchingZone?.fee
     ??zones.find((z:any)=>z.city==='*')?.fee
     ??0;
 
@@ -78,7 +94,7 @@ export default function Panier(){
   );
 
   const fee=freeDeliveryReached?0:fee0;
-  const cur=cfg?.currency||'EUR';
+  const cur=cfg?.currency||'DH';
 
   const left=freeOver>0
     ?Math.max(0,freeOver-deliveryBase)
