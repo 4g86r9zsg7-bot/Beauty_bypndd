@@ -33,6 +33,9 @@ export const metadata:Metadata={
   },
   description:'Découvrez Beauty_bypndd : maquillage, parfums, brumes parfumées, soins et produits de beauté de grandes marques. Découvrez nos nouveautés et offres exclusives.',
   applicationName:'Beauty_bypndd',
+  verification:{
+    google:'VvULh4JxJ0Kn_J4o-AlyXTQxHC5MYaGg1SEW4u0EmXc'
+  },
   keywords:[
     'Beauty_bypndd',
     'boutique beauté',
