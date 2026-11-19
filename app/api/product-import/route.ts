@@ -1,5 +1,6 @@
 
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
@@ -9,6 +10,7 @@ export const runtime = 'nodejs';
 const MAX_HTML = 2 * 1024 * 1024;
 const MAX_IMAGES = 30;
 const MAX_VARIANTS = 50;
+const MAX_SCAN_DEPTH = 12;
 
 function isPublicIp(ip: string): boolean {
   if (isIP(ip) === 4) {
@@ -104,10 +106,21 @@ function decodeHtml(value: string): string {
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) =>
-      String.fromCodePoint(parseInt(n, 16))
-    )
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = Number(n);
+      try {
+        return Number.isFinite(code) ? String.fromCodePoint(code) : '';
+      } catch {
+        return '';
+      }
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => {
+      try {
+        return String.fromCodePoint(parseInt(n, 16));
+      } catch {
+        return '';
+      }
+    })
     .trim();
 }
 
@@ -115,7 +128,9 @@ function clean(value: unknown): string {
   if (typeof value !== 'string' && typeof value !== 'number') return '';
 
   return decodeHtml(String(value))
-    .replace(/<[^>]*>/g, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -149,70 +164,131 @@ function getMeta(html: string, key: string): string {
   return '';
 }
 
+function getAttribute(tag: string, name: string): string {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = tag.match(
+    new RegExp(`${escaped}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i')
+  );
+
+  return clean(match?.[1] ?? match?.[2] ?? match?.[3] ?? '');
+}
+
 function getTypes(data: any): string[] {
   const types = Array.isArray(data?.['@type'])
     ? data['@type']
     : [data?.['@type']];
 
-  return types.map((type: any) => String(type).toLowerCase());
+  return types
+    .filter(Boolean)
+    .map((type: any) => String(type).toLowerCase());
 }
 
-function findProducts(data: any, found: any[] = []): any[] {
-  if (!data || typeof data !== 'object') return found;
+function isProductObject(data: any): boolean {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+
+  const types = getTypes(data);
+
+  return (
+    types.includes('product') ||
+    types.includes('productgroup')
+  );
+}
+
+function findProducts(data: any, found: any[] = [], depth = 0): any[] {
+  if (!data || typeof data !== 'object' || depth > MAX_SCAN_DEPTH) {
+    return found;
+  }
 
   if (Array.isArray(data)) {
     for (const item of data) {
-      findProducts(item, found);
+      findProducts(item, found, depth + 1);
     }
     return found;
   }
 
-  const types = getTypes(data);
-
-  if (
-    types.includes('product') ||
-    types.includes('productgroup')
-  ) {
+  if (isProductObject(data)) {
     found.push(data);
   }
 
-  if (data['@graph']) {
-    findProducts(data['@graph'], found);
+  for (const [key, value] of Object.entries(data)) {
+    if (
+      key === '@graph' ||
+      key === 'mainEntity' ||
+      key === 'mainEntityOfPage' ||
+      key === 'itemListElement' ||
+      key === 'product' ||
+      key === 'products' ||
+      key === 'variants' ||
+      key === 'hasVariant' ||
+      key === 'offers' ||
+      key === 'data'
+    ) {
+      findProducts(value, found, depth + 1);
+    }
   }
 
   return found;
 }
 
-function getStructuredProduct(html: string): any {
+function parseJsonScripts(html: string): any[] {
   const scripts = html.match(
-    /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi
+    /<script\b[^>]*>[\s\S]*?<\/script>/gi
   ) || [];
 
-  const products: any[] = [];
+  const results: any[] = [];
 
   for (const script of scripts) {
+    const opening = script.match(/^<script\b[^>]*>/i)?.[0] || '';
+    const type = getAttribute(opening, 'type').toLowerCase();
+    const id = getAttribute(opening, 'id').toLowerCase();
+
+    const isJson =
+      type.includes('json') ||
+      id === '__next_data__' ||
+      id.includes('product') ||
+      id.includes('state');
+
+    if (!isJson) continue;
+
     const content = script
       .replace(/^<script\b[^>]*>/i, '')
       .replace(/<\/script>$/i, '')
       .trim();
 
+    if (!content || content.length > MAX_HTML) continue;
+
     try {
-      findProducts(JSON.parse(content), products);
+      results.push(JSON.parse(content));
     } catch {
-      // Ignore les données structurées incorrectes.
+      // Certains sites utilisent des blocs JSON non standard.
     }
   }
 
-  return (
+  return results;
+}
+
+function getStructuredProduct(html: string): {
+  product: any;
+  documents: any[];
+} {
+  const documents = parseJsonScripts(html);
+  const products: any[] = [];
+
+  for (const document of documents) {
+    findProducts(document, products);
+  }
+
+  const product =
     products.find(item => getTypes(item).includes('productgroup')) ||
     products.find(item => getTypes(item).includes('product')) ||
-    null
-  );
+    null;
+
+  return { product, documents };
 }
 
 function getImageUrl(item: any, baseUrl: string): string {
   const value = typeof item === 'object' && item !== null
-    ? item.url || item.contentUrl || item['@id'] || ''
+    ? item.url || item.contentUrl || item['@id'] || item.src || ''
     : item;
 
   if (typeof value !== 'string' || !value.trim()) return '';
@@ -221,6 +297,11 @@ function getImageUrl(item: any, baseUrl: string): string {
     const url = new URL(value, baseUrl);
 
     if (!['http:', 'https:'].includes(url.protocol)) return '';
+
+    if (
+      /\.(svg)(?:[?#]|$)/i.test(url.href) ||
+      /(?:logo|icon|favicon|sprite|placeholder)/i.test(url.href)
+    ) return '';
 
     return url.href;
   } catch {
@@ -233,15 +314,43 @@ function getImages(
   html: string,
   baseUrl: string
 ): string[] {
-  const raw = [
+  const raw: any[] = [
     ...(Array.isArray(product?.image)
       ? product.image
       : product?.image
         ? [product.image]
         : []),
     getMeta(html, 'og:image'),
-    getMeta(html, 'twitter:image')
+    getMeta(html, 'twitter:image'),
+    getMeta(html, 'twitter:image:src')
   ];
+
+  const imageTags = html.match(/<img\b[^>]*>/gi) || [];
+
+  for (const tag of imageTags) {
+    const image =
+      getAttribute(tag, 'data-zoom-image') ||
+      getAttribute(tag, 'data-large-image') ||
+      getAttribute(tag, 'data-src') ||
+      getAttribute(tag, 'data-original') ||
+      getAttribute(tag, 'src');
+
+    if (image) raw.push(image);
+
+    const srcset =
+      getAttribute(tag, 'data-srcset') ||
+      getAttribute(tag, 'srcset');
+
+    if (srcset) {
+      const largest = srcset
+        .split(',')
+        .map(item => item.trim().split(/\s+/)[0])
+        .filter(Boolean)
+        .pop();
+
+      if (largest) raw.push(largest);
+    }
+  }
 
   const result: string[] = [];
 
@@ -261,11 +370,13 @@ function getImages(
 function getVariantAttributes(variant: any): {
   name: string;
   value: string;
+  options: Record<string, string>;
 } {
-  const attributes: string[] = [];
+  const options: Record<string, string> = {};
 
-  const fields = [
+  const fields: [string, string][] = [
     ['color', 'Couleur'],
+    ['colour', 'Couleur'],
     ['size', 'Taille'],
     ['pattern', 'Motif'],
     ['material', 'Matière'],
@@ -275,94 +386,268 @@ function getVariantAttributes(variant: any): {
   for (const [field, label] of fields) {
     const value = clean(variant?.[field]);
 
-    if (value) {
-      attributes.push(`${label}: ${value}`);
-    }
+    if (value) options[label] = value;
   }
 
-  if (Array.isArray(variant?.additionalProperty)) {
-    for (const property of variant.additionalProperty) {
-      const name = clean(property?.name);
-      const value = clean(property?.value);
+  const properties = [
+    ...(Array.isArray(variant?.additionalProperty)
+      ? variant.additionalProperty
+      : []),
+    ...(Array.isArray(variant?.properties)
+      ? variant.properties
+      : []),
+    ...(Array.isArray(variant?.attributes)
+      ? variant.attributes
+      : [])
+  ];
 
-      if (name && value) {
-        attributes.push(`${name}: ${value}`);
-      }
-    }
+  for (const property of properties) {
+    const name = clean(
+      property?.name ||
+      property?.key ||
+      property?.label
+    );
+
+    const value = clean(
+      property?.value ||
+      property?.valueName ||
+      property?.valueLabel
+    );
+
+    if (name && value) options[name] = value;
   }
 
-  if (attributes.length > 0) {
-    const labels = fields
-      .filter(([field]) => clean(variant?.[field]))
-      .map(([, label]) => label);
+  const name = clean(
+    variant?.name ||
+    variant?.title ||
+    variant?.optionName ||
+    variant?.attributeName
+  );
 
+  const value = clean(
+    variant?.value ||
+    variant?.valueName ||
+    variant?.optionValue ||
+    variant?.attributeValue
+  );
+
+  if (name && value && name !== value && !options[name]) {
+    options[name] = value;
+  }
+
+  if (Object.keys(options).length) {
     return {
-      name: labels.join(' / ') || 'Option',
-      value: attributes.join(' · ')
+      name: Object.keys(options).join(' / '),
+      value: Object.entries(options)
+        .map(([key, val]) => `${key}: ${val}`)
+        .join(' · '),
+      options
     };
   }
 
   return {
-    name: 'Variante',
-    value: clean(variant?.name) || clean(variant?.sku) || 'Option'
+    name: name || 'Variante',
+    value: value || name || clean(variant?.sku) || 'Option',
+    options: {}
   };
 }
 
-function getVariants(product: any, baseUrl: string): any[] {
-  const rawVariants = [
-    ...(Array.isArray(product?.hasVariant)
-      ? product.hasVariant
-      : product?.hasVariant
-        ? [product.hasVariant]
-        : []),
-    ...(Array.isArray(product?.variants)
-      ? product.variants
-      : product?.variants
-        ? [product.variants]
-        : [])
+function collectVariantCandidates(
+  data: any,
+  found: any[] = [],
+  depth = 0
+): any[] {
+  if (!data || typeof data !== 'object' || depth > MAX_SCAN_DEPTH) {
+    return found;
+  }
+
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      collectVariantCandidates(item, found, depth + 1);
+    }
+    return found;
+  }
+
+  const types = getTypes(data);
+
+  const hasAttributes = [
+    'color',
+    'colour',
+    'size',
+    'pattern',
+    'material',
+    'additionalProperty',
+    'attributes',
+    'optionValue',
+    'valueName'
+  ].some(key => {
+    const value = data[key];
+    return (
+      (typeof value === 'string' && value.trim()) ||
+      (Array.isArray(value) && value.length > 0)
+    );
+  });
+
+  const hasIdentity = Boolean(
+    data.sku ||
+    data.mpn ||
+    data.productID ||
+    data.variantId ||
+    data.id
+  );
+
+  const hasOffer = Boolean(
+    data.offers ||
+    data.price ||
+    data.priceAmount ||
+    data.salePrice
+  );
+
+  const isTypedVariant =
+    types.includes('product') ||
+    types.includes('productmodel');
+
+  if (
+    (isTypedVariant && (hasAttributes || hasIdentity || hasOffer)) ||
+    (hasAttributes && (hasIdentity || hasOffer))
+  ) {
+    found.push(data);
+  }
+
+  const keys = [
+    'hasVariant',
+    'variants',
+    'variant',
+    'options',
+    'children',
+    'products',
+    'productVariants',
+    'variantList',
+    'skus',
+    'data',
+    'attributes',
+    'values',
+    'items',
+    'results'
   ];
+
+  for (const key of keys) {
+    if (data[key] && typeof data[key] === 'object') {
+      collectVariantCandidates(data[key], found, depth + 1);
+    }
+  }
+
+  return found;
+}
+
+function getVariants(
+  product: any,
+  documents: any[],
+  baseUrl: string
+): any[] {
+  const candidates: any[] = [];
+
+  if (product) {
+    const raw = [
+      ...(Array.isArray(product?.hasVariant)
+        ? product.hasVariant
+        : product?.hasVariant
+          ? [product.hasVariant]
+          : []),
+      ...(Array.isArray(product?.variants)
+        ? product.variants
+        : product?.variants
+          ? [product.variants]
+          : [])
+    ];
+
+    candidates.push(...raw);
+  }
+
+  for (const document of documents) {
+    collectVariantCandidates(document, candidates);
+  }
 
   const result: any[] = [];
   const seen = new Set<string>();
 
-  for (const variant of rawVariants) {
+  for (const variant of candidates) {
     if (!variant || typeof variant !== 'object') continue;
 
     const attributes = getVariantAttributes(variant);
 
-    const sku = clean(variant.sku);
-    const mpn = clean(variant.mpn);
-    const key = `${sku}|${attributes.value}`;
-
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const sku = clean(variant.sku || variant.SKU);
+    const mpn = clean(variant.mpn || variant.MPN);
 
     const offer = Array.isArray(variant.offers)
       ? variant.offers[0]
       : variant.offers;
+
+    const priceValue =
+      offer?.price ??
+      offer?.lowPrice ??
+      variant.price ??
+      variant.priceAmount ??
+      variant.salePrice ??
+      null;
+
+    const currency = clean(
+      offer?.priceCurrency ||
+      variant.priceCurrency ||
+      variant.currency
+    );
 
     const images = [
       ...(Array.isArray(variant.image)
         ? variant.image
         : variant.image
           ? [variant.image]
-          : [])
+          : []),
+      ...(Array.isArray(variant.images)
+        ? variant.images
+        : [])
     ]
       .map(image => getImageUrl(image, baseUrl))
       .filter(Boolean)
       .slice(0, 12);
 
-    const price = offer?.price ?? offer?.lowPrice ?? null;
+    const variantName = clean(
+      variant.name ||
+      variant.title ||
+      variant.value ||
+      variant.optionValue ||
+      attributes.value
+    );
+
+    if (
+      !variantName &&
+      !sku &&
+      !mpn &&
+      !Object.keys(attributes.options).length
+    ) continue;
+
+    const key = [
+      sku,
+      mpn,
+      attributes.value,
+      variantName
+    ].join('|').toLowerCase();
+
+    if (seen.has(key)) continue;
+    seen.add(key);
 
     result.push({
       name: attributes.name,
-      value: attributes.value,
+      value: variantName || attributes.value,
+      options: attributes.options,
       sku,
       mpn,
-      price: price != null && !Number.isNaN(Number(price))
-        ? Number(price)
-        : null,
-      currency: clean(offer?.priceCurrency),
+      price:
+        priceValue != null &&
+        !Number.isNaN(Number(priceValue))
+          ? Number(priceValue)
+          : null,
+      currency,
       images
     });
 
@@ -370,6 +655,44 @@ function getVariants(product: any, baseUrl: string): any[] {
   }
 
   return result;
+}
+
+function getDescription(
+  product: any,
+  html: string
+): string {
+  const direct = clean(product?.description);
+
+  if (direct.length > 20) return direct;
+
+  const metaDescription =
+    getMeta(html, 'og:description') ||
+    getMeta(html, 'description') ||
+    getMeta(html, 'twitter:description');
+
+  if (metaDescription.length > direct.length) {
+    return metaDescription;
+  }
+
+  const patterns = [
+    /<[^>]*itemprop=["']description["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
+    /<(?:div|section|article)[^>]*(?:id|class)=["'][^"']*(?:product-description|product__description|productDescription|description-content|product-detail-description|product__details)[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|section|article)>/i,
+    /<(?:div|section)[^>]*data-testid=["'][^"']*(?:description|product-detail)[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|section)>/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    const description = clean(match?.[1] || '');
+
+    if (description.length > 20) return description;
+  }
+
+  return direct || metaDescription;
+}
+
+function getCurrencyPrice(value: any): string {
+  if (value == null || value === '') return '';
+  return clean(value);
 }
 
 export async function POST(request: NextRequest) {
@@ -393,8 +716,9 @@ export async function POST(request: NextRequest) {
         redirect: 'manual',
         signal: AbortSignal.timeout(12000),
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; BeautyByPND/1.0)',
-          'Accept': 'text/html,application/xhtml+xml'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8'
         }
       });
 
@@ -437,7 +761,7 @@ export async function POST(request: NextRequest) {
       throw new Error('La page est trop volumineuse.');
     }
 
-    const product = getStructuredProduct(html);
+    const { product, documents } = getStructuredProduct(html);
 
     const offer = Array.isArray(product?.offers)
       ? product.offers[0]
@@ -451,14 +775,12 @@ export async function POST(request: NextRequest) {
 
     const name =
       clean(product?.name) ||
-      getMeta(html, 'og:title');
+      getMeta(html, 'og:title') ||
+      getMeta(html, 'twitter:title');
 
-    const description =
-      clean(product?.description) ||
-      getMeta(html, 'og:description') ||
-      getMeta(html, 'description');
+    const description = getDescription(product, html);
 
-    const price = clean(
+    const price = getCurrencyPrice(
       offer?.price ??
       offer?.lowPrice ??
       getMeta(html, 'product:price:amount')
@@ -477,6 +799,7 @@ export async function POST(request: NextRequest) {
 
     const variants = getVariants(
       product,
+      documents,
       currentUrl.href
     );
 
