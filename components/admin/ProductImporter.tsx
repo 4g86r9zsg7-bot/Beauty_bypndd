@@ -14,6 +14,7 @@ type ImportedVariant = {
   images?: string[];
   options?: Record<string, string>;
   currency?: string;
+  swatch?: string;
 };
 
 type ImportedProduct = {
@@ -34,6 +35,23 @@ type Props = {
 
 const primaryButton =
   '!bg-[#9f1239] !text-white !border-[#9f1239] rounded-xl px-5 py-3 text-sm font-semibold shadow-sm transition hover:!bg-[#881337] disabled:cursor-not-allowed disabled:opacity-60';
+
+function cleanSwatch(value: unknown): string {
+  if (typeof value !== 'string') return '';
+
+  const color = value.trim();
+
+  if (
+    /^#[0-9a-f]{3,4}$/i.test(color) ||
+    /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color) ||
+    /^rgba?\([\d\s.,%/]+\)$/i.test(color) ||
+    /^hsla?\([\d\s.,%/deg]+\)$/i.test(color)
+  ) {
+    return color;
+  }
+
+  return '';
+}
 
 export default function ProductImporter({ onImport }: Props) {
   const [url, setUrl] = useState('');
@@ -87,8 +105,14 @@ export default function ProductImporter({ onImport }: Props) {
       const productImages = cleanImages(product.images);
 
       const productVariants = Array.isArray(product.variants)
-        ? product.variants.map((variant: ImportedVariant) => ({
+        ? product.variants.map((variant: ImportedVariant & Record<string, unknown>) => ({
             ...variant,
+            swatch: cleanSwatch(
+              variant.swatch ??
+              variant.colorHex ??
+              variant.hex ??
+              variant.colorCode
+            ),
             images: cleanImages(variant.images),
           }))
         : [];
@@ -152,7 +176,9 @@ export default function ProductImporter({ onImport }: Props) {
               [field]:
                 field === 'price' || field === 'stock'
                   ? value === '' ? null : Number(value)
-                  : value,
+                  : field === 'swatch'
+                    ? cleanSwatch(value) || value.trim()
+                    : value,
             }
           : variant
       )
@@ -180,7 +206,7 @@ export default function ProductImporter({ onImport }: Props) {
 
     setVariants(current => [
       ...current,
-      { name: 'Option', value: '', images: [], options: {} },
+      { name: 'Teinte', value: '', images: [], options: {}, swatch: '' },
     ]);
 
     setSelectedVariants(current => [...current, newIndex]);
@@ -247,6 +273,7 @@ export default function ProductImporter({ onImport }: Props) {
         images: [...images],
         variants: selected.map(variant => ({
           ...variant,
+          swatch: cleanSwatch(variant.swatch) || '',
           images: [...(variant.images || [])],
         })),
       });
@@ -478,6 +505,7 @@ export default function ProductImporter({ onImport }: Props) {
               {variants.map((variant, index) => {
                 const selected = selectedVariants.includes(index);
                 const variantImages = variant.images || [];
+                const swatch = cleanSwatch(variant.swatch);
 
                 return (
                   <div
@@ -549,6 +577,50 @@ export default function ProductImporter({ onImport }: Props) {
                       />
                     </div>
 
+                    <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50/40 p-3">
+                      <p className="mb-2 text-xs font-semibold text-gray-800">
+                        Couleur du carré de teinte
+                      </p>
+
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="h-11 w-11 shrink-0 rounded-md border-2 border-gray-300 shadow-sm"
+                          style={{
+                            backgroundColor: swatch || '#ffffff',
+                          }}
+                          title={swatch || 'Aucune couleur définie'}
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <input
+                            type="text"
+                            value={variant.swatch || ''}
+                            onChange={e =>
+                              updateVariant(index, 'swatch', e.target.value)
+                            }
+                            placeholder="#C98B72"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-rose-400"
+                          />
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Code HEX, par exemple #C98B72. Tu peux le corriger manuellement.
+                          </p>
+                        </div>
+                      </div>
+
+                      {variant.swatch && !swatch && (
+                        <p className="mt-2 text-xs text-amber-700">
+                          Format non reconnu. Utilise un code HEX valide, par exemple #C98B72.
+                        </p>
+                      )}
+
+                      {!swatch && (
+                        <p className="mt-2 text-xs text-gray-500">
+                          Couleur non détectée : tu peux la compléter ici. Elle ne sera pas remplacée par la photo du produit.
+                        </p>
+                      )}
+                    </div>
+
                     {variantImages.length > 0 && (
                       <div className="mt-3">
                         <p className="mb-2 text-xs font-medium text-gray-600">
@@ -574,7 +646,7 @@ export default function ProductImporter({ onImport }: Props) {
                           ))}
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
-                          Ces photos sont déjà associées à cette teinte.
+                          Ces photos restent associées à cette teinte pour la grande photo de la fiche produit.
                         </p>
                       </div>
                     )}
