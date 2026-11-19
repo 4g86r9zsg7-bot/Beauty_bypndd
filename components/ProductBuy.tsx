@@ -1,6 +1,4 @@
 
-
-
 'use client';
 
 import {useState} from 'react';
@@ -112,6 +110,8 @@ function getSwatch(variant:any,value:string){
   return swatch||colorValue(value);
 }
 
+const INITIAL_VARIANTS=12;
+
 export default function ProductBuy({p}:{p:any}) {
   const {add,lines}=useCart();
 
@@ -136,6 +136,8 @@ export default function ProductBuy({p}:{p:any}) {
   const [done,setDone]=useState(false);
   const [ack,setAck]=useState(false);
   const [descriptionExpanded,setDescriptionExpanded]=useState(false);
+  const [expandedOptionGroups,setExpandedOptionGroups]=useState<Record<string,boolean>>({});
+  const [legacyExpanded,setLegacyExpanded]=useState(false);
 
   const optionGroups:{name:string;values:string[]}[]=[];
 
@@ -377,6 +379,11 @@ export default function ProductBuy({p}:{p:any}) {
             {optionGroups.map(group=>{
               const colorGroup=isColorGroup(group.name);
               const sizeGroup=isSizeGroup(group.name);
+              const expanded=Boolean(expandedOptionGroups[group.name]);
+              const hiddenCount=Math.max(0,group.values.length-INITIAL_VARIANTS);
+              const visibleValues=colorGroup&&!expanded
+                ?group.values.slice(0,INITIAL_VARIANTS)
+                :group.values;
 
               return (
                 <div key={group.name}>
@@ -390,39 +397,75 @@ export default function ProductBuy({p}:{p:any}) {
                   </p>
 
                   {colorGroup?(
-                    <div className="flex flex-wrap gap-3">
-                      {group.values.map(value=>{
-                        const on=selectedOptions[group.name]===value;
+                    <>
+                      <div className={`grid gap-2 ${
+                        group.values.length>6
+                          ?'grid-cols-4 sm:grid-cols-5'
+                          :'grid-cols-3 sm:grid-cols-4'
+                      }`}>
+                        {visibleValues.map(value=>{
+                          const on=selectedOptions[group.name]===value;
 
-                        const representative=vs.find(x=>
-                          String(x.options?.[group.name]??'')===value
-                        );
+                          const representative=vs.find(x=>
+                            String(x.options?.[group.name]??'')===value
+                          );
 
-                        const swatch=getSwatch(representative,value);
+                          const image=vimgs(representative)[0];
+                          const swatch=getSwatch(representative,value);
 
-                        return (
-                          <button key={value} type="button" title={value}
-                            aria-label={`Couleur ${value}`}
-                            aria-pressed={on}
-                            onClick={()=>chooseOption(group.name,value)}
-                            className={`flex flex-col items-center gap-2 rounded-xl p-1 transition ${
-                              on?'text-plum':'text-ink/75 hover:text-plum'
-                            }`}>
-                            <span
-                              className={`block h-9 w-9 rounded-md border-2 transition ${
+                          return (
+                            <button key={value} type="button"
+                              title={value}
+                              aria-label={`Couleur ${value}`}
+                              aria-pressed={on}
+                              onClick={()=>chooseOption(group.name,value)}
+                              className={`group flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-1.5 text-center transition ${
                                 on
-                                  ?'border-plum ring-2 ring-rose ring-offset-2'
-                                  :'border-black/15 hover:border-rose'
-                              }`}
-                              style={{background:swatch}}
-                            />
-                            <span className="max-w-20 text-center text-[11px] leading-tight">
-                              {value}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                                  ?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
+                                  :'border-plum/15 hover:border-rose'
+                              }`}>
+                              <span className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
+                                on?'ring-2 ring-rose ring-offset-1':''
+                              }`}>
+                                {image?(
+                                  <img src={image} alt={value}
+                                    className="h-full w-full object-cover"/>
+                                ):(
+                                  <span className="block h-full w-full"
+                                    style={{background:swatch}}/>
+                                )}
+                                {on&&(
+                                  <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-plum text-white shadow">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="m5 12 4 4L19 6"/>
+                                    </svg>
+                                  </span>
+                                )}
+                              </span>
+                              <span className={`mt-1.5 w-full break-words text-[10px] leading-tight ${
+                                on?'font-semibold text-plum':'text-ink/80'
+                              }`}>
+                                {value}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {hiddenCount>0&&(
+                        <button type="button"
+                          onClick={()=>setExpandedOptionGroups(previous=>({
+                            ...previous,
+                            [group.name]:!previous[group.name]
+                          }))}
+                          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-plum underline decoration-rose/50 underline-offset-4">
+                          {expanded
+                            ?'Voir moins'
+                            :`Voir toutes les teintes (${group.values.length})`}
+                          <span>{expanded?'↑':'↓'}</span>
+                        </button>
+                      )}
+                    </>
                   ):(
                     <div className="flex flex-wrap gap-2">
                       {group.values.map(value=>{
@@ -454,8 +497,12 @@ export default function ProductBuy({p}:{p:any}) {
               Choisissez votre variante
             </p>
 
-            <div className="flex flex-wrap gap-3">
-              {vs.map(x=>{
+            <div className={`grid gap-2 ${
+              vs.length>6
+                ?'grid-cols-4 sm:grid-cols-5'
+                :'grid-cols-3 sm:grid-cols-4'
+            }`}>
+              {(legacyExpanded?vs:vs.slice(0,INITIAL_VARIANTS)).map(x=>{
                 const on=x.name===legacyV;
                 const image=vimgs(x)[0];
                 const hasSwatch=Boolean(x.swatch||x.color||x.hex);
@@ -467,26 +514,56 @@ export default function ProductBuy({p}:{p:any}) {
                       resetSelection();
                     }}
                     aria-pressed={on}
-                    className={`flex min-w-16 flex-col items-center gap-2 rounded-xl border p-2 text-xs transition ${
-                      on?'border-plum bg-blush/40 text-plum shadow-sm'
-                      :'border-plum/20 bg-white text-plum hover:border-rose'
+                    className={`flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-1.5 text-center transition ${
+                      on
+                        ?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
+                        :'border-plum/15 hover:border-rose'
                     }`}>
-                    {hasSwatch?(
-                      <span
-                        className="h-9 w-9 rounded-md border border-black/15"
-                        style={{background:getSwatch(x,x.name||'')}}
-                      />
-                    ):image&&(
-                      <img src={image} alt={x.name}
-                        className="h-16 w-14 rounded-lg object-cover"/>
+                    <span className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
+                      on?'ring-2 ring-rose ring-offset-1':''
+                    }`}>
+                      {image?(
+                        <img src={image} alt={x.name}
+                          className="h-full w-full object-cover"/>
+                      ):(
+                        <span className="block h-full w-full"
+                          style={{background:hasSwatch?getSwatch(x,x.name||''):colorValue(x.name||'')}}
+                        />
+                      )}
+                      {on&&(
+                        <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-plum text-white shadow">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m5 12 4 4L19 6"/>
+                          </svg>
+                        </span>
+                      )}
+                    </span>
+                    <span className={`mt-1.5 w-full break-words text-[10px] leading-tight ${
+                      on?'font-semibold text-plum':'text-ink/80'
+                    }`}>
+                      {x.name}
+                    </span>
+                    {x.price!=null&&(
+                      <span className="mt-1 text-[10px] text-plum">{eur(Number(x.price))}</span>
                     )}
-                    <span className="max-w-24 text-center">{x.name}</span>
-                    {x.price!=null&&<span>{eur(Number(x.price))}</span>}
-                    <span className="text-[10px]">{label(x)}</span>
+                    {label(x)&&(
+                      <span className="mt-1 text-[9px] text-ink/50">{label(x).trim()}</span>
+                    )}
                   </button>
                 );
               })}
             </div>
+
+            {vs.length>INITIAL_VARIANTS&&(
+              <button type="button"
+                onClick={()=>setLegacyExpanded(value=>!value)}
+                className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-plum underline decoration-rose/50 underline-offset-4">
+                {legacyExpanded
+                  ?'Voir moins'
+                  :`Voir toutes les variantes (${vs.length})`}
+                <span>{legacyExpanded?'↑':'↓'}</span>
+              </button>
+            )}
           </div>
         )}
 
