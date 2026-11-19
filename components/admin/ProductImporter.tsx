@@ -32,6 +32,9 @@ type Props = {
   onImport: (product: ImportedProduct) => void;
 };
 
+const primaryButton =
+  '!bg-[#9f1239] !text-white !border-[#9f1239] rounded-xl px-5 py-3 text-sm font-semibold shadow-sm transition hover:!bg-[#881337] disabled:cursor-not-allowed disabled:opacity-60';
+
 export default function ProductImporter({ onImport }: Props) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -280,14 +283,21 @@ export default function ProductImporter({ onImport }: Props) {
           value={url}
           onChange={e => setUrl(e.target.value)}
           placeholder="https://exemple.com/produit"
-          className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-rose-400"
+          className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-900 outline-none focus:border-rose-400"
         />
 
         <button
           type="button"
           onClick={analyze}
           disabled={loading}
-          className="rounded-xl bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            backgroundColor: '#9f1239',
+            color: '#ffffff',
+            border: '1px solid #9f1239',
+            WebkitAppearance: 'none',
+            appearance: 'none',
+          }}
+          className={primaryButton}
         >
           {loading ? 'Analyse en cours…' : 'Analyser le produit'}
         </button>
@@ -343,7 +353,7 @@ export default function ProductImporter({ onImport }: Props) {
               }
               placeholder="Aucune description détectée. Tu peux la saisir manuellement."
               rows={5}
-              className="w-full rounded-xl border border-gray-200 p-3 text-sm outline-none focus:border-rose-400"
+              className="w-full rounded-xl border border-gray-200 p-3 text-sm text-gray-900 outline-none focus:border-rose-400"
             />
 
             {!detected.description && (
@@ -390,7 +400,6 @@ export default function ProductImporter({ onImport }: Props) {
                           onClick={() => moveImage(index, -1)}
                           disabled={index === 0}
                           className="rounded-md border px-2 py-1 text-xs disabled:opacity-30"
-                          aria-label="Déplacer vers la gauche"
                         >
                           ←
                         </button>
@@ -400,7 +409,6 @@ export default function ProductImporter({ onImport }: Props) {
                           onClick={() => moveImage(index, 1)}
                           disabled={index === images.length - 1}
                           className="rounded-md border px-2 py-1 text-xs disabled:opacity-30"
-                          aria-label="Déplacer vers la droite"
                         >
                           →
                         </button>
@@ -409,7 +417,6 @@ export default function ProductImporter({ onImport }: Props) {
                           type="button"
                           onClick={() => removeImage(index)}
                           className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600"
-                          aria-label="Supprimer cette photo"
                         >
                           ×
                         </button>
@@ -435,7 +442,7 @@ export default function ProductImporter({ onImport }: Props) {
               <button
                 type="button"
                 onClick={addVariant}
-                className="shrink-0 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700"
+                className="shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700"
               >
                 + Créer une variante manuellement
               </button>
@@ -446,7 +453,7 @@ export default function ProductImporter({ onImport }: Props) {
                 <button
                   type="button"
                   onClick={selectAllVariants}
-                  className="rounded-lg border px-3 py-2 text-xs font-medium"
+                  className="rounded-lg border bg-white px-3 py-2 text-xs font-medium text-gray-800"
                 >
                   Tout sélectionner
                 </button>
@@ -454,7 +461,7 @@ export default function ProductImporter({ onImport }: Props) {
                 <button
                   type="button"
                   onClick={deselectAllVariants}
-                  className="rounded-lg border px-3 py-2 text-xs font-medium"
+                  className="rounded-lg border bg-white px-3 py-2 text-xs font-medium text-gray-800"
                 >
                   Tout désélectionner
                 </button>
@@ -509,28 +516,28 @@ export default function ProductImporter({ onImport }: Props) {
                         value={variant.name || ''}
                         onChange={e => updateVariant(index, 'name', e.target.value)}
                         placeholder="Type (ex. Teinte)"
-                        className="min-w-0 rounded-lg border px-3 py-2 text-sm"
+                        className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
                       />
 
                       <input
                         value={variant.value || ''}
                         onChange={e => updateVariant(index, 'value', e.target.value)}
                         placeholder="Valeur (ex. 01 Beige)"
-                        className="min-w-0 rounded-lg border px-3 py-2 text-sm"
+                        className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
                       />
 
                       <input
                         value={variant.sku || ''}
                         onChange={e => updateVariant(index, 'sku', e.target.value)}
                         placeholder="Référence SKU"
-                        className="min-w-0 rounded-lg border px-3 py-2 text-sm"
+                        className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
                       />
 
                       <input
                         value={variant.mpn || ''}
                         onChange={e => updateVariant(index, 'mpn', e.target.value)}
                         placeholder="Référence MPN"
-                        className="min-w-0 rounded-lg border px-3 py-2 text-sm"
+                        className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
                       />
 
                       <input
@@ -538,7 +545,7 @@ export default function ProductImporter({ onImport }: Props) {
                         value={variant.price ?? ''}
                         onChange={e => updateVariant(index, 'price', e.target.value)}
                         placeholder="Prix (facultatif)"
-                        className="min-w-0 rounded-lg border px-3 py-2 text-sm"
+                        className="min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-900"
                       />
                     </div>
 
@@ -549,28 +556,22 @@ export default function ProductImporter({ onImport }: Props) {
                         </p>
 
                         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                          {variantImages.map((image, imageIndex) => {
-                            const imageSelected = variantImages.includes(image);
-
-                            return (
-                              <button
-                                key={`${image}-${imageIndex}`}
-                                type="button"
-                                onClick={() => toggleVariantImage(index, image)}
-                                className={`overflow-hidden rounded-lg border-2 ${
-                                  imageSelected ? 'border-rose-600' : 'border-gray-200'
-                                }`}
-                                aria-pressed={imageSelected}
-                              >
-                                <img
-                                  src={image}
-                                  alt={`Photo de ${variant.value || 'la variante'}`}
-                                  className="h-20 w-full bg-gray-50 object-contain"
-                                  loading="lazy"
-                                />
-                              </button>
-                            );
-                          })}
+                          {variantImages.map((image, imageIndex) => (
+                            <button
+                              key={`${image}-${imageIndex}`}
+                              type="button"
+                              onClick={() => toggleVariantImage(index, image)}
+                              className="overflow-hidden rounded-lg border-2 border-rose-600"
+                              aria-pressed={true}
+                            >
+                              <img
+                                src={image}
+                                alt={`Photo de ${variant.value || 'la variante'}`}
+                                className="h-20 w-full bg-gray-50 object-contain"
+                                loading="lazy"
+                              />
+                            </button>
+                          ))}
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
                           Ces photos sont déjà associées à cette teinte.
@@ -599,7 +600,14 @@ export default function ProductImporter({ onImport }: Props) {
             type="button"
             onClick={validateImport}
             disabled={saving}
-            className="w-full rounded-xl bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              backgroundColor: '#9f1239',
+              color: '#ffffff',
+              border: '1px solid #9f1239',
+              WebkitAppearance: 'none',
+              appearance: 'none',
+            }}
+            className={`${primaryButton} w-full`}
           >
             {saving
               ? 'Transmission en cours…'
