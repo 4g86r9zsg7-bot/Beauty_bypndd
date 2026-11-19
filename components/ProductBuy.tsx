@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import {useState} from 'react';
@@ -98,6 +99,17 @@ function isSizeGroup(name:string){
   return n.includes('taille')||n.includes('pointure')||
     n.includes('size')||n.includes('format')||
     n.includes('volume')||n.includes('contenance');
+}
+
+function getSwatch(variant:any,value:string){
+  const swatch=String(
+    variant?.swatch||
+    variant?.color||
+    variant?.hex||
+    ''
+  ).trim();
+
+  return swatch||colorValue(value);
 }
 
 export default function ProductBuy({p}:{p:any}) {
@@ -381,25 +393,32 @@ export default function ProductBuy({p}:{p:any}) {
                     <div className="flex flex-wrap gap-3">
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
+
                         const representative=vs.find(x=>
                           String(x.options?.[group.name]??'')===value
                         );
-                        const image=vimgs(representative)[0];
+
+                        const swatch=getSwatch(representative,value);
 
                         return (
                           <button key={value} type="button" title={value}
                             aria-label={`Couleur ${value}`}
                             aria-pressed={on}
                             onClick={()=>chooseOption(group.name,value)}
-                            className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 transition ${
-                              on?'border-plum ring-2 ring-rose ring-offset-2':'border-black/10 hover:border-rose'
+                            className={`flex flex-col items-center gap-2 rounded-xl p-1 transition ${
+                              on?'text-plum':'text-ink/75 hover:text-plum'
                             }`}>
-                            {image?(
-                              <img src={image} alt={value} className="h-full w-full object-cover"/>
-                            ):(
-                              <span className="h-9 w-9 rounded-full border border-black/15 shadow-inner"
-                                style={{background:isMultiColor(value)?colorValue(value):colorValue(value)}}/>
-                            )}
+                            <span
+                              className={`block h-9 w-9 rounded-md border-2 transition ${
+                                on
+                                  ?'border-plum ring-2 ring-rose ring-offset-2'
+                                  :'border-black/15 hover:border-rose'
+                              }`}
+                              style={{background:swatch}}
+                            />
+                            <span className="max-w-20 text-center text-[11px] leading-tight">
+                              {value}
+                            </span>
                           </button>
                         );
                       })}
@@ -439,6 +458,7 @@ export default function ProductBuy({p}:{p:any}) {
               {vs.map(x=>{
                 const on=x.name===legacyV;
                 const image=vimgs(x)[0];
+                const hasSwatch=Boolean(x.swatch||x.color||x.hex);
 
                 return (
                   <button key={x.name} type="button"
@@ -451,7 +471,12 @@ export default function ProductBuy({p}:{p:any}) {
                       on?'border-plum bg-blush/40 text-plum shadow-sm'
                       :'border-plum/20 bg-white text-plum hover:border-rose'
                     }`}>
-                    {image&&(
+                    {hasSwatch?(
+                      <span
+                        className="h-9 w-9 rounded-md border border-black/15"
+                        style={{background:getSwatch(x,x.name||'')}}
+                      />
+                    ):image&&(
                       <img src={image} alt={x.name}
                         className="h-16 w-14 rounded-lg object-cover"/>
                     )}
