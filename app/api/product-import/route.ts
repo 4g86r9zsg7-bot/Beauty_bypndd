@@ -3,17 +3,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
 const MAX_HTML = 2 * 1024 * 1024;
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGES = 30;
 const MAX_VARIANTS = 50;
 const MAX_SCAN_DEPTH = 12;
 const FETCH_TIMEOUT = 10000;
-const SHADE_CONCURRENCY = 8;
 
 function isPublicIp(ip: string): boolean {
   if (isIP(ip) === 4) {
@@ -241,7 +238,7 @@ function getImages(product: any, html: string, baseUrl: string): string[] {
   return result;
 }
 
-/* COULEURS DES VARIANTES */
+/* COULEURS DES VARIANTES : UNIQUEMENT LES VALEURS FOURNIES PAR LE SITE */
 
 function normalizeSwatch(value: unknown): string {
   if (typeof value !== 'string') return '';
@@ -531,28 +528,11 @@ async function fetchHtmlPage(
   return { html, url: currentUrl };
 }
 
-/* EXTRACTION DES IMAGES DE PASTILLES KIKO */
+/* EXTRACTION DES TEINTES KIKO SANS CALCUL DE COULEUR */
 
 function normalizeShadeLabel(value: string): string {
   return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
-function extractExplicitColor(source: string): string {
-  if (!source) return '';
-  const patterns = [
-    /(?:data-swatch-color|data-color|data-colour|data-hex|data-color-hex|data-swatch)\s*=\s*["']([^"']+)["']/i,
-    /(?:background-color|background)\s*:\s*(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/i,
-    /["'](?:swatchColor|swatch_color|colorHex|colorCode|hexColor|backgroundColor|hex)["']\s*:\s*["']([^"']+)["']/i
-  ];
-  for (const pattern of patterns) {
-    const match = source.match(pattern);
-    if (match?.[1]) {
-      const color = normalizeSwatch(match[1]);
-      if (color) return color;
-    }
-  }
-  return '';
 }
 
 function getShadeObjectSwatch(data: any, shadeLabel: string, depth = 0): string {
@@ -609,208 +589,16 @@ function getHtmlSwatch(html: string, shadeLabel: string): string {
       (target.length > 0 && value.includes(target))
     );
     if (!matches) continue;
-    const colorInTag = extractExplicitColor(tags[i]);
-    if (colorInTag) return colorInTag;
-    const nearby = tags.slice(i, Math.min(i + 8, tags.length)).join(' ');
-    const nearbyColor = extractExplicitColor(nearby);
-    if (nearbyColor) return nearbyColor;
-  }
 
-  const selectedPatterns = [
-    /<[^>]*(?:aria-selected|aria-checked|aria-pressed)\s*=\s*["']true["'][^>]*>/gi,
-    /<[^>]*class\s*=\s*["'][^"']*(?:selected|active|current|checked|is-active)[^"']*["'][^>]*>/gi
-  ];
-  for (const pattern of selectedPatterns) {
-    for (const tag of html.match(pattern) || []) {
-      const color = extractExplicitColor(tag);
+    const colorMatch = tags[i].match(
+      /(?:background-color|background)\s*:\s*(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/i
+    );
+    if (colorMatch) {
+      const color = normalizeSwatch(colorMatch[1]);
       if (color) return color;
     }
   }
-  const swatchTags = html.match(
-    /<[^>]*(?:data-swatch-color|data-color|data-colour|data-hex|data-color-hex|data-swatch)\s*=\s*["'][^"']+["'][^>]*>/gi
-  ) || [];
-  for (const tag of swatchTags) {
-    const color = extractExplicitColor(tag);
-    if (color) return color;
-  }
   return '';
-}
-
-/**
- * Recherche une image de pastille liée à la teinte.
- * On privilégie les attributs et classes swatch/color/shade.
- * Les images générales du produit ne sont jamais utilisées comme pastilles.
- */
-function getShadeSwatchImageUrl(html: string, shadeLabel: string, baseUrl: string): string {
-  const target = normalizeShadeLabel(shadeLabel);
-  const candidates: string[] = [];
-  const tags = html.match(/<[^>]+>/g) || [];
-
-  const imageAttributes = [
-    'data-swatch-image', 'data-swatch-src', 'data-color-image',
-    'data-shade-image', 'data-image', 'data-src', 'src',
-    'data-background-image', 'data-bg'
-  ];
-
-  function add(value: string) {
-    if (!value || value.startsWith('data:')) return;
-    const url = getImageUrl(value, baseUrl);
-    if (!url) return;
-    if (!/(swatch|shade|color|colour|variant|chip|on-eva)/i.test(url)) return;
-    if (/(product|main|hero|zoom|large|gallery)/i.test(url)) return;
-    if (!candidates.includes(url)) candidates.push(url);
-  }
-
-  for (let i = 0; i < tags.length; i++) {
-    const tag = tags[i];
-    const attrs = [
-      'aria-label', 'title', 'data-value', 'data-name',
-      'data-shade', 'data-color-name', 'alt'
-    ];
-    const labels = attrs.map(name => normalizeShadeLabel(getAttribute(tag, name))).filter(Boolean);
-    const className = getAttribute(tag, 'class').toLowerCase();
-    const hasShadeLabel = labels.some(value =>
-      value === target || (value.length > 0 && target.includes(value)) ||
-      (target.length > 0 && value.includes(target))
-    );
-    const isSwatchElement = /(swatch|shade|color|colour|variant|chip)/i.test(className + ' ' + tag);
-
-    if (!hasShadeLabel && !isSwatchElement) continue;
-
-    const block = tags.slice(Math.max(0, i - 2), Math.min(tags.length, i + 7)).join(' ');
-    if (hasShadeLabel || isSwatchElement) {
-      for (const attribute of imageAttributes) {
-        const value = getAttribute(tag, attribute);
-        if (value) add(value);
-      }
-      const backgroundMatches = block.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/gi) || [];
-      for (const match of backgroundMatches) {
-        const value = match.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/i)?.[1];
-        if (value) add(value);
-      }
-      const nestedImages = block.match(/<img\b[^>]*>/gi) || [];
-      for (const imageTag of nestedImages) {
-        for (const attribute of imageAttributes) {
-          const value = getAttribute(imageTag, attribute);
-          if (value) add(value);
-        }
-      }
-    }
-    if (candidates.length >= 8) break;
-  }
-
-  // Les URL de swatches peuvent être dans le JSON de la page.
-  const jsonText = html.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) || [];
-  for (const script of jsonText) {
-    if (!/(swatch|shade|color|colour)/i.test(script)) continue;
-    const targetIndex = normalizeShadeLabel(script).indexOf(target);
-    if (targetIndex < 0) continue;
-    const fragment = script.slice(Math.max(0, targetIndex - 1500), targetIndex + 2500);
-    const urls = fragment.match(/(?:https?:)?\/\/[^"'\\\s<>]+|(?:\/[^"'\\\s<>]+\.(?:png|jpe?g|webp)(?:\?[^"'\\\s<>]*)?)/gi) || [];
-    for (const value of urls) add(value);
-  }
-
-  return candidates[0] || '';
-}
-
-/* TÉLÉCHARGEMENT SÉCURISÉ D'UNE IMAGE DE SWATCH */
-
-async function fetchImageBuffer(inputUrl: string, requiredHost?: string): Promise<Buffer | null> {
-  try {
-    let currentUrl = await validateUrl(inputUrl);
-    if (requiredHost && currentUrl.hostname.toLowerCase() !== requiredHost.toLowerCase()) {
-      return null;
-    }
-
-    let response: Response | null = null;
-    for (let i = 0; i < 4; i++) {
-      response = await fetch(currentUrl.href, {
-        method: 'GET',
-        redirect: 'manual',
-        signal: AbortSignal.timeout(FETCH_TIMEOUT),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'image/avif,image/webp,image/png,image/jpeg,*/*;q=0.8',
-          'Referer': 'https://www.kikocosmetics.com/'
-        }
-      });
-
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get('location');
-        if (!location) return null;
-        currentUrl = await validateUrl(new URL(location, currentUrl).href);
-        if (requiredHost && currentUrl.hostname.toLowerCase() !== requiredHost.toLowerCase()) {
-          return null;
-        }
-        continue;
-      }
-      break;
-    }
-
-    if (!response || !response.ok) return null;
-    const contentType = (response.headers.get('content-type') || '').toLowerCase();
-    if (!contentType.startsWith('image/')) return null;
-    if (contentType.includes('svg')) return null;
-
-    const length = Number(response.headers.get('content-length') || 0);
-    if (length > MAX_IMAGE_BYTES) return null;
-
-    const arrayBuffer = await response.arrayBuffer();
-    if (!arrayBuffer.byteLength || arrayBuffer.byteLength > MAX_IMAGE_BYTES) return null;
-    return Buffer.from(arrayBuffer);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Calcule une couleur représentative à partir de l'image du swatch.
- * Les pixels transparents et les pixels presque blancs/noirs isolés
- * sont écartés pour limiter l'influence du fond.
- */
-async function getHexFromSwatchImage(buffer: Buffer): Promise<string> {
-  try {
-    const { data, info } = await sharp(buffer, { failOn: 'none' })
-      .rotate()
-      .resize(32, 32, { fit: 'inside' })
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    const pixels: number[][] = [];
-    for (let i = 0; i < data.length; i += info.channels) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const a = data[i + 3];
-
-      if (a < 100) continue;
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-
-      // Évite de retenir un fond blanc ou noir uniforme.
-      if (max > 247 && min > 238) continue;
-      if (max < 8) continue;
-
-      pixels.push([r, g, b]);
-    }
-
-    if (!pixels.length) return '';
-
-    // Médiane par canal : moins sensible aux bordures et aux reflets.
-    const median = (values: number[]) => {
-      const sorted = [...values].sort((a, b) => a - b);
-      return sorted[Math.floor(sorted.length / 2)];
-    };
-
-    const r = median(pixels.map(pixel => pixel[0]));
-    const g = median(pixels.map(pixel => pixel[1]));
-    const b = median(pixels.map(pixel => pixel[2]));
-
-    return '#' + [r, g, b].map(value => Math.round(value).toString(16).padStart(2, '0')).join('').toUpperCase();
-  } catch {
-    return '';
-  }
 }
 
 async function getKikoShadeVariants(
@@ -834,31 +622,14 @@ async function getKikoShadeVariants(
         const offer = Array.isArray(product?.offers) ? product.offers[0] : product?.offers;
         const priceValue = offer?.price ?? offer?.lowPrice ?? null;
 
-        // 1. Couleur HEX explicitement associée à cette teinte.
-        let shadeSwatch = getHtmlSwatch(page.html, shade.label);
-
-        // 2. Si le site ne fournit pas le HEX, analyser l'image de pastille
-        // associée à cette teinte. Ne jamais prendre l'image produit principale.
-        if (!shadeSwatch) {
-          const swatchImageUrl = getShadeSwatchImageUrl(
-            page.html,
-            shade.label,
-            page.url.href
-          );
-
-          if (swatchImageUrl) {
-            const imageBuffer = await fetchImageBuffer(swatchImageUrl);
-            if (imageBuffer) {
-              shadeSwatch = await getHexFromSwatchImage(imageBuffer);
-            }
-          }
-        }
+        // On conserve uniquement une couleur réellement fournie par KIKO.
+        // Aucune couleur n'est déduite des photos.
+        const shadeSwatch = getHtmlSwatch(page.html, shade.label);
 
         results[index] = {
           name: 'Teinte',
           value: shade.label,
           options: { Teinte: shade.label },
-          // Si l'extraction échoue, la pastille reste vide.
           swatch: normalizeSwatch(shadeSwatch),
           sku: clean(product?.sku),
           mpn: clean(product?.mpn),
@@ -883,7 +654,7 @@ async function getKikoShadeVariants(
   }
 
   const workers = Array.from(
-    { length: Math.min(SHADE_CONCURRENCY, links.length) },
+    { length: Math.min(8, links.length) },
     () => worker()
   );
   await Promise.all(workers);
