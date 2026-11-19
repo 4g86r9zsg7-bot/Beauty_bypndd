@@ -92,6 +92,8 @@ export default function Admin(){
   const [msg,setMsg]=useState('');
 
   const [edit,setEdit]=useState<any>(null);
+  const [importedProduct,setImportedProduct]=useState<any>(null);
+  const [formVersion,setFormVersion]=useState(0);
   const [imgs,setImgs]=useState<string[]>([]);
   const [search,setSearch]=useState('');
   const [flt,setFlt]=useState('all');
