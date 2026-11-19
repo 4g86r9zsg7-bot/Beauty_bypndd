@@ -970,23 +970,177 @@ async function fetchHtmlPage(
 }
 
 /* -------------------------------------------------------
-   RÉCUPÉRATION DE LA PHOTO ET DE LA COULEUR DES TEINTES KIKO
+   RÉCUPÉRATION DE LA COULEUR PROPRE À CHAQUE TEINTE KIKO
 ------------------------------------------------------- */
 
-function getHtmlSwatch(html: string): string {
+function normalizeShadeLabel(value: string): string {
+  return clean(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function extractExplicitColor(source: string): string {
+  if (!source) return '';
+
   const patterns = [
-    /(?:data-color|data-colour|data-swatch-color|data-hex)\s*=\s*["'](#[0-9a-f]{3,8})["']/i,
-    /(?:background-color|background)\s*:\s*(#[0-9a-f]{3,8})/i,
-    /["'](?:swatchColor|colorHex|hexColor|backgroundColor)["']\s*:\s*["'](#[0-9a-f]{3,8})["']/i
+    /(?:data-swatch-color|data-color|data-colour|data-hex|data-color-hex|data-swatch)\s*=\s*["']([^"']+)["']/i,
+    /(?:background-color|background)\s*:\s*(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/i,
+    /["'](?:swatchColor|swatch_color|colorHex|colorCode|hexColor|backgroundColor|hex)["']\s*:\s*["']([^"']+)["']/i
   ];
 
   for (const pattern of patterns) {
-    const match = html.match(pattern);
+    const match = source.match(pattern);
 
     if (match?.[1]) {
       const color = normalizeSwatch(match[1]);
       if (color) return color;
     }
+  }
+
+  return '';
+}
+
+function getShadeObjectSwatch(
+  data: any,
+  shadeLabel: string,
+  depth = 0
+): string {
+  if (!data || typeof data !== 'object' || depth > MAX_SCAN_DEPTH) {
+    return '';
+  }
+
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const color = getShadeObjectSwatch(item, shadeLabel, depth + 1);
+      if (color) return color;
+    }
+
+    return '';
+  }
+
+  const target = normalizeShadeLabel(shadeLabel);
+
+  const identityFields = [
+    data.name,
+    data.label,
+    data.title,
+    data.value,
+    data.valueName,
+    data.valueLabel,
+    data.shade,
+    data.shadeName,
+    data.colorName,
+    data.colourName,
+    data.displayName
+  ]
+    .filter(value => typeof value === 'string')
+    .map((value: string) => normalizeShadeLabel(value));
+
+  const matchesShade = identityFields.some(value =>
+    value === target ||
+    (value.length > 0 && target.includes(value)) ||
+    (target.length > 0 && value.includes(target))
+  );
+
+  if (matchesShade) {
+    const color = getSwatch(data);
+    if (color) return color;
+  }
+
+  for (const value of Object.values(data)) {
+    if (value && typeof value === 'object') {
+      const color = getShadeObjectSwatch(value, shadeLabel, depth + 1);
+      if (color) return color;
+    }
+  }
+
+  return '';
+}
+
+function getHtmlSwatch(html: string, shadeLabel: string): string {
+  const target = normalizeShadeLabel(shadeLabel);
+
+  if (!target) return '';
+
+  // 1. Cherche d'abord une donnée JSON explicitement associée à la teinte.
+  const documents = parseJsonScripts(html);
+
+  for (const document of documents) {
+    const color = getShadeObjectSwatch(document, shadeLabel);
+    if (color) return color;
+  }
+
+  // 2. Cherche les éléments HTML qui portent exactement le nom ou le numéro
+  // de la teinte, puis récupère uniquement une couleur explicitement définie
+  // dans cet élément ou dans son petit bloc HTML.
+  const tags = html.match(/<[^>]+>/g) || [];
+
+  const labelAttributes = [
+    'aria-label',
+    'title',
+    'data-value',
+    'data-name',
+    'data-shade',
+    'data-color-name',
+    'data-variant-name',
+    'alt'
+  ];
+
+  for (let i = 0; i < tags.length; i++) {
+    const tag = tags[i];
+
+    const values = labelAttributes
+      .map(attribute => getAttribute(tag, attribute))
+      .filter(Boolean)
+      .map(normalizeShadeLabel);
+
+    const matches = values.some(value =>
+      value === target ||
+      (value.length > 0 && target.includes(value)) ||
+      (target.length > 0 && value.includes(target))
+    );
+
+    if (!matches) continue;
+
+    const colorInTag = extractExplicitColor(tag);
+    if (colorInTag) return colorInTag;
+
+    // Certaines pages placent le nom sur le bouton et la couleur
+    // sur un élément enfant immédiatement après.
+    const nearby = tags.slice(i, Math.min(i + 8, tags.length)).join(' ');
+    const nearbyColor = extractExplicitColor(nearby);
+
+    if (nearbyColor) return nearbyColor;
+  }
+
+  // 3. À défaut de nom sur l'élément, recherche un swatch marqué comme
+  // sélectionné/actif. On n'utilise pas les backgrounds généraux de la page.
+  const selectedPatterns = [
+    /<[^>]*(?:aria-selected|aria-checked|aria-pressed)\s*=\s*["']true["'][^>]*>/gi,
+    /<[^>]*class\s*=\s*["'][^"']*(?:selected|active|current|checked|is-active)[^"']*["'][^>]*>/gi
+  ];
+
+  for (const pattern of selectedPatterns) {
+    const selectedTags = html.match(pattern) || [];
+
+    for (const tag of selectedTags) {
+      const color = extractExplicitColor(tag);
+      if (color) return color;
+    }
+  }
+
+  // 4. Dernier recours : uniquement les attributs spécifiquement dédiés
+  // aux couleurs de swatches, jamais le premier background de la page.
+  const swatchTags = html.match(
+    /<[^>]*(?:data-swatch-color|data-color|data-colour|data-hex|data-color-hex|data-swatch)\s*=\s*["'][^"']+["'][^>]*>/gi
+  ) || [];
+
+  for (const tag of swatchTags) {
+    const color = extractExplicitColor(tag);
+    if (color) return color;
   }
 
   return '';
@@ -1027,15 +1181,20 @@ async function getKikoShadeVariants(
           offer?.lowPrice ??
           null;
 
+        // IMPORTANT :
+        // Ne pas utiliser getSwatch(product) ici.
+        // Cet objet peut contenir la couleur générale du produit,
+        // identique pour toutes les teintes.
+        // La couleur doit être extraite de la page propre à cette teinte.
+        const shadeSwatch = getHtmlSwatch(page.html, shade.label);
+
         results[index] = {
           name: 'Teinte',
           value: shade.label,
           options: {
             Teinte: shade.label
           },
-          swatch:
-            getSwatch(product) ||
-            getHtmlSwatch(page.html),
+          swatch: shadeSwatch,
           sku: clean(product?.sku),
           mpn: clean(product?.mpn),
           price:
