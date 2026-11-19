@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState } from 'react';
@@ -72,24 +73,21 @@ export default function ProductImporter({ onImport }: Props) {
 
       const product: ImportedProduct = result.product || {};
 
-      const productImages = Array.isArray(product.images)
-        ? [...new Set(product.images.filter(
-            (image): image is string =>
-              typeof image === 'string' &&
-              /^https?:\/\//i.test(image)
-          ))]
-        : [];
+      const cleanImages = (values: unknown): string[] =>
+        Array.isArray(values)
+          ? [...new Set(values.filter(
+              (image): image is string =>
+                typeof image === 'string' &&
+                /^https?:\/\//i.test(image)
+            ))]
+          : [];
+
+      const productImages = cleanImages(product.images);
 
       const productVariants = Array.isArray(product.variants)
         ? product.variants.map((variant: ImportedVariant) => ({
             ...variant,
-            images: Array.isArray(variant.images)
-              ? variant.images.filter(
-                  (image): image is string =>
-                    typeof image === 'string' &&
-                    /^https?:\/\//i.test(image)
-                )
-              : [],
+            images: cleanImages(variant.images),
           }))
         : [];
 
@@ -97,13 +95,15 @@ export default function ProductImporter({ onImport }: Props) {
       setImages(productImages);
       setVariants(productVariants);
 
-      // Par défaut, aucune variante n'est sélectionnée.
+      // Aucune variante n'est sélectionnée automatiquement.
       setSelectedVariants([]);
 
       setMissing(Array.isArray(result.missing) ? result.missing : []);
 
       setMessage(
-        'Analyse terminée. Choisis les photos et les variantes à importer.'
+        productVariants.length
+          ? `Analyse terminée : ${productVariants.length} variante(s) détectée(s). Coche celles que tu souhaites vendre.`
+          : 'Analyse terminée. Aucune variante détectée ; tu peux les ajouter manuellement.'
       );
     } catch (error) {
       setMessage(
@@ -131,7 +131,6 @@ export default function ProductImporter({ onImport }: Props) {
 
   function moveImage(index: number, direction: number) {
     const target = index + direction;
-
     if (target < 0 || target >= images.length) return;
 
     setImages(current => {
@@ -182,7 +181,7 @@ export default function ProductImporter({ onImport }: Props) {
 
     setVariants(current => [
       ...current,
-      { name: 'Option', value: '', images: [] },
+      { name: 'Option', value: '', images: [], options: {} },
     ]);
 
     setSelectedVariants(current => [...current, newIndex]);
@@ -219,23 +218,30 @@ export default function ProductImporter({ onImport }: Props) {
   function validateImport() {
     if (!detected || saving) return;
 
-    setSaving(true);
-
     const selected = variants.filter((_, index) =>
       selectedVariants.includes(index)
     );
 
-    onImport({
-      ...detected,
-      images,
-      variants: selected,
-    });
+    if (variants.length > 0 && selected.length === 0) {
+      setMessage('Coche au moins une variante ou ajoute-la manuellement avant de continuer.');
+      return;
+    }
 
-    setMessage(
-      `${selected.length} variante(s) sélectionnée(s) transmise(s) au formulaire. Vérifie la fiche avant de l’enregistrer.`
-    );
+    setSaving(true);
 
-    setSaving(false);
+    try {
+      onImport({
+        ...detected,
+        images,
+        variants: selected,
+      });
+
+      setMessage(
+        `${selected.length} variante(s) transmise(s) au formulaire. Vérifie la fiche avant de l’enregistrer.`
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -300,9 +306,7 @@ export default function ProductImporter({ onImport }: Props) {
 
             {(detected.sku || detected.mpn) && (
               <p className="mt-1 text-sm text-gray-700">
-                Référence : {[detected.sku, detected.mpn]
-                  .filter(Boolean)
-                  .join(' / ')}
+                Référence : {[detected.sku, detected.mpn].filter(Boolean).join(' / ')}
               </p>
             )}
           </div>
@@ -316,9 +320,7 @@ export default function ProductImporter({ onImport }: Props) {
               value={detected.description || ''}
               onChange={e =>
                 setDetected(current =>
-                  current
-                    ? { ...current, description: e.target.value }
-                    : current
+                  current ? { ...current, description: e.target.value } : current
                 )
               }
               placeholder="Aucune description détectée. Tu peux la saisir manuellement."
@@ -344,9 +346,7 @@ export default function ProductImporter({ onImport }: Props) {
             </div>
 
             {images.length === 0 ? (
-              <p className="text-xs text-gray-500">
-                Aucune photo détectée.
-              </p>
+              <p className="text-xs text-gray-500">Aucune photo détectée.</p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {images.map((image, index) => (
@@ -410,7 +410,7 @@ export default function ProductImporter({ onImport }: Props) {
                   Choisir les variantes ({selectedVariants.length}/{variants.length})
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Coche uniquement les couleurs, tailles ou modèles que tu souhaites vendre.
+                  Coche uniquement les teintes, couleurs, tailles ou modèles que tu souhaites vendre.
                 </p>
               </div>
 
@@ -424,7 +424,7 @@ export default function ProductImporter({ onImport }: Props) {
             </div>
 
             {variants.length > 0 && (
-              <div className="mb-3 flex gap-2">
+              <div className="mb-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={selectAllVariants}
@@ -452,10 +452,11 @@ export default function ProductImporter({ onImport }: Props) {
             <div className="space-y-3">
               {variants.map((variant, index) => {
                 const selected = selectedVariants.includes(index);
+                const variantImages = variant.images || [];
 
                 return (
                   <div
-                    key={index}
+                    key={`${variant.sku || variant.value || 'variant'}-${index}`}
                     className={`rounded-xl border p-3 ${
                       selected
                         ? 'border-rose-300 bg-rose-50/40'
@@ -470,8 +471,8 @@ export default function ProductImporter({ onImport }: Props) {
                           onChange={() => toggleVariant(index)}
                           className="h-4 w-4 accent-rose-700"
                         />
-                        <span>
-                          Variante {index + 1}
+                        <span className="break-words">
+                          {variant.value || `Variante ${index + 1}`}
                           {selected ? ' · Sélectionnée' : ''}
                         </span>
                       </label>
@@ -488,36 +489,28 @@ export default function ProductImporter({ onImport }: Props) {
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         value={variant.name || ''}
-                        onChange={e =>
-                          updateVariant(index, 'name', e.target.value)
-                        }
-                        placeholder="Type (ex. Couleur)"
+                        onChange={e => updateVariant(index, 'name', e.target.value)}
+                        placeholder="Type (ex. Teinte)"
                         className="min-w-0 rounded-lg border px-3 py-2 text-sm"
                       />
 
                       <input
                         value={variant.value || ''}
-                        onChange={e =>
-                          updateVariant(index, 'value', e.target.value)
-                        }
-                        placeholder="Valeur (ex. Rouge)"
+                        onChange={e => updateVariant(index, 'value', e.target.value)}
+                        placeholder="Valeur (ex. 01 Beige)"
                         className="min-w-0 rounded-lg border px-3 py-2 text-sm"
                       />
 
                       <input
                         value={variant.sku || ''}
-                        onChange={e =>
-                          updateVariant(index, 'sku', e.target.value)
-                        }
+                        onChange={e => updateVariant(index, 'sku', e.target.value)}
                         placeholder="Référence SKU"
                         className="min-w-0 rounded-lg border px-3 py-2 text-sm"
                       />
 
                       <input
                         value={variant.mpn || ''}
-                        onChange={e =>
-                          updateVariant(index, 'mpn', e.target.value)
-                        }
+                        onChange={e => updateVariant(index, 'mpn', e.target.value)}
                         placeholder="Référence MPN"
                         className="min-w-0 rounded-lg border px-3 py-2 text-sm"
                       />
@@ -525,52 +518,52 @@ export default function ProductImporter({ onImport }: Props) {
                       <input
                         type="number"
                         value={variant.price ?? ''}
-                        onChange={e =>
-                          updateVariant(index, 'price', e.target.value)
-                        }
+                        onChange={e => updateVariant(index, 'price', e.target.value)}
                         placeholder="Prix (facultatif)"
                         className="min-w-0 rounded-lg border px-3 py-2 text-sm"
                       />
                     </div>
 
-                    {images.length > 0 && (
+                    {variantImages.length > 0 && (
                       <div className="mt-3">
                         <p className="mb-2 text-xs font-medium text-gray-600">
-                          Photos associées à cette variante
+                          Photos récupérées pour cette teinte
                         </p>
 
-                        <div className="grid grid-cols-4 gap-2">
-                          {images.map((image, imageIndex) => {
-                            const imageSelected = (variant.images || []).includes(image);
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          {variantImages.map((image, imageIndex) => {
+                            const imageSelected = variantImages.includes(image);
 
                             return (
                               <button
-                                key={image}
+                                key={`${image}-${imageIndex}`}
                                 type="button"
-                                onClick={() =>
-                                  toggleVariantImage(index, image)
-                                }
+                                onClick={() => toggleVariantImage(index, image)}
                                 className={`overflow-hidden rounded-lg border-2 ${
-                                  imageSelected
-                                    ? 'border-rose-600'
-                                    : 'border-gray-200'
+                                  imageSelected ? 'border-rose-600' : 'border-gray-200'
                                 }`}
                                 aria-pressed={imageSelected}
                               >
                                 <img
                                   src={image}
-                                  alt={`Photo ${imageIndex + 1}`}
-                                  className="h-16 w-full object-contain"
+                                  alt={`Photo de ${variant.value || 'la variante'}`}
+                                  className="h-20 w-full bg-gray-50 object-contain"
+                                  loading="lazy"
                                 />
                               </button>
                             );
                           })}
                         </div>
-
                         <p className="mt-1 text-xs text-gray-500">
-                          Appuie sur les photos pour les associer ou les retirer.
+                          Ces photos sont déjà associées à cette teinte.
                         </p>
                       </div>
+                    )}
+
+                    {variantImages.length === 0 && (
+                      <p className="mt-2 text-xs text-amber-700">
+                        Aucune photo individuelle récupérée pour cette variante.
+                      </p>
                     )}
                   </div>
                 );
@@ -590,7 +583,9 @@ export default function ProductImporter({ onImport }: Props) {
             disabled={saving}
             className="w-full rounded-xl bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:opacity-60"
           >
-            {saving ? 'Transmission…' : `Utiliser les informations (${selectedVariants.length} variante(s))`}
+            {saving
+              ? 'Transmission…'
+              : `Utiliser les informations (${selectedVariants.length} variante(s))`}
           </button>
 
           <p className="text-xs leading-5 text-gray-500">
