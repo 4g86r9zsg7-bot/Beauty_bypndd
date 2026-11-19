@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -51,6 +50,54 @@ function cleanSwatch(value: unknown): string {
   }
 
   return '';
+}
+
+function getVariantSwatch(
+  variant: ImportedVariant & Record<string, unknown>
+): string {
+  const color = variant.color;
+
+  const candidates = [
+    variant.swatch,
+    variant.colorHex,
+    variant.hex,
+    variant.colorCode,
+    typeof color === 'string' ? color : '',
+    color && typeof color === 'object'
+      ? (color as Record<string, unknown>).hex
+      : '',
+    color && typeof color === 'object'
+      ? (color as Record<string, unknown>).value
+      : '',
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = cleanSwatch(candidate);
+    if (normalized) return normalized;
+  }
+
+  return '';
+}
+
+function toHexColor(value: string): string {
+  const color = cleanSwatch(value);
+
+  if (/^#[0-9a-f]{6}$/i.test(color)) {
+    return color;
+  }
+
+  if (/^#[0-9a-f]{3}$/i.test(color)) {
+    return (
+      '#' +
+      color
+        .slice(1)
+        .split('')
+        .map(char => char + char)
+        .join('')
+    );
+  }
+
+  return '#ffffff';
 }
 
 export default function ProductImporter({ onImport }: Props) {
@@ -105,16 +152,13 @@ export default function ProductImporter({ onImport }: Props) {
       const productImages = cleanImages(product.images);
 
       const productVariants = Array.isArray(product.variants)
-        ? product.variants.map((variant: ImportedVariant & Record<string, unknown>) => ({
-            ...variant,
-            swatch: cleanSwatch(
-              variant.swatch ??
-              variant.colorHex ??
-              variant.hex ??
-              variant.colorCode
-            ),
-            images: cleanImages(variant.images),
-          }))
+        ? product.variants.map(
+            (variant: ImportedVariant & Record<string, unknown>) => ({
+              ...variant,
+              swatch: getVariantSwatch(variant),
+              images: cleanImages(variant.images),
+            })
+          )
         : [];
 
       setDetected(product);
@@ -206,7 +250,13 @@ export default function ProductImporter({ onImport }: Props) {
 
     setVariants(current => [
       ...current,
-      { name: 'Teinte', value: '', images: [], options: {}, swatch: '' },
+      {
+        name: 'Teinte',
+        value: '',
+        images: [],
+        options: {},
+        swatch: '',
+      },
     ]);
 
     setSelectedVariants(current => [...current, newIndex]);
@@ -584,14 +634,14 @@ export default function ProductImporter({ onImport }: Props) {
 
                       <div className="flex items-center gap-3">
                         <div
-                          className="h-11 w-11 shrink-0 rounded-md border-2 border-gray-300 shadow-sm"
+                          className="h-12 w-12 shrink-0 rounded-md border-2 border-gray-300 shadow-sm"
                           style={{
                             backgroundColor: swatch || '#ffffff',
                           }}
                           title={swatch || 'Aucune couleur définie'}
                         />
 
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 space-y-2">
                           <input
                             type="text"
                             value={variant.swatch || ''}
@@ -602,9 +652,21 @@ export default function ProductImporter({ onImport }: Props) {
                             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-rose-400"
                           />
 
-                          <p className="mt-1 text-xs text-gray-500">
-                            Code HEX, par exemple #C98B72. Tu peux le corriger manuellement.
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={toHexColor(variant.swatch || '')}
+                              onChange={e =>
+                                updateVariant(index, 'swatch', e.target.value)
+                              }
+                              className="h-9 w-12 cursor-pointer rounded-md border border-gray-200 bg-white p-1"
+                              aria-label="Choisir la couleur de la teinte"
+                            />
+
+                            <p className="text-xs text-gray-500">
+                              Choisir une couleur manuellement
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -645,6 +707,7 @@ export default function ProductImporter({ onImport }: Props) {
                             </button>
                           ))}
                         </div>
+
                         <p className="mt-1 text-xs text-gray-500">
                           Ces photos restent associées à cette teinte pour la grande photo de la fiche produit.
                         </p>
