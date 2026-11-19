@@ -12,7 +12,7 @@
     "react-dom": "18.3.1",
     "@supabase/supabase-js": "2.45.4",
     "shein-cart": "0.1.1",
-    "sharp": "^0.33.5"
+  
   },
   "devDependencies": {
     "typescript": "5.6.2",
