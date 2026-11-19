@@ -16,17 +16,63 @@ const NEXT:Record<string,[string,string][]>={
   delivered:[],
   cancelled:[['pending','Remettre en attente']]
 };
+
 const NMSG:Record<string,string>={
-  confirmed:'est confirmée. Livraison en 24 à 48 h.',
-  preparing:'est en préparation.',
-  shipped:'est en cours de livraison.',
-  delivered:'a été livrée. Merci de votre confiance !',
-  cancelled:'a été annulée. Contactez-nous pour toute question.'
+  confirmed:'Votre commande a bien été confirmée.',
+  preparing:'Votre commande est actuellement en préparation.',
+  shipped:'Votre commande est en cours de livraison.',
+  delivered:'Votre commande a bien été livrée. Nous vous remercions pour votre confiance.',
+  cancelled:'Votre commande a été annulée. Contactez-nous pour toute question.'
 };
 
 const waNum=(t:string)=>{
   const d=String(t||'').replace(/\D/g,'');
   return d.startsWith('0')?'212'+d.slice(1):d;
+};
+
+// Création du message WhatsApp personnalisé.
+// Aucun numéro de commande n'est communiqué au client.
+const createWhatsAppMessage=(o:any)=>{
+  const firstName=String(o.name||'').trim().split(/\s+/)[0]||'';
+  const items=Array.isArray(o.items)?o.items:[];
+  const hasPreorder=items.some((i:any)=>i.preorder===true);
+
+  const details=items.length
+    ?items.map((i:any)=>{
+      const qty=Math.max(1,Number(i.qty)||1);
+      const name=String(i.name||'Article');
+      const variant=i.variant?` (${i.variant})`:'';
+      const amount=Number(i.price||0)*qty;
+
+      return `- ${qty} × ${name}${variant} : ${eur(amount)}`;
+    }).join('\n')
+    :'- Détail des articles indisponible';
+
+  let message=`Bonjour ${firstName},\n\n`;
+
+  if(o.status==='confirmed'){
+    message+=hasPreorder
+      ?'Nous vous confirmons que votre précommande a bien été validée.\n\n'
+      :'Nous vous confirmons que votre commande a bien été validée.\n\n';
+  }else{
+    message+=(NMSG[o.status]||'Nous vous informons de la mise à jour de votre commande.')+'\n\n';
+  }
+
+  message+=`Récapitulatif de votre commande :\n${details}\n\n`;
+  message+=`Montant total : ${eur(Number(o.total)||0)}\n\n`;
+
+  if(o.status==='confirmed'){
+    if(hasPreorder){
+      message+='Délai estimé de réception : 2 à 3 semaines.\n\n';
+      message+='Nous vous tiendrons informée dès réception de votre commande afin d’organiser la livraison.\n\n';
+    }else{
+      message+='Délai de livraison estimé : 24 à 48 heures.\n\n';
+    }
+  }
+
+  message+='Nous vous remercions pour votre confiance.\n\nBeautyByPND';
+
+  return message;
 };
 
 const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>
@@ -1099,8 +1145,10 @@ export default function Admin(){
 
                 {NMSG[o.status]&&(
                   <a
-                    href={`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(`Bonjour ${String(o.name).split(' ')[0]}, votre commande n°${o.number} ${NMSG[o.status]}`)}`}
+                    href={`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(createWhatsAppMessage(o))}`}
                     className="rounded-full border border-plum px-4 py-2 text-xs text-plum"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     Prévenir sur WhatsApp
                   </a>
