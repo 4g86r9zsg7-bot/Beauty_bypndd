@@ -294,12 +294,14 @@ export default function Admin(){
 
   // Génération d'un nouveau produit ou modification.
   const resetNew=()=>{
-    setEdit(null);
-    setImgs([]);
-    setVrows([]);
-    setOptionGroups([]);
-    setMsg('');
-  };
+  setEdit(null);
+  setImgs([]);
+  setVrows([]);
+  setOptionGroups([]);
+  setImportedProduct(null);
+  setFormVersion(v=>v+1);
+  setMsg('');
+};
 
   // Génération automatique de toutes les combinaisons.
   const generateCombinations=()=>{
