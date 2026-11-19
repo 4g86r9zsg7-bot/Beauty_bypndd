@@ -367,6 +367,100 @@ function getImages(
   return result;
 }
 
+/* -------------------------------------------------------
+   DÉTECTION DES COULEURS DES VARIANTES
+------------------------------------------------------- */
+
+function normalizeSwatch(value: unknown): string {
+  if (typeof value !== 'string') return '';
+
+  const color = value.trim();
+
+  if (/^#[0-9a-f]{3,8}$/i.test(color)) {
+    return color;
+  }
+
+  if (/^rgba?\(\s*[\d.%\s,]+\)$/i.test(color)) {
+    return color;
+  }
+
+  if (/^hsla?\(\s*[\d.%\s,deg]+\)$/i.test(color)) {
+    return color;
+  }
+
+  return '';
+}
+
+function getSwatch(variant: any): string {
+  if (!variant || typeof variant !== 'object') return '';
+
+  const colorObject =
+    typeof variant.color === 'object' && variant.color !== null
+      ? variant.color
+      : {};
+
+  const colourObject =
+    typeof variant.colour === 'object' && variant.colour !== null
+      ? variant.colour
+      : {};
+
+  const shadeObject =
+    typeof variant.shade === 'object' && variant.shade !== null
+      ? variant.shade
+      : {};
+
+  const candidates = [
+    variant.swatch,
+    variant.swatchColor,
+    variant.swatch_color,
+    variant.colorHex,
+    variant.colorCode,
+    variant.color_code,
+    variant.hex,
+    variant.hexColor,
+    variant.colourHex,
+    variant.backgroundColor,
+    variant.background_color,
+    colorObject.hex,
+    colorObject.value,
+    colorObject.code,
+    colorObject.color,
+    colourObject.hex,
+    colourObject.value,
+    colourObject.code,
+    shadeObject.hex,
+    shadeObject.color,
+    shadeObject.value
+  ];
+
+  for (const candidate of candidates) {
+    const color = normalizeSwatch(candidate);
+    if (color) return color;
+  }
+
+  const styleValues = [
+    variant.style,
+    variant.css,
+    variant.swatchStyle,
+    variant.swatch_style
+  ];
+
+  for (const style of styleValues) {
+    if (typeof style !== 'string') continue;
+
+    const match = style.match(
+      /(?:background-color|background)\s*:\s*(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/i
+    );
+
+    if (match) {
+      const color = normalizeSwatch(match[1]);
+      if (color) return color;
+    }
+  }
+
+  return '';
+}
+
 function getVariantAttributes(variant: any): {
   name: string;
   value: string;
@@ -640,6 +734,7 @@ function getVariants(
       name: attributes.name,
       value: variantName || attributes.value,
       options: attributes.options,
+      swatch: getSwatch(variant),
       sku,
       mpn,
       price:
@@ -658,7 +753,7 @@ function getVariants(
 }
 
 /* -------------------------------------------------------
-   DÉTECTION AMÉLIORÉE DES TEINTES KIKO
+   DÉTECTION DES TEINTES KIKO
 ------------------------------------------------------- */
 
 function getKikoShadeLinks(
@@ -708,8 +803,6 @@ function getKikoShadeLinks(
       }
     }
 
-    // Si le nom n'est pas disponible dans le texte,
-    // on essaie de récupérer le numéro depuis le slug.
     if (!label) {
       const slug = decodeURIComponent(
         target.pathname.split('/').filter(Boolean).pop() || ''
@@ -747,7 +840,6 @@ function getKikoShadeLinks(
     });
   }
 
-  // 1. Lecture des liens HTML complets.
   const anchors = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) || [];
 
   for (const anchor of anchors) {
@@ -778,9 +870,6 @@ function getKikoShadeLinks(
     addShade(href, labels);
   }
 
-  // 2. Recherche complémentaire des URL KIKO dans le HTML.
-  // Cela permet de détecter des liens présents dans certains
-  // blocs de données ou éléments dont le HTML est incomplet.
   const hrefMatches = html.match(
     /(?:href|data-href|data-url)\s*=\s*(?:"[^"]*\/p\/[^"]*"|'[^']*\/p\/[^']*'|[^\s>]*\/p\/[^\s>]*)/gi
   ) || [];
@@ -881,8 +970,27 @@ async function fetchHtmlPage(
 }
 
 /* -------------------------------------------------------
-   RÉCUPÉRATION DE LA PHOTO DE CHAQUE TEINTE KIKO
+   RÉCUPÉRATION DE LA PHOTO ET DE LA COULEUR DES TEINTES KIKO
 ------------------------------------------------------- */
+
+function getHtmlSwatch(html: string): string {
+  const patterns = [
+    /(?:data-color|data-colour|data-swatch-color|data-hex)\s*=\s*["'](#[0-9a-f]{3,8})["']/i,
+    /(?:background-color|background)\s*:\s*(#[0-9a-f]{3,8})/i,
+    /["'](?:swatchColor|colorHex|hexColor|backgroundColor)["']\s*:\s*["'](#[0-9a-f]{3,8})["']/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+
+    if (match?.[1]) {
+      const color = normalizeSwatch(match[1]);
+      if (color) return color;
+    }
+  }
+
+  return '';
+}
 
 async function getKikoShadeVariants(
   links: Array<{ label: string; url: string }>,
@@ -925,6 +1033,9 @@ async function getKikoShadeVariants(
           options: {
             Teinte: shade.label
           },
+          swatch:
+            getSwatch(product) ||
+            getHtmlSwatch(page.html),
           sku: clean(product?.sku),
           mpn: clean(product?.mpn),
           price:
@@ -936,13 +1047,13 @@ async function getKikoShadeVariants(
           images
         };
       } catch {
-        // Une teinte qui échoue ne bloque pas les autres.
         results[index] = {
           name: 'Teinte',
           value: shade.label,
           options: {
             Teinte: shade.label
           },
+          swatch: '',
           sku: '',
           mpn: '',
           price: null,
@@ -1013,7 +1124,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Récupération de la page principale.
     const page = await fetchHtmlPage(input);
     const html = page.html;
     const currentUrl = page.url;
@@ -1054,21 +1164,17 @@ export async function POST(request: NextRequest) {
       currentUrl.href
     );
 
-    // Extraction habituelle des variantes des autres sites.
     let variants = getVariants(
       product,
       documents,
       currentUrl.href
     );
 
-    // Détection supplémentaire des teintes KIKO.
     const kikoShadeLinks = getKikoShadeLinks(
       html,
       currentUrl.href
     );
 
-    // Si des liens de teintes KIKO sont trouvés,
-    // on récupère la photo de chaque page de teinte.
     if (kikoShadeLinks.length > 0) {
       const kikoVariants = await getKikoShadeVariants(
         kikoShadeLinks,
