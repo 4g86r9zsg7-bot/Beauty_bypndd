@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -292,48 +293,49 @@ export default function Admin(){
     a.click();
   };
 
-  // Génération d'un nouveau produit ou modification.
+  // Importation et préremplissage du formulaire produit.
   const importProduct=(product:any)=>{
-  const normalize=(value:string)=>
-    (value||'')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g,'')
-      .trim();
+    const normalize=(value:string)=>
+      (value||'')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,'')
+        .trim();
 
-  const matchedBrand=brands.find(
-    (b:any)=>normalize(b.name)===normalize(product.brand||'')
-  );
+    const matchedBrand=brands.find(
+      (b:any)=>normalize(b.name)===normalize(product.brand||'')
+    );
 
-  setImportedProduct({
-    ...product,
-    brand_id:matchedBrand?.id||'',
-    price:
-      ['MAD','DH','DHS'].includes(
-        String(product.currency||'').toUpperCase()
-      )
-        ? product.price??''
-        : ''
-  });
+    setImportedProduct({
+      ...product,
+      brand_id:matchedBrand?.id||'',
+      price:
+        ['MAD','DH','DHS'].includes(
+          String(product.currency||'').toUpperCase()
+        )
+          ? product.price??''
+          : ''
+    });
 
-  setImgs(Array.isArray(product.images)?product.images:[]);
-  setFormVersion(v=>v+1);
+    setImgs(Array.isArray(product.images)?product.images:[]);
+    setFormVersion(v=>v+1);
 
-  setMsg(
-    matchedBrand
-      ? `Import réussi. Marque reconnue : ${matchedBrand.name}. Vérifie le formulaire.`
-      : 'Import réussi. Vérifie les informations et sélectionne la marque manuellement.'
-  );
-};
+    setMsg(
+      matchedBrand
+        ? `Import réussi. Marque reconnue : ${matchedBrand.name}. Vérifie le formulaire.`
+        : 'Import réussi. Vérifie les informations et sélectionne la marque manuellement.'
+    );
+  };
+
   const resetNew=()=>{
-  setEdit(null);
-  setImgs([]);
-  setVrows([]);
-  setOptionGroups([]);
-  setImportedProduct(null);
-  setFormVersion(v=>v+1);
-  setMsg('');
-};
+    setEdit(null);
+    setImgs([]);
+    setVrows([]);
+    setOptionGroups([]);
+    setImportedProduct(null);
+    setFormVersion(v=>v+1);
+    setMsg('');
+  };
 
   // Génération automatique de toutes les combinaisons.
   const generateCombinations=()=>{
@@ -1176,7 +1178,9 @@ export default function Admin(){
           key={edit?.id||`new-${formVersion}`}
           onSubmit={saveProduct}
           className="grid gap-3 max-w-lg"
-        > {!edit&&<ProductImporter onImport={importProduct}/>}
+        >
+          {!edit&&<ProductImporter onImport={importProduct}/>}
+
           <h2 className="font-serif text-2xl">
             {edit?`Modifier : ${edit.name}`:'Nouveau produit'}
           </h2>
@@ -1185,11 +1189,15 @@ export default function Admin(){
             name="name"
             required
             placeholder="Nom"
-            defaultValue={edit?.name||''}
+            defaultValue={importedProduct?.name??edit?.name??''}
             className="border p-2"
           />
 
-          <select name="brand" defaultValue={edit?.brand_id||''} className="border p-2">
+          <select
+            name="brand"
+            defaultValue={importedProduct?.brand_id??edit?.brand_id??''}
+            className="border p-2"
+          >
             <option value="">Marque</option>
             {brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -1210,7 +1218,7 @@ export default function Admin(){
             step="0.01"
             required
             placeholder="Prix (DH)"
-            defaultValue={edit?.price??''}
+            defaultValue={importedProduct?.price??edit?.price??''}
             className="border p-2"
           />
 
@@ -1448,7 +1456,7 @@ export default function Admin(){
           <textarea
             name="desc"
             placeholder="Description"
-            defaultValue={edit?.description||''}
+            defaultValue={importedProduct?.description??edit?.description??''}
             className="border p-2"
           />
 
