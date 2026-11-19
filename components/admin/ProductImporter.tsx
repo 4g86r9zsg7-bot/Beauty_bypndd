@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -92,10 +93,7 @@ export default function ProductImporter({ onImport }: Props) {
       setDetected(product);
       setImages(productImages);
       setVariants(productVariants);
-
-      // Aucune variante n'est sélectionnée automatiquement.
       setSelectedVariants([]);
-
       setMissing(Array.isArray(result.missing) ? result.missing : []);
 
       setMessage(
@@ -221,7 +219,20 @@ export default function ProductImporter({ onImport }: Props) {
     );
 
     if (variants.length > 0 && selected.length === 0) {
-      setMessage('Coche au moins une variante ou ajoute-la manuellement avant de continuer.');
+      setMessage(
+        'Coche au moins une variante avant de transférer le produit.'
+      );
+      return;
+    }
+
+    const emptyVariants = selected.filter(
+      variant => !variant.value?.trim() && !variant.name?.trim()
+    );
+
+    if (emptyVariants.length > 0) {
+      setMessage(
+        'Une variante sélectionnée est vide. Complète-la ou décoche-la avant de continuer.'
+      );
       return;
     }
 
@@ -230,12 +241,21 @@ export default function ProductImporter({ onImport }: Props) {
     try {
       onImport({
         ...detected,
-        images,
-        variants: selected,
+        images: [...images],
+        variants: selected.map(variant => ({
+          ...variant,
+          images: [...(variant.images || [])],
+        })),
       });
 
       setMessage(
-        `${selected.length} variante(s) transmise(s) au formulaire. Vérifie la fiche avant de l’enregistrer.`
+        `Transfert effectué : ${selected.length} variante(s) transmise(s) au formulaire. Vérifie toutes les informations avant de cliquer sur Enregistrer.`
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : 'Le transfert a échoué. Réessaie.'
       );
     } finally {
       setSaving(false);
@@ -417,7 +437,7 @@ export default function ProductImporter({ onImport }: Props) {
                 onClick={addVariant}
                 className="shrink-0 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700"
               >
-                + Ajouter
+                + Créer une variante manuellement
               </button>
             </div>
 
@@ -579,11 +599,11 @@ export default function ProductImporter({ onImport }: Props) {
             type="button"
             onClick={validateImport}
             disabled={saving}
-            className="w-full rounded-xl bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:opacity-60"
+            className="w-full rounded-xl bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving
-              ? 'Transmission…'
-              : `Utiliser les informations (${selectedVariants.length} variante(s))`}
+              ? 'Transmission en cours…'
+              : `Transférer le produit et ses ${selectedVariants.length} variante(s) sélectionnée(s)`}
           </button>
 
           <p className="text-xs leading-5 text-gray-500">
