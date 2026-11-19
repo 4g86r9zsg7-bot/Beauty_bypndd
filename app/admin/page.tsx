@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -28,6 +29,36 @@ const NMSG:Record<string,string>={
 const waNum=(t:string)=>{
   const d=String(t||'').replace(/\D/g,'');
   return d.startsWith('0')?'212'+d.slice(1):d;
+};
+
+// Validation des couleurs enregistrées pour les carrés de teintes.
+const cleanSwatch=(value:any):string=>{
+  if(typeof value!=='string')return '';
+
+  const color=value.trim();
+
+  if(
+    /^#[0-9a-f]{3,4}$/i.test(color)||
+    /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color)||
+    /^rgba?\([\d\s.,%/]+\)$/i.test(color)||
+    /^hsla?\([\d\s.,%/deg]+\)$/i.test(color)
+  ){
+    return color;
+  }
+
+  return '';
+};
+
+const toHexColor=(value:any):string=>{
+  const color=cleanSwatch(value);
+
+  if(/^#[0-9a-f]{6}$/i.test(color))return color;
+
+  if(/^#[0-9a-f]{3}$/i.test(color)){
+    return '#'+color.slice(1).split('').map(c=>c+c).join('');
+  }
+
+  return '#ffffff';
 };
 
 // Création du message WhatsApp personnalisé.
@@ -77,7 +108,18 @@ const createWhatsAppMessage=(o:any)=>{
 
 const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>
   typeof x==='string'
-    ?{name:x,stock:p.stock||0,status:'available',price:'',images:[],files:[],options:null,sku:'',mpn:''}
+    ?{
+      name:x,
+      stock:p.stock||0,
+      status:'available',
+      price:'',
+      images:[],
+      files:[],
+      options:null,
+      sku:'',
+      mpn:'',
+      swatch:''
+    }
     :{
       name:x.name||'',
       stock:x.stock??0,
@@ -87,7 +129,8 @@ const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>
       files:[],
       options:x.options||null,
       sku:x.sku||'',
-      mpn:x.mpn||''
+      mpn:x.mpn||'',
+      swatch:cleanSwatch(x.swatch)||''
     }
 );
 
@@ -340,7 +383,7 @@ export default function Admin(){
     a.click();
   };
 
-  // Importation du produit et de ses variantes.
+  // Importation du produit et de ses variantes, couleurs comprises.
   const importProduct=(product:any)=>{
     const normalize=(value:string)=>
       (value||'')
@@ -415,7 +458,8 @@ export default function Admin(){
           files:[],
           options,
           sku:v?.sku||'',
-          mpn:v?.mpn||''
+          mpn:v?.mpn||'',
+          swatch:cleanSwatch(v?.swatch)||''
         };
       });
 
@@ -437,7 +481,7 @@ export default function Admin(){
 
     setMsg(
       importedVariants.length
-        ?`Import réussi : ${importedVariants.length} variante(s) détectée(s). Vérifie les informations avant d'enregistrer.`
+        ?`Import réussi : ${importedVariants.length} variante(s) détectée(s). Vérifie les informations et les couleurs avant d'enregistrer.`
         :matchedBrand
           ?`Import réussi. Marque reconnue : ${matchedBrand.name}. Vérifie le formulaire.`
           :'Import réussi. Vérifie les informations et sélectionne la marque manuellement.'
@@ -455,6 +499,7 @@ export default function Admin(){
   };
 
   // Génération automatique de toutes les combinaisons.
+  // La couleur existante est conservée pour chaque teinte correspondante.
   const generateCombinations=()=>{
     const groups=optionGroups
       .map(g=>({
@@ -496,6 +541,17 @@ export default function Admin(){
           groups.every(g=>String(r.options[g.name]||'')===selected[g.name])
         );
 
+        const colorGroup=groups.find(g=>
+          /couleur|color|teinte|shade/i.test(g.name)
+        );
+
+        const matchingColorVariant=colorGroup
+          ?vrows.find(r=>
+            cleanSwatch(r.swatch)&&
+            String(r.options?.[colorGroup.name]||'')===selected[colorGroup.name]
+          )
+          :null;
+
         combinations.push({
           name,
           options:{...selected},
@@ -505,7 +561,8 @@ export default function Admin(){
           images:old?.images||[],
           files:old?.files||[],
           sku:old?.sku||'',
-          mpn:old?.mpn||''
+          mpn:old?.mpn||'',
+          swatch:cleanSwatch(old?.swatch||matchingColorVariant?.swatch)||''
         });
 
         return;
@@ -524,7 +581,7 @@ export default function Admin(){
     build(0,{});
 
     setVrows(combinations);
-    setMsg(`${combinations.length} combinaison(s) générée(s). Configure maintenant leur stock et leurs prix.`);
+    setMsg(`${combinations.length} combinaison(s) générée(s). Les couleurs correspondantes ont été conservées lorsque disponibles. Configure maintenant leur stock et leurs prix.`);
   };
 
   async function saveProduct(e:any){
@@ -603,6 +660,10 @@ export default function Admin(){
 
       if(r.sku)o.sku=String(r.sku);
       if(r.mpn)o.mpn=String(r.mpn);
+
+      // Enregistrement du code couleur avec la variante.
+      const swatch=cleanSwatch(r.swatch);
+      if(swatch)o.swatch=swatch;
 
       const pr=parseFloat(String(r.price).replace(',','.'));
 
@@ -1446,115 +1507,164 @@ export default function Admin(){
                 Variantes et stocks
               </p>
               <p className="text-xs text-ink/60">
-                Configure ici le stock, le prix et les photos de chaque combinaison.
+                Configure ici le stock, le prix, les couleurs et les photos de chaque combinaison.
               </p>
             </div>
 
-            {vrows.map((r:any,i:number)=>(
-              <div key={i} className="border border-sand bg-white p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    {r.options
-                      ?<div>
-                        <p className="font-semibold text-sm text-plum">
-                          {r.name}
-                        </p>
-                        <p className="text-[11px] text-ink/50">
-                          {r.sku?`SKU : ${r.sku}`:''}
-                          {r.sku&&r.mpn?' · ':''}
-                          {r.mpn?`MPN : ${r.mpn}`:''}
-                        </p>
-                      </div>
-                      :<input
-                        value={r.name}
-                        onChange={e=>setV(i,{name:e.target.value})}
-                        placeholder="Nom (ex : Rose)"
+            {vrows.map((r:any,i:number)=>{
+              const swatch=cleanSwatch(r.swatch);
+
+              return (
+                <div key={i} className="border border-sand bg-white p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      {r.options
+                        ?<div>
+                          <p className="font-semibold text-sm text-plum">
+                            {r.name}
+                          </p>
+                          <p className="text-[11px] text-ink/50">
+                            {r.sku?`SKU : ${r.sku}`:''}
+                            {r.sku&&r.mpn?' · ':''}
+                            {r.mpn?`MPN : ${r.mpn}`:''}
+                          </p>
+                        </div>
+                        :<input
+                          value={r.name}
+                          onChange={e=>setV(i,{name:e.target.value})}
+                          placeholder="Nom (ex : Rose)"
+                          className="w-full border p-2"
+                        />}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={()=>setVrows(previous=>previous.filter((_,j)=>j!==i))}
+                      className="text-sm text-red-700 underline"
+                    >
+                      Retirer
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <label className="flex-1 text-xs">
+                      Stock
+                      <input
+                        type="number"
+                        min="0"
+                        value={r.stock}
+                        onChange={e=>setV(i,{stock:e.target.value})}
+                        placeholder="Stock"
                         className="w-full border p-2"
-                      />}
+                      />
+                    </label>
+
+                    <label className="flex-1 text-xs">
+                      Prix personnalisé (facultatif)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={r.price}
+                        onChange={e=>setV(i,{price:e.target.value})}
+                        placeholder="Prix du produit"
+                        className="w-full border p-2"
+                      />
+                    </label>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={()=>setVrows(previous=>previous.filter((_,j)=>j!==i))}
-                    className="text-sm text-red-700 underline"
-                  >
-                    Retirer
-                  </button>
-                </div>
+                  {/* COULEUR DE LA VARIANTE */}
+                  <div className="rounded-xl border border-rose-100 bg-rose-50/40 p-3">
+                    <p className="mb-2 text-xs font-semibold text-gray-800">
+                      Couleur du carré de teinte
+                    </p>
 
-                <div className="flex gap-2">
-                  <label className="flex-1 text-xs">
-                    Stock
-                    <input
-                      type="number"
-                      min="0"
-                      value={r.stock}
-                      onChange={e=>setV(i,{stock:e.target.value})}
-                      placeholder="Stock"
-                      className="w-full border p-2"
-                    />
-                  </label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-11 w-11 shrink-0 rounded-md border-2 border-gray-300 shadow-sm"
+                        style={{backgroundColor:swatch||'#ffffff'}}
+                        title={swatch||'Aucune couleur définie'}
+                      />
 
-                  <label className="flex-1 text-xs">
-                    Prix personnalisé (facultatif)
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={r.price}
-                      onChange={e=>setV(i,{price:e.target.value})}
-                      placeholder="Prix du produit"
-                      className="w-full border p-2"
-                    />
-                  </label>
-                </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <input
+                          type="text"
+                          value={r.swatch||''}
+                          onChange={e=>setV(i,{swatch:e.target.value})}
+                          placeholder="#C98B72"
+                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-rose-400"
+                        />
 
-                <select
-                  value={r.status||'available'}
-                  onChange={e=>setV(i,{status:e.target.value})}
-                  className="w-full border p-2"
-                >
-                  <option value="available">Disponible immédiatement</option>
-                  <option value="last">Dernières pièces</option>
-                  <option value="arrival">Arrivage prochainement (réservation)</option>
-                  <option value="preorder">Précommande</option>
-                  <option value="soldout">Épuisé</option>
-                </select>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={toHexColor(r.swatch||'')}
+                            onChange={e=>setV(i,{swatch:e.target.value})}
+                            aria-label="Choisir la couleur de la teinte"
+                            className="h-9 w-12 cursor-pointer rounded-md border border-gray-200 bg-white p-1"
+                          />
 
-                {r.images?.length>0&&(
-                  <div className="flex flex-wrap gap-2">
-                    {r.images.map((u:string,j:number)=>(
-                      <div key={`${u}-${j}`} className="relative">
-                        <img src={u} alt="" className="h-16 w-14 object-cover"/>
-                        <button
-                          type="button"
-                          onClick={()=>setV(i,{images:r.images.filter((_:string,k:number)=>k!==j)})}
-                          className="absolute right-0 top-0 bg-ink px-1 text-xs text-white"
-                        >
-                          ×
-                        </button>
+                          <p className="text-xs text-gray-500">
+                            Choisir ou corriger la couleur manuellement
+                          </p>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {!swatch&&(
+                      <p className="mt-2 text-xs text-gray-500">
+                        Aucune couleur définie. Tu peux la choisir ici. Le carré de couleur restera indépendant des photos.
+                      </p>
+                    )}
                   </div>
-                )}
 
-                <label className="text-xs">
-                  Photos de cette variante
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={e=>setV(i,{files:Array.from(e.target.files||[])})}
-                  />
-                </label>
+                  <select
+                    value={r.status||'available'}
+                    onChange={e=>setV(i,{status:e.target.value})}
+                    className="w-full border p-2"
+                  >
+                    <option value="available">Disponible immédiatement</option>
+                    <option value="last">Dernières pièces</option>
+                    <option value="arrival">Arrivage prochainement (réservation)</option>
+                    <option value="preorder">Précommande</option>
+                    <option value="soldout">Épuisé</option>
+                  </select>
 
-                {r.files?.length>0&&(
-                  <p className="text-xs text-plum">
-                    {r.files.length} photo(s) à ajouter à l’enregistrement
-                  </p>
-                )}
-              </div>
-            ))}
+                  {r.images?.length>0&&(
+                    <div className="flex flex-wrap gap-2">
+                      {r.images.map((u:string,j:number)=>(
+                        <div key={`${u}-${j}`} className="relative">
+                          <img src={u} alt="" className="h-16 w-14 object-cover"/>
+                          <button
+                            type="button"
+                            onClick={()=>setV(i,{images:r.images.filter((_:string,k:number)=>k!==j)})}
+                            className="absolute right-0 top-0 bg-ink px-1 text-xs text-white"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <label className="text-xs">
+                    Photos de cette variante
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={e=>setV(i,{files:Array.from(e.target.files||[])})}
+                    />
+                  </label>
+
+                  {r.files?.length>0&&(
+                    <p className="text-xs text-plum">
+                      {r.files.length} photo(s) à ajouter à l’enregistrement
+                    </p>
+                  )}
+                </div>
+              );
+            })}
 
             <button
               type="button"
@@ -1569,7 +1679,8 @@ export default function Admin(){
                   files:[],
                   options:null,
                   sku:'',
-                  mpn:''
+                  mpn:'',
+                  swatch:''
                 }
               ])}
               className="w-full rounded-full border border-plum py-2 text-sm text-plum"
