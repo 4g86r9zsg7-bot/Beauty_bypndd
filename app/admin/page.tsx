@@ -293,6 +293,38 @@ export default function Admin(){
   };
 
   // Génération d'un nouveau produit ou modification.
+  const importProduct=(product:any)=>{
+  const normalize=(value:string)=>
+    (value||'')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .trim();
+
+  const matchedBrand=brands.find(
+    (b:any)=>normalize(b.name)===normalize(product.brand||'')
+  );
+
+  setImportedProduct({
+    ...product,
+    brand_id:matchedBrand?.id||'',
+    price:
+      ['MAD','DH','DHS'].includes(
+        String(product.currency||'').toUpperCase()
+      )
+        ? product.price??''
+        : ''
+  });
+
+  setImgs(Array.isArray(product.images)?product.images:[]);
+  setFormVersion(v=>v+1);
+
+  setMsg(
+    matchedBrand
+      ? `Import réussi. Marque reconnue : ${matchedBrand.name}. Vérifie le formulaire.`
+      : 'Import réussi. Vérifie les informations et sélectionne la marque manuellement.'
+  );
+};
   const resetNew=()=>{
   setEdit(null);
   setImgs([]);
@@ -1141,10 +1173,10 @@ export default function Admin(){
 
       {tab==='new'&&(
         <form
-          key={edit?.id||'new'}
+          key={edit?.id||`new-${formVersion}`}
           onSubmit={saveProduct}
           className="grid gap-3 max-w-lg"
-        >
+        > {!edit&&<ProductImporter onImport={importProduct}/>}
           <h2 className="font-serif text-2xl">
             {edit?`Modifier : ${edit.name}`:'Nouveau produit'}
           </h2>
