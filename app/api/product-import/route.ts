@@ -1,7 +1,4 @@
 
-
-
-
 import { NextRequest, NextResponse } from 'next/server';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
@@ -661,7 +658,7 @@ function getVariants(
 }
 
 /* -------------------------------------------------------
-   NOUVEAU : DÉTECTION DES TEINTES KIKO
+   DÉTECTION AMÉLIORÉE DES TEINTES KIKO
 ------------------------------------------------------- */
 
 function getKikoShadeLinks(
@@ -670,13 +667,88 @@ function getKikoShadeLinks(
 ): Array<{ label: string; url: string }> {
   const base = new URL(baseUrl);
 
-  if (!base.hostname.toLowerCase().includes('kikocosmetics.com')) {
+  if (!/(^|\.)kikocosmetics\.com$/i.test(base.hostname)) {
     return [];
   }
 
-  const anchors = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) || [];
   const result: Array<{ label: string; url: string }> = [];
   const seen = new Set<string>();
+
+  function addShade(href: string, possibleLabels: string[]) {
+    let target: URL;
+
+    try {
+      target = new URL(href, baseUrl);
+    } catch {
+      return;
+    }
+
+    if (
+      target.hostname.toLowerCase() !== base.hostname.toLowerCase() ||
+      !target.pathname.includes('/p/') ||
+      target.pathname === base.pathname
+    ) {
+      return;
+    }
+
+    let label = '';
+
+    for (const possibleLabel of possibleLabels) {
+      const candidate = clean(possibleLabel)
+        .replace(/\b\d+[,.]\d{2}\s*€?/gi, '')
+        .replace(/\b\d+[,.]\d{2}\s*(?:EUR|MAD|DH|DHS)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const match = candidate.match(/^(\d{1,3})\s+(.+)$/);
+
+      if (match && match[2].trim().length <= 70) {
+        label = `${match[1]} ${match[2].trim()}`;
+        break;
+      }
+    }
+
+    // Si le nom n'est pas disponible dans le texte,
+    // on essaie de récupérer le numéro depuis le slug.
+    if (!label) {
+      const slug = decodeURIComponent(
+        target.pathname.split('/').filter(Boolean).pop() || ''
+      );
+
+      const numberMatch = slug.match(/(?:^|-)(\d{2,3})-\d+$/);
+
+      if (numberMatch) {
+        const number = numberMatch[1];
+        const nameFromSlug = slug
+          .replace(/-\d+$/, '')
+          .replace(/-\d{2,3}$/, '')
+          .split('-')
+          .filter(Boolean)
+          .slice(-5)
+          .join(' ')
+          .replace(/\b\w/g, letter => letter.toUpperCase());
+
+        label = nameFromSlug
+          ? `${number} ${nameFromSlug}`
+          : `${number} Teinte`;
+      }
+    }
+
+    if (!label) return;
+
+    const key = target.href.toLowerCase();
+
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    result.push({
+      label,
+      url: target.href
+    });
+  }
+
+  // 1. Lecture des liens HTML complets.
+  const anchors = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) || [];
 
   for (const anchor of anchors) {
     const opening = anchor.match(/^<a\b[^>]*>/i)?.[0] || '';
@@ -684,82 +756,48 @@ function getKikoShadeLinks(
 
     if (!href) continue;
 
-    let target: URL;
-
-    try {
-      target = new URL(href, baseUrl);
-    } catch {
-      continue;
-    }
-
-    if (
-      target.hostname.toLowerCase() !== base.hostname.toLowerCase() ||
-      !target.pathname.includes('/p/')
-    ) {
-      continue;
-    }
-
     const textContent = clean(
       anchor.replace(/^<a\b[^>]*>/i, '').replace(/<\/a>$/i, '')
     );
 
-    if (!textContent) continue;
+    const labels = [
+      textContent,
+      getAttribute(opening, 'aria-label'),
+      getAttribute(opening, 'title')
+    ];
 
-    let label = textContent
-      .replace(/\b\d+[,.]\d{2}\s*€?/gi, '')
-      .replace(/\b\d+[,.]\d{2}\s*(?:EUR|MAD|DH|DHS)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const imageTags = anchor.match(/<img\b[^>]*>/gi) || [];
 
-    // Certains liens répètent deux fois le nom de la teinte.
-    const half = Math.floor(label.length / 2);
-    const firstHalf = label.slice(0, half).trim();
-    const secondHalf = label.slice(half).trim();
-
-    if (
-      firstHalf &&
-      secondHalf &&
-      firstHalf.toLowerCase() === secondHalf.toLowerCase()
-    ) {
-      label = firstHalf;
+    for (const imageTag of imageTags) {
+      labels.push(
+        getAttribute(imageTag, 'alt'),
+        getAttribute(imageTag, 'title')
+      );
     }
 
-    const repeated = label.match(/^(.{3,}?)\s+\1$/i);
-
-    if (repeated?.[1]) {
-      label = repeated[1].trim();
-    }
-
-    // Les teintes KIKO commencent par un numéro :
-    // exemple : 01 Cachemire Beige.
-    const shadeMatch = label.match(/^(\d{1,3})\s+(.+)$/);
-
-    if (!shadeMatch) continue;
-
-    const number = shadeMatch[1].trim();
-    const shadeName = shadeMatch[2].trim();
-
-    if (!shadeName || shadeName.length > 70) continue;
-
-    const finalLabel = `${number} ${shadeName}`;
-    const finalUrl = target.href;
-
-    if (finalUrl === base.href) continue;
-
-    const key = finalLabel.toLowerCase();
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    result.push({
-      label: finalLabel,
-      url: finalUrl
-    });
-
-    if (result.length >= MAX_VARIANTS) break;
+    addShade(href, labels);
   }
 
-  return result;
+  // 2. Recherche complémentaire des URL KIKO dans le HTML.
+  // Cela permet de détecter des liens présents dans certains
+  // blocs de données ou éléments dont le HTML est incomplet.
+  const hrefMatches = html.match(
+    /(?:href|data-href|data-url)\s*=\s*(?:"[^"]*\/p\/[^"]*"|'[^']*\/p\/[^']*'|[^\s>]*\/p\/[^\s>]*)/gi
+  ) || [];
+
+  for (const item of hrefMatches) {
+    const match = item.match(
+      /(?:href|data-href|data-url)\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i
+    );
+
+    const href = match?.[1] || match?.[2] || match?.[3];
+
+    if (href) {
+      addShade(href, []);
+    }
+  }
+
+  return result.slice(0, MAX_VARIANTS);
 }
 
 /* -------------------------------------------------------
