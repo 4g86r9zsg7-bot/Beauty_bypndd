@@ -4,6 +4,7 @@
 import {useEffect,useState} from 'react';
 import {supabase,eur} from '@/lib/supabase';
 import AdminHome from '@/components/AdminHome';
+import ProductImporter from '@/components/admin/ProductImporter';
 
 const ST=['pending','confirmed','preparing','shipped','delivered','cancelled'];
 const SL:any={pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',shipped:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
