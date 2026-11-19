@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {useState} from 'react';
@@ -10,113 +11,46 @@ import {WA,eur} from '@/lib/supabase';
 import {DELIVERY,PREORDER} from '@/lib/shop';
 
 const colorMap:Record<string,string>={
-  noir:'#171717',
-  black:'#171717',
-  blanc:'#ffffff',
-  white:'#ffffff',
-  ivoire:'#fff8e7',
-  ivory:'#fff8e7',
-  'blanc casse':'#f5f0e6',
-  'blanc cassé':'#f5f0e6',
-
-  rose:'#e9a0b5',
-  pink:'#e9a0b5',
-  'rose pale':'#f5c5d2',
-  'rose clair':'#f5c5d2',
-  'rose poudre':'#e8c0c8',
-  'rose fuchsia':'#d62976',
-  fuchsia:'#d62976',
-  magenta:'#d62976',
-
-  beige:'#d8c2a0',
-  nude:'#d8b99b',
-  champagne:'#e8d3a5',
-  creme:'#f0e2c5',
-  
-
-  marron:'#795548',
-  brown:'#795548',
-  chocolat:'#593b2d',
-  camel:'#bd966b',
-  taupe:'#8b7768',
-  caramel:'#b87943',
-
-  rouge:'#c62828',
-  red:'#c62828',
-  bordeaux:'#701c35',
-  burgundy:'#701c35',
-  grenat:'#701c35',
-
-  bleu:'#2874b9',
-  blue:'#2874b9',
-  'bleu clair':'#83bde8',
-  'bleu ciel':'#87ceeb',
-  'bleu marine':'#172b4d',
-  marine:'#172b4d',
-  turquoise:'#36b9b0',
-  cyan:'#36b9d0',
-
-  vert:'#39845b',
-  green:'#39845b',
-  'vert clair':'#8bc59b',
-  'vert olive':'#77764a',
-  kaki:'#77764a',
-  olive:'#77764a',
-  emeraude:'#087f5b',
-
-  gris:'#929292',
-  grey:'#929292',
-  gray:'#929292',
-  'gris clair':'#d4d4d4',
-  'gris fonce':'#555555',
-
-  jaune:'#f3d34a',
-  yellow:'#f3d34a',
-  moutarde:'#c49b27',
-  orange:'#e98735',
-  corail:'#ef806c',
-
-  violet:'#8055a5',
-  purple:'#8055a5',
-  lilas:'#c5a6d8',
-  lavender:'#c5a6d8',
-  mauve:'#a77aa9',
-
-  dore:'#c5a04b',
-  gold:'#c5a04b',
-  or:'#c5a04b',
-  argente:'#c0c0c0',
-  argent:'#c0c0c0',
-  silver:'#c0c0c0',
-  cuivre:'#b87333',
-  bronze:'#cd7f32',
-
+  noir:'#171717',black:'#171717',
+  blanc:'#ffffff',white:'#ffffff',
+  ivoire:'#fff8e7',ivory:'#fff8e7',
+  'blanc casse':'#f5f0e6','blanc cassé':'#f5f0e6',
+  rose:'#e9a0b5',pink:'#e9a0b5',
+  'rose pale':'#f5c5d2','rose clair':'#f5c5d2',
+  'rose poudre':'#e8c0c8','rose fuchsia':'#d62976',
+  fuchsia:'#d62976',magenta:'#d62976',
+  beige:'#d8c2a0',nude:'#d8b99b',champagne:'#e8d3a5',
+  creme:'#f0e2c5',marron:'#795548',brown:'#795548',
+  chocolat:'#593b2d',camel:'#bd966b',taupe:'#8b7768',
+  caramel:'#b87943',rouge:'#c62828',red:'#c62828',
+  bordeaux:'#701c35',burgundy:'#701c35',grenat:'#701c35',
+  bleu:'#2874b9',blue:'#2874b9','bleu clair':'#83bde8',
+  'bleu ciel':'#87ceeb','bleu marine':'#172b4d',
+  marine:'#172b4d',turquoise:'#36b9b0',cyan:'#36b9d0',
+  vert:'#39845b',green:'#39845b','vert clair':'#8bc59b',
+  'vert olive':'#77764a',kaki:'#77764a',olive:'#77764a',
+  emeraude:'#087f5b',gris:'#929292',grey:'#929292',
+  gray:'#929292','gris clair':'#d4d4d4','gris fonce':'#555555',
+  jaune:'#f3d34a',yellow:'#f3d34a',moutarde:'#c49b27',
+  orange:'#e98735',corail:'#ef806c',violet:'#8055a5',
+  purple:'#8055a5',lilas:'#c5a6d8',lavender:'#c5a6d8',
+  mauve:'#a77aa9',dore:'#c5a04b',gold:'#c5a04b',
+  or:'#c5a04b',argente:'#c0c0c0',argent:'#c0c0c0',
+  silver:'#c0c0c0',cuivre:'#b87333',bronze:'#cd7f32',
   transparent:'#f4f0e9'
 };
 
 function normalizeColor(value:string){
-  return String(value||'')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'')
-    .replace(/[_-]+/g,' ')
-    .replace(/\s+/g,' ');
+  return String(value||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[_-]+/g,' ').replace(/\s+/g,' ');
 }
 
 function isMultiColor(value:string){
-  const key=normalizeColor(value);
-
   return [
-    'multicolore',
-    'multi couleur',
-    'multicolor',
-    'multicolored',
-    'multicoloured',
-    'arc en ciel',
-    'rainbow',
-    'imprime multicolore'
-  ].includes(key);
+    'multicolore','multi couleur','multicolor','multicolored',
+    'multicoloured','arc en ciel','rainbow','imprime multicolore'
+  ].includes(normalizeColor(value));
 }
 
 function colorValue(value:string){
@@ -126,60 +60,44 @@ function colorValue(value:string){
     return 'linear-gradient(135deg, #e53935 0%, #e53935 16%, #f5c542 16%, #f5c542 32%, #43a047 32%, #43a047 48%, #2196f3 48%, #2196f3 64%, #8055a5 64%, #8055a5 80%, #e9a0b5 80%, #e9a0b5 100%)';
   }
 
-  if(/^#[0-9a-f]{3,8}$/i.test(key)){
-    return key;
-  }
+  if(/^#[0-9a-f]{3,8}$/i.test(key))return key;
+  if(colorMap[key])return colorMap[key];
 
-  if(colorMap[key]){
-    return colorMap[key];
-  }
-
-  // Reconnaissance des couleurs même lorsqu'elles sont accompagnées
-  // d'une précision comme "bleu clair", "rose pâle" ou "vert olive".
   const entries=[
-    ['noir','#171717'],
-    ['black','#171717'],
-    ['blanc','#ffffff'],
-    ['white','#ffffff'],
-    ['rose','#e9a0b5'],
-    ['pink','#e9a0b5'],
-    ['beige','#d8c2a0'],
-    ['nude','#d8b99b'],
-    ['marron','#795548'],
-    ['brown','#795548'],
-    ['chocolat','#593b2d'],
-    ['rouge','#c62828'],
-    ['red','#c62828'],
-    ['bordeaux','#701c35'],
-    ['bleu','#2874b9'],
-    ['blue','#2874b9'],
-    ['marine','#172b4d'],
-    ['vert','#39845b'],
-    ['green','#39845b'],
-    ['kaki','#77764a'],
-    ['gris','#929292'],
-    ['grey','#929292'],
-    ['gray','#929292'],
-    ['jaune','#f3d34a'],
-    ['yellow','#f3d34a'],
-    ['orange','#e98735'],
-    ['violet','#8055a5'],
-    ['purple','#8055a5'],
-    ['lilas','#c5a6d8'],
-    ['dore','#c5a04b'],
-    ['gold','#c5a04b'],
-    ['argent','#c0c0c0'],
+    ['noir','#171717'],['black','#171717'],
+    ['blanc','#ffffff'],['white','#ffffff'],
+    ['rose','#e9a0b5'],['pink','#e9a0b5'],
+    ['beige','#d8c2a0'],['nude','#d8b99b'],
+    ['marron','#795548'],['brown','#795548'],
+    ['chocolat','#593b2d'],['rouge','#c62828'],
+    ['red','#c62828'],['bordeaux','#701c35'],
+    ['bleu','#2874b9'],['blue','#2874b9'],
+    ['marine','#172b4d'],['vert','#39845b'],
+    ['green','#39845b'],['kaki','#77764a'],
+    ['gris','#929292'],['grey','#929292'],
+    ['gray','#929292'],['jaune','#f3d34a'],
+    ['yellow','#f3d34a'],['orange','#e98735'],
+    ['violet','#8055a5'],['purple','#8055a5'],
+    ['lilas','#c5a6d8'],['dore','#c5a04b'],
+    ['gold','#c5a04b'],['argent','#c0c0c0'],
     ['silver','#c0c0c0']
   ];
 
   const found=entries.find(([name])=>key.includes(name));
-
   return found?found[1]:'#d8c9c1';
 }
 
 function isColorGroup(name:string){
   const n=normalizeColor(name);
-  return n.includes('couleur')||n.includes('color');
+  return n.includes('couleur')||n.includes('color')||
+    n.includes('teinte')||n.includes('shade');
+}
+
+function isSizeGroup(name:string){
+  const n=normalizeColor(name);
+  return n.includes('taille')||n.includes('pointure')||
+    n.includes('size')||n.includes('format')||
+    n.includes('volume')||n.includes('contenance');
 }
 
 export default function ProductBuy({p}:{p:any}) {
@@ -205,8 +123,8 @@ export default function ProductBuy({p}:{p:any}) {
   const [pic,setPic]=useState<string|null>(null);
   const [done,setDone]=useState(false);
   const [ack,setAck]=useState(false);
+  const [descriptionExpanded,setDescriptionExpanded]=useState(false);
 
-  // Détection des groupes d'options enregistrés dans les variantes.
   const optionGroups:{name:string;values:string[]}[]=[];
 
   vs.forEach(x=>{
@@ -216,43 +134,32 @@ export default function ProductBuy({p}:{p:any}) {
       if(value==null||String(value).trim()==='')return;
 
       let group=optionGroups.find(g=>g.name===name);
-
       if(!group){
         group={name,values:[]};
         optionGroups.push(group);
       }
 
       const val=String(value);
-
-      if(!group.values.includes(val)){
-        group.values.push(val);
-      }
+      if(!group.values.includes(val))group.values.push(val);
     });
   });
 
   const hasOptionGroups=optionGroups.length>0;
 
-  // Recherche de la combinaison correspondant aux choix du client.
   const allOptionsSelected=hasOptionGroups&&optionGroups.every(
     group=>Boolean(selectedOptions[group.name])
   );
 
   const selectedCombo=hasOptionGroups&&allOptionsSelected
     ?vs.find(x=>
-        x.options&&
-        optionGroups.every(
+        x.options&&optionGroups.every(
           group=>String(x.options[group.name]??'')===selectedOptions[group.name]
         )
       )
     :null;
 
-  const v=hasOptionGroups
-    ?(selectedCombo?.name||'')
-    :legacyV;
-
-  const cur=hasOptionGroups
-    ?selectedCombo
-    :vs.find(x=>x.name===legacyV);
+  const v=hasOptionGroups?(selectedCombo?.name||''):legacyV;
+  const cur=hasOptionGroups?selectedCombo:vs.find(x=>x.name===legacyV);
 
   const vph=vimgs(cur);
   const thumbs=vph.length>0?vph:gen;
@@ -268,13 +175,13 @@ export default function ProductBuy({p}:{p:any}) {
 
   let mode:'cart'|'pre'|'reserve'|'order'|'notify'='cart';
 
-  if(hasV&&cur) {
+  if(hasV&&cur){
     if(vst==='arrival')mode='reserve';
     else if(vst==='preorder')mode='pre';
     else if(vst==='soldout')mode='notify';
     else if(cur.stock!=null&&cur.stock<=0&&!pre)mode='pre';
     else if(arrival)mode='order';
-  } else if(!hasV) {
+  }else if(!hasV){
     if(p.availability==='soldout'||(!pre&&!arrival&&p.stock<=0))mode='pre';
     else if(arrival)mode='reserve';
   }
@@ -292,17 +199,14 @@ export default function ProductBuy({p}:{p:any}) {
 
   const status=mode==='pre'||needAck
     ?`Précommande : ${PREORDER}`
-    :mode==='reserve'
-    ?'Prochain arrivage'
-    :mode==='notify'
-    ?'Épuisé'
+    :mode==='reserve'?'Prochain arrivage'
+    :mode==='notify'?'Épuisé'
     :(vst==='last'||(left!=null&&left>0&&left<=3))
     ?`Dernières pièces (${left} restant${left>1?'s':''})`
     :`Disponible immédiatement · livraison ${DELIVERY}`;
 
   const label=(x:any)=>{
     const s=x.status||'available';
-
     return s==='arrival'?' · arrivage'
       :s==='preorder'?' · précommande'
       :s==='soldout'?' · épuisé'
@@ -321,15 +225,11 @@ export default function ProductBuy({p}:{p:any}) {
   };
 
   const chooseOption=(groupName:string,value:string)=>{
-    setSelectedOptions(previous=>({
-      ...previous,
-      [groupName]:value
-    }));
+    setSelectedOptions(previous=>({...previous,[groupName]:value}));
     resetSelection();
   };
 
   const btn="flex w-full items-center justify-center rounded-full py-4 px-5 text-xs tracking-[0.16em] uppercase font-semibold transition duration-300 active:scale-[0.98] disabled:opacity-40";
-
   const note="mt-4 rounded-2xl border border-plum/20 bg-blush/40 p-4 text-sm leading-relaxed";
 
   return (
@@ -337,15 +237,11 @@ export default function ProductBuy({p}:{p:any}) {
 
       {/* GALERIE PHOTOS */}
       <div className="min-w-0 md:sticky md:top-24 md:self-start">
-
         <div className="relative overflow-hidden rounded-2xl bg-sand">
           <div className="aspect-[4/5]">
             {shown&&(
-              <img
-                src={shown}
-                alt={p.name}
-                className="h-full w-full object-cover transition duration-500"
-              />
+              <img src={shown} alt={p.name}
+                className="h-full w-full object-cover transition duration-500"/>
             )}
           </div>
 
@@ -353,31 +249,25 @@ export default function ProductBuy({p}:{p:any}) {
 
           {thumbs.length>1&&(
             <>
-              <button
-                type="button"
-                aria-label="Photo précédente"
+              <button type="button" aria-label="Photo précédente"
                 onClick={()=>
                   setPic(thumbs[
                     (Math.max(0,thumbs.indexOf(shown))-1+thumbs.length)%thumbs.length
                   ])
                 }
-                className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-plum shadow-md transition hover:scale-105"
-              >
+                className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-plum shadow-md">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 5l-7 7 7 7"/>
                 </svg>
               </button>
 
-              <button
-                type="button"
-                aria-label="Photo suivante"
+              <button type="button" aria-label="Photo suivante"
                 onClick={()=>
                   setPic(thumbs[
                     (Math.max(0,thumbs.indexOf(shown))+1)%thumbs.length
                   ])
                 }
-                className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-plum shadow-md transition hover:scale-105"
-              >
+                className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-plum shadow-md">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 5l7 7-7 7"/>
                 </svg>
@@ -389,16 +279,12 @@ export default function ProductBuy({p}:{p:any}) {
         {thumbs.length>1&&(
           <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
             {thumbs.map((u,i)=>(
-              <button
-                key={u}
-                type="button"
-                onClick={()=>setPic(u)}
+              <button key={u} type="button" onClick={()=>setPic(u)}
                 aria-label={`Voir la photo ${i+1}`}
                 aria-pressed={u===shown}
                 className={`h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${
                   u===shown?'border-rose shadow-sm':'border-transparent opacity-75 hover:opacity-100'
-                }`}
-              >
+                }`}>
                 <img src={u} alt="" className="h-full w-full object-cover"/>
               </button>
             ))}
@@ -406,18 +292,9 @@ export default function ProductBuy({p}:{p:any}) {
         )}
 
         <div className="mt-5 grid grid-cols-3 gap-2 border-t border-sand pt-5 text-center">
-          <div>
-            <span className="text-lg">♡</span>
-            <p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">Sélection beauté</p>
-          </div>
-          <div>
-            <span className="text-lg">✧</span>
-            <p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">Qualité & soin</p>
-          </div>
-          <div>
-            <span className="text-lg">♧</span>
-            <p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">Service client</p>
-          </div>
+          <div><span className="text-lg">♡</span><p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">Sélection beauté</p></div>
+          <div><span className="text-lg">✧</span><p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">Qualité & soin</p></div>
+          <div><span className="text-lg">♧</span><p className="mt-1 text-[10px] uppercase tracking-wider text-ink/60">Service client</p></div>
         </div>
       </div>
 
@@ -425,17 +302,13 @@ export default function ProductBuy({p}:{p:any}) {
       <div className="min-w-0 md:pt-4">
 
         {p.brands?.name&&(
-          <Link
-            href={`/categorie/tous?brand=${p.brand_id}`}
-            className="inline-block text-xs font-semibold uppercase tracking-[0.22em] text-plum underline decoration-rose/50 underline-offset-4"
-          >
+          <Link href={`/categorie/tous?brand=${p.brand_id}`}
+            className="inline-block text-xs font-semibold uppercase tracking-[0.22em] text-plum underline decoration-rose/50 underline-offset-4">
             {p.brands.name}
           </Link>
         )}
 
-        <h1 className="mt-3 font-serif text-3xl leading-tight text-ink md:text-4xl">
-          {p.name}
-        </h1>
+        <h1 className="mt-3 font-serif text-3xl leading-tight text-ink md:text-4xl">{p.name}</h1>
 
         {p.rating_count>0&&(
           <a href="#avis" className="mt-4 inline-flex items-center gap-2 text-sm text-plum">
@@ -445,10 +318,7 @@ export default function ProductBuy({p}:{p:any}) {
         )}
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <span className="font-serif text-3xl text-plum">
-            {eur(price)}
-          </span>
-
+          <span className="font-serif text-3xl text-plum">{eur(price)}</span>
           {promo&&(
             <>
               <s className="text-sm text-ink/40">{eur(p.old_price)}</s>
@@ -489,17 +359,18 @@ export default function ProductBuy({p}:{p:any}) {
           </div>
         )}
 
-        {/* CHOIX DES OPTIONS : COULEUR, TAILLE, MODÈLE, ETC. */}
+        {/* VARIANTES AVEC OPTIONS */}
         {hasOptionGroups&&(
           <div className="mt-7 space-y-6">
             {optionGroups.map(group=>{
               const colorGroup=isColorGroup(group.name);
+              const sizeGroup=isSizeGroup(group.name);
 
               return (
                 <div key={group.name}>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink">
                     {group.name}
-                    {selectedOptions[group.name]&&!colorGroup&&(
+                    {selectedOptions[group.name]&&(
                       <span className="ml-2 font-normal normal-case tracking-normal text-plum">
                         : {selectedOptions[group.name]}
                       </span>
@@ -510,29 +381,25 @@ export default function ProductBuy({p}:{p:any}) {
                     <div className="flex flex-wrap gap-3">
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
-                        const color=colorValue(value);
-                        const multi=isMultiColor(value);
+                        const representative=vs.find(x=>
+                          String(x.options?.[group.name]??'')===value
+                        );
+                        const image=vimgs(representative)[0];
 
                         return (
-                          <button
-                            key={value}
-                            type="button"
-                            title={value}
+                          <button key={value} type="button" title={value}
                             aria-label={`Couleur ${value}`}
                             aria-pressed={on}
                             onClick={()=>chooseOption(group.name,value)}
-                            className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
-                              on
-                                ?'border-plum ring-2 ring-rose ring-offset-2'
-                                :'border-black/10 hover:border-rose'
-                            }`}
-                          >
-                            <span
-                              className={`h-7 w-7 rounded-full border shadow-inner ${
-                                multi?'border-black/20':'border-black/15'
-                              }`}
-                              style={{background:color}}
-                            />
+                            className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 transition ${
+                              on?'border-plum ring-2 ring-rose ring-offset-2':'border-black/10 hover:border-rose'
+                            }`}>
+                            {image?(
+                              <img src={image} alt={value} className="h-full w-full object-cover"/>
+                            ):(
+                              <span className="h-9 w-9 rounded-full border border-black/15 shadow-inner"
+                                style={{background:isMultiColor(value)?colorValue(value):colorValue(value)}}/>
+                            )}
                           </button>
                         );
                       })}
@@ -541,19 +408,14 @@ export default function ProductBuy({p}:{p:any}) {
                     <div className="flex flex-wrap gap-2">
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
-
                         return (
-                          <button
-                            key={value}
-                            type="button"
+                          <button key={value} type="button"
                             onClick={()=>chooseOption(group.name,value)}
                             aria-pressed={on}
-                            className={`min-w-12 rounded-full border px-4 py-3 text-xs transition ${
-                              on
-                                ?'border-plum bg-plum text-white shadow-sm'
-                                :'border-plum/25 bg-white text-plum hover:border-rose'
-                            }`}
-                          >
+                            className={`min-w-12 rounded-xl border px-4 py-3 text-xs transition ${
+                              on?'border-plum bg-plum text-white shadow-sm'
+                              :'border-plum/25 bg-white text-plum hover:border-rose'
+                            }`}>
                             {value}
                           </button>
                         );
@@ -573,28 +435,29 @@ export default function ProductBuy({p}:{p:any}) {
               Choisissez votre variante
             </p>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {vs.map(x=>{
                 const on=x.name===legacyV;
+                const image=vimgs(x)[0];
 
                 return (
-                  <button
-                    key={x.name}
-                    type="button"
+                  <button key={x.name} type="button"
                     onClick={()=>{
                       setLegacyV(x.name);
                       resetSelection();
                     }}
                     aria-pressed={on}
-                    className={`rounded-full border px-4 py-3 text-xs transition ${
-                      on
-                        ?'border-plum bg-plum text-white shadow-sm'
-                        :'border-plum/25 bg-white text-plum hover:border-rose'
-                    }`}
-                  >
-                    {x.name}
-                    {x.price!=null?` · ${eur(Number(x.price))}`:''}
-                    {label(x)}
+                    className={`flex min-w-16 flex-col items-center gap-2 rounded-xl border p-2 text-xs transition ${
+                      on?'border-plum bg-blush/40 text-plum shadow-sm'
+                      :'border-plum/20 bg-white text-plum hover:border-rose'
+                    }`}>
+                    {image&&(
+                      <img src={image} alt={x.name}
+                        className="h-16 w-14 rounded-lg object-cover"/>
+                    )}
+                    <span className="max-w-24 text-center">{x.name}</span>
+                    {x.price!=null&&<span>{eur(Number(x.price))}</span>}
+                    <span className="text-[10px]">{label(x)}</span>
                   </button>
                 );
               })}
@@ -631,35 +494,24 @@ export default function ProductBuy({p}:{p:any}) {
             <>
               {needAck&&(
                 <label className="flex cursor-pointer gap-3 rounded-xl border border-plum/20 bg-blush/30 p-4 text-sm leading-relaxed">
-                  <input
-                    type="checkbox"
-                    checked={ack}
+                  <input type="checkbox" checked={ack}
                     onChange={e=>setAck(e.target.checked)}
-                    className="mt-1 accent-rose"
-                  />
+                    className="mt-1 accent-rose"/>
                   <span>
                     Je comprends que c’est une précommande et que je dois patienter {PREORDER} avant la livraison.
                   </span>
                 </label>
               )}
 
-              <button
-                disabled={full||(needAck&&!ack)}
+              <button disabled={full||(needAck&&!ack)}
                 onClick={()=>{
                   add({
-                    id:p.id,
-                    name:p.name,
-                    price,
-                    qty:1,
-                    image:vph[0]||base,
-                    variant:v,
-                    max,
-                    pre
+                    id:p.id,name:p.name,price,qty:1,
+                    image:vph[0]||base,variant:v,max,pre
                   });
                   setDone(true);
                 }}
-                className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}
-              >
+                className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
                 {full?'Stock maximum atteint':needAck?'Précommander':'Ajouter au panier'}
               </button>
 
@@ -673,31 +525,42 @@ export default function ProductBuy({p}:{p:any}) {
                 <p className="rounded-xl bg-blush/40 p-3 text-center text-sm text-plum">
                   <span className="font-semibold">Ajouté au panier !</span>
                   {' '}
-                  <a href="/panier" className="underline underline-offset-4">
-                    Voir le panier
-                  </a>
+                  <a href="/panier" className="underline underline-offset-4">Voir le panier</a>
                 </p>
               )}
 
-              <a
-                href={wa(needAck?'je souhaite précommander':'je souhaite commander')}
-                className={`${btn} border border-plum/30 bg-white text-plum hover:border-plum hover:bg-blush/30`}
-              >
+              <a href={wa(needAck?'je souhaite précommander':'je souhaite commander')}
+                className={`${btn} border border-plum/30 bg-white text-plum hover:border-plum hover:bg-blush/30`}>
                 {needAck?'Précommander sur WhatsApp':'Commander sur WhatsApp'}
               </a>
             </>
           )}
         </div>
 
-        {/* DESCRIPTION */}
+        {/* DESCRIPTION REPLIABLE */}
         {p.description&&(
           <div className="mt-9 border-t border-sand pt-6">
             <h2 className="font-serif text-xl text-plum">
               Description du produit
             </h2>
-            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/75">
-              {p.description}
-            </p>
+
+            <div className="relative mt-3">
+              <p className={`whitespace-pre-line text-sm leading-7 text-ink/75 ${
+                descriptionExpanded?'':'line-clamp-4'
+              }`}>
+                {p.description}
+              </p>
+            </div>
+
+            {String(p.description).length>220&&(
+              <button type="button"
+                onClick={()=>setDescriptionExpanded(value=>!value)}
+                aria-expanded={descriptionExpanded}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-plum underline decoration-rose/50 underline-offset-4 hover:text-rose">
+                {descriptionExpanded?'Voir moins':'Voir plus'}
+                <span>{descriptionExpanded?'↑':'↓'}</span>
+              </button>
+            )}
           </div>
         )}
 
