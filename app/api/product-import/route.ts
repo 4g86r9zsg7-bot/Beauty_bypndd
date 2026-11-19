@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
@@ -6,6 +7,8 @@ import { isIP } from 'node:net';
 export const runtime = 'nodejs';
 
 const MAX_HTML = 2 * 1024 * 1024;
+const MAX_IMAGES = 30;
+const MAX_VARIANTS = 50;
 
 function isPublicIp(ip: string): boolean {
   if (isIP(ip) === 4) {
@@ -131,7 +134,12 @@ function getMeta(html: string, key: string): string {
       }
     );
 
-    const property = (attrs.property || attrs.name || attrs.itemprop || '').toLowerCase();
+    const property = (
+      attrs.property ||
+      attrs.name ||
+      attrs.itemprop ||
+      ''
+    ).toLowerCase();
 
     if (property === key.toLowerCase()) {
       return clean(attrs.content);
@@ -141,37 +149,46 @@ function getMeta(html: string, key: string): string {
   return '';
 }
 
-function findProduct(data: any): any {
-  if (!data || typeof data !== 'object') return null;
+function getTypes(data: any): string[] {
+  const types = Array.isArray(data?.['@type'])
+    ? data['@type']
+    : [data?.['@type']];
+
+  return types.map((type: any) => String(type).toLowerCase());
+}
+
+function findProducts(data: any, found: any[] = []): any[] {
+  if (!data || typeof data !== 'object') return found;
 
   if (Array.isArray(data)) {
     for (const item of data) {
-      const found = findProduct(item);
-      if (found) return found;
+      findProducts(item, found);
     }
-    return null;
+    return found;
   }
 
-  const types = Array.isArray(data['@type'])
-    ? data['@type']
-    : [data['@type']];
+  const types = getTypes(data);
 
-  if (types.some((t: any) => String(t).toLowerCase() === 'product')) {
-    return data;
+  if (
+    types.includes('product') ||
+    types.includes('productgroup')
+  ) {
+    found.push(data);
   }
 
   if (data['@graph']) {
-    const found = findProduct(data['@graph']);
-    if (found) return found;
+    findProducts(data['@graph'], found);
   }
 
-  return null;
+  return found;
 }
 
 function getStructuredProduct(html: string): any {
   const scripts = html.match(
     /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi
   ) || [];
+
+  const products: any[] = [];
 
   for (const script of scripts) {
     const content = script
@@ -180,17 +197,42 @@ function getStructuredProduct(html: string): any {
       .trim();
 
     try {
-      const found = findProduct(JSON.parse(content));
-      if (found) return found;
+      findProducts(JSON.parse(content), products);
     } catch {
       // Ignore les données structurées incorrectes.
     }
   }
 
-  return null;
+  return (
+    products.find(item => getTypes(item).includes('productgroup')) ||
+    products.find(item => getTypes(item).includes('product')) ||
+    null
+  );
 }
 
-function getImages(product: any, html: string, baseUrl: string): string[] {
+function getImageUrl(item: any, baseUrl: string): string {
+  const value = typeof item === 'object' && item !== null
+    ? item.url || item.contentUrl || item['@id'] || ''
+    : item;
+
+  if (typeof value !== 'string' || !value.trim()) return '';
+
+  try {
+    const url = new URL(value, baseUrl);
+
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+
+    return url.href;
+  } catch {
+    return '';
+  }
+}
+
+function getImages(
+  product: any,
+  html: string,
+  baseUrl: string
+): string[] {
   const raw = [
     ...(Array.isArray(product?.image)
       ? product.image
@@ -204,24 +246,127 @@ function getImages(product: any, html: string, baseUrl: string): string[] {
   const result: string[] = [];
 
   for (const item of raw) {
-    const value = typeof item === 'object'
-      ? item.url || item.contentUrl || ''
-      : item;
+    const image = getImageUrl(item, baseUrl);
 
-    try {
-      const url = new URL(String(value), baseUrl);
-
-      if (
-        ['http:', 'https:'].includes(url.protocol) &&
-        !result.includes(url.href)
-      ) {
-        result.push(url.href);
-      }
-    } catch {
-      // Ignore les images invalides.
+    if (image && !result.includes(image)) {
+      result.push(image);
     }
 
-    if (result.length >= 12) break;
+    if (result.length >= MAX_IMAGES) break;
+  }
+
+  return result;
+}
+
+function getVariantAttributes(variant: any): {
+  name: string;
+  value: string;
+} {
+  const attributes: string[] = [];
+
+  const fields = [
+    ['color', 'Couleur'],
+    ['size', 'Taille'],
+    ['pattern', 'Motif'],
+    ['material', 'Matière'],
+    ['model', 'Modèle']
+  ];
+
+  for (const [field, label] of fields) {
+    const value = clean(variant?.[field]);
+
+    if (value) {
+      attributes.push(`${label}: ${value}`);
+    }
+  }
+
+  if (Array.isArray(variant?.additionalProperty)) {
+    for (const property of variant.additionalProperty) {
+      const name = clean(property?.name);
+      const value = clean(property?.value);
+
+      if (name && value) {
+        attributes.push(`${name}: ${value}`);
+      }
+    }
+  }
+
+  if (attributes.length > 0) {
+    const labels = fields
+      .filter(([field]) => clean(variant?.[field]))
+      .map(([, label]) => label);
+
+    return {
+      name: labels.join(' / ') || 'Option',
+      value: attributes.join(' · ')
+    };
+  }
+
+  return {
+    name: 'Variante',
+    value: clean(variant?.name) || clean(variant?.sku) || 'Option'
+  };
+}
+
+function getVariants(product: any, baseUrl: string): any[] {
+  const rawVariants = [
+    ...(Array.isArray(product?.hasVariant)
+      ? product.hasVariant
+      : product?.hasVariant
+        ? [product.hasVariant]
+        : []),
+    ...(Array.isArray(product?.variants)
+      ? product.variants
+      : product?.variants
+        ? [product.variants]
+        : [])
+  ];
+
+  const result: any[] = [];
+  const seen = new Set<string>();
+
+  for (const variant of rawVariants) {
+    if (!variant || typeof variant !== 'object') continue;
+
+    const attributes = getVariantAttributes(variant);
+
+    const sku = clean(variant.sku);
+    const mpn = clean(variant.mpn);
+    const key = `${sku}|${attributes.value}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const offer = Array.isArray(variant.offers)
+      ? variant.offers[0]
+      : variant.offers;
+
+    const images = [
+      ...(Array.isArray(variant.image)
+        ? variant.image
+        : variant.image
+          ? [variant.image]
+          : [])
+    ]
+      .map(image => getImageUrl(image, baseUrl))
+      .filter(Boolean)
+      .slice(0, 12);
+
+    const price = offer?.price ?? offer?.lowPrice ?? null;
+
+    result.push({
+      name: attributes.name,
+      value: attributes.value,
+      sku,
+      mpn,
+      price: price != null && !Number.isNaN(Number(price))
+        ? Number(price)
+        : null,
+      currency: clean(offer?.priceCurrency),
+      images
+    });
+
+    if (result.length >= MAX_VARIANTS) break;
   }
 
   return result;
@@ -293,27 +438,46 @@ export async function POST(request: NextRequest) {
     }
 
     const product = getStructuredProduct(html);
+
     const offer = Array.isArray(product?.offers)
       ? product.offers[0]
       : product?.offers;
 
     const brandValue = product?.brand;
+
     const brand = typeof brandValue === 'object'
       ? brandValue?.name
       : brandValue;
 
-    const name = clean(product?.name) || getMeta(html, 'og:title');
+    const name =
+      clean(product?.name) ||
+      getMeta(html, 'og:title');
+
     const description =
       clean(product?.description) ||
       getMeta(html, 'og:description') ||
       getMeta(html, 'description');
 
     const price = clean(
-      offer?.price ?? offer?.lowPrice ?? getMeta(html, 'product:price:amount')
+      offer?.price ??
+      offer?.lowPrice ??
+      getMeta(html, 'product:price:amount')
     );
 
     const currency = clean(
-      offer?.priceCurrency || getMeta(html, 'product:price:currency')
+      offer?.priceCurrency ||
+      getMeta(html, 'product:price:currency')
+    );
+
+    const images = getImages(
+      product,
+      html,
+      currentUrl.href
+    );
+
+    const variants = getVariants(
+      product,
+      currentUrl.href
     );
 
     const result = {
@@ -324,18 +488,23 @@ export async function POST(request: NextRequest) {
       mpn: clean(product?.mpn),
       price,
       currency,
-      images: getImages(product, html, currentUrl.href),
+      images,
+      variants,
       url: currentUrl.href
     };
 
     const missing = Object.entries(result)
       .filter(([key, value]) =>
         key !== 'url' &&
-        (Array.isArray(value) ? value.length === 0 : !value)
+        (
+          Array.isArray(value)
+            ? value.length === 0
+            : !value
+        )
       )
       .map(([key]) => key);
 
-    if (!name && !description && !result.images.length) {
+    if (!name && !description && !images.length) {
       throw new Error(
         'Aucune information produit exploitable trouvée sur cette page.'
       );
@@ -346,6 +515,7 @@ export async function POST(request: NextRequest) {
       product: result,
       missing
     });
+
   } catch (error: any) {
     return NextResponse.json(
       {
