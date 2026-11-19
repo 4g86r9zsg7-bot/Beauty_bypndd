@@ -1,6 +1,7 @@
 
 
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
@@ -11,6 +12,8 @@ const MAX_HTML = 2 * 1024 * 1024;
 const MAX_IMAGES = 30;
 const MAX_VARIANTS = 50;
 const MAX_SCAN_DEPTH = 12;
+const FETCH_TIMEOUT = 10000;
+const SHADE_CONCURRENCY = 8;
 
 function isPublicIp(ip: string): boolean {
   if (isIP(ip) === 4) {
@@ -657,6 +660,271 @@ function getVariants(
   return result;
 }
 
+/* -------------------------------------------------------
+   NOUVEAU : DÉTECTION DES TEINTES KIKO
+------------------------------------------------------- */
+
+function getKikoShadeLinks(
+  html: string,
+  baseUrl: string
+): Array<{ label: string; url: string }> {
+  const base = new URL(baseUrl);
+
+  if (!base.hostname.toLowerCase().includes('kikocosmetics.com')) {
+    return [];
+  }
+
+  const anchors = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) || [];
+  const result: Array<{ label: string; url: string }> = [];
+  const seen = new Set<string>();
+
+  for (const anchor of anchors) {
+    const opening = anchor.match(/^<a\b[^>]*>/i)?.[0] || '';
+    const href = getAttribute(opening, 'href');
+
+    if (!href) continue;
+
+    let target: URL;
+
+    try {
+      target = new URL(href, baseUrl);
+    } catch {
+      continue;
+    }
+
+    if (
+      target.hostname.toLowerCase() !== base.hostname.toLowerCase() ||
+      !target.pathname.includes('/p/')
+    ) {
+      continue;
+    }
+
+    const textContent = clean(
+      anchor.replace(/^<a\b[^>]*>/i, '').replace(/<\/a>$/i, '')
+    );
+
+    if (!textContent) continue;
+
+    let label = textContent
+      .replace(/\b\d+[,.]\d{2}\s*€?/gi, '')
+      .replace(/\b\d+[,.]\d{2}\s*(?:EUR|MAD|DH|DHS)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Certains liens répètent deux fois le nom de la teinte.
+    const half = Math.floor(label.length / 2);
+    const firstHalf = label.slice(0, half).trim();
+    const secondHalf = label.slice(half).trim();
+
+    if (
+      firstHalf &&
+      secondHalf &&
+      firstHalf.toLowerCase() === secondHalf.toLowerCase()
+    ) {
+      label = firstHalf;
+    }
+
+    const repeated = label.match(/^(.{3,}?)\s+\1$/i);
+
+    if (repeated?.[1]) {
+      label = repeated[1].trim();
+    }
+
+    // Les teintes KIKO commencent par un numéro :
+    // exemple : 01 Cachemire Beige.
+    const shadeMatch = label.match(/^(\d{1,3})\s+(.+)$/);
+
+    if (!shadeMatch) continue;
+
+    const number = shadeMatch[1].trim();
+    const shadeName = shadeMatch[2].trim();
+
+    if (!shadeName || shadeName.length > 70) continue;
+
+    const finalLabel = `${number} ${shadeName}`;
+    const finalUrl = target.href;
+
+    if (finalUrl === base.href) continue;
+
+    const key = finalLabel.toLowerCase();
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    result.push({
+      label: finalLabel,
+      url: finalUrl
+    });
+
+    if (result.length >= MAX_VARIANTS) break;
+  }
+
+  return result;
+}
+
+/* -------------------------------------------------------
+   RÉCUPÉRATION SÉCURISÉE D'UNE PAGE
+------------------------------------------------------- */
+
+async function fetchHtmlPage(
+  inputUrl: string,
+  requiredHost?: string
+): Promise<{ html: string; url: URL }> {
+  let currentUrl = await validateUrl(inputUrl);
+
+  if (
+    requiredHost &&
+    currentUrl.hostname.toLowerCase() !== requiredHost.toLowerCase()
+  ) {
+    throw new Error('Le lien de variante pointe vers un autre site.');
+  }
+
+  let response: Response | null = null;
+
+  for (let i = 0; i < 4; i++) {
+    response = await fetch(currentUrl.href, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8'
+      }
+    });
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get('location');
+
+      if (!location) {
+        throw new Error('Redirection du site impossible à suivre.');
+      }
+
+      currentUrl = await validateUrl(
+        new URL(location, currentUrl).href
+      );
+
+      if (
+        requiredHost &&
+        currentUrl.hostname.toLowerCase() !== requiredHost.toLowerCase()
+      ) {
+        throw new Error('Redirection vers un autre site refusée.');
+      }
+
+      continue;
+    }
+
+    break;
+  }
+
+  if (!response || response.status >= 300) {
+    throw new Error('Le site n’a pas autorisé la lecture de cette page.');
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!contentType.includes('text/html')) {
+    throw new Error('Ce lien ne correspond pas à une page produit lisible.');
+  }
+
+  const length = Number(response.headers.get('content-length') || 0);
+
+  if (length > MAX_HTML) {
+    throw new Error('La page est trop volumineuse.');
+  }
+
+  const html = await response.text();
+
+  if (html.length > MAX_HTML) {
+    throw new Error('La page est trop volumineuse.');
+  }
+
+  return { html, url: currentUrl };
+}
+
+/* -------------------------------------------------------
+   RÉCUPÉRATION DE LA PHOTO DE CHAQUE TEINTE KIKO
+------------------------------------------------------- */
+
+async function getKikoShadeVariants(
+  links: Array<{ label: string; url: string }>,
+  baseUrl: string
+): Promise<any[]> {
+  const host = new URL(baseUrl).hostname;
+  const results: any[] = new Array(links.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex++;
+
+      if (index >= links.length) return;
+
+      const shade = links[index];
+
+      try {
+        const page = await fetchHtmlPage(shade.url, host);
+        const { product } = getStructuredProduct(page.html);
+
+        const images = getImages(
+          product,
+          page.html,
+          page.url.href
+        ).slice(0, 5);
+
+        const offer = Array.isArray(product?.offers)
+          ? product.offers[0]
+          : product?.offers;
+
+        const priceValue =
+          offer?.price ??
+          offer?.lowPrice ??
+          null;
+
+        results[index] = {
+          name: 'Teinte',
+          value: shade.label,
+          options: {
+            Teinte: shade.label
+          },
+          sku: clean(product?.sku),
+          mpn: clean(product?.mpn),
+          price:
+            priceValue != null &&
+            !Number.isNaN(Number(priceValue))
+              ? Number(priceValue)
+              : null,
+          currency: clean(offer?.priceCurrency),
+          images
+        };
+      } catch {
+        // Une teinte qui échoue ne bloque pas les autres.
+        results[index] = {
+          name: 'Teinte',
+          value: shade.label,
+          options: {
+            Teinte: shade.label
+          },
+          sku: '',
+          mpn: '',
+          price: null,
+          currency: '',
+          images: []
+        };
+      }
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(SHADE_CONCURRENCY, links.length) },
+    () => worker()
+  );
+
+  await Promise.all(workers);
+
+  return results.filter(Boolean).slice(0, MAX_VARIANTS);
+}
+
 function getDescription(
   product: any,
   html: string
@@ -707,59 +975,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let currentUrl = await validateUrl(input);
-    let response: Response | null = null;
-
-    for (let i = 0; i < 4; i++) {
-      response = await fetch(currentUrl.href, {
-        method: 'GET',
-        redirect: 'manual',
-        signal: AbortSignal.timeout(12000),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8'
-        }
-      });
-
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get('location');
-
-        if (!location) {
-          throw new Error('Redirection du site impossible à suivre.');
-        }
-
-        currentUrl = await validateUrl(
-          new URL(location, currentUrl).href
-        );
-
-        continue;
-      }
-
-      break;
-    }
-
-    if (!response || response.status >= 300) {
-      throw new Error('Le site n’a pas autorisé la lecture de cette page.');
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('text/html')) {
-      throw new Error('Ce lien ne correspond pas à une page produit lisible.');
-    }
-
-    const length = Number(response.headers.get('content-length') || 0);
-
-    if (length > MAX_HTML) {
-      throw new Error('La page est trop volumineuse.');
-    }
-
-    const html = await response.text();
-
-    if (html.length > MAX_HTML) {
-      throw new Error('La page est trop volumineuse.');
-    }
+    // Récupération de la page principale.
+    const page = await fetchHtmlPage(input);
+    const html = page.html;
+    const currentUrl = page.url;
 
     const { product, documents } = getStructuredProduct(html);
 
@@ -797,11 +1016,31 @@ export async function POST(request: NextRequest) {
       currentUrl.href
     );
 
-    const variants = getVariants(
+    // Extraction habituelle des variantes des autres sites.
+    let variants = getVariants(
       product,
       documents,
       currentUrl.href
     );
+
+    // Détection supplémentaire des teintes KIKO.
+    const kikoShadeLinks = getKikoShadeLinks(
+      html,
+      currentUrl.href
+    );
+
+    // Si des liens de teintes KIKO sont trouvés,
+    // on récupère la photo de chaque page de teinte.
+    if (kikoShadeLinks.length > 0) {
+      const kikoVariants = await getKikoShadeVariants(
+        kikoShadeLinks,
+        currentUrl.href
+      );
+
+      if (kikoVariants.length > 0) {
+        variants = kikoVariants;
+      }
+    }
 
     const result = {
       name,
