@@ -1,3 +1,4 @@
+
 {
   "name": "beauty_bypndd",
   "private": true,
@@ -11,8 +12,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "@supabase/supabase-js": "2.45.4",
-    "shein-cart": "0.1.1",
-  
+    "shein-cart": "0.1.1"
   },
   "devDependencies": {
     "typescript": "5.6.2",
