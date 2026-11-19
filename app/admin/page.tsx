@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -32,15 +31,17 @@ const waNum=(t:string)=>{
 
 const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>
   typeof x==='string'
-    ?{name:x,stock:p.stock||0,status:'available',price:'',images:[],files:[],options:null}
+    ?{name:x,stock:p.stock||0,status:'available',price:'',images:[],files:[],options:null,sku:'',mpn:''}
     :{
-      name:x.name,
+      name:x.name||'',
       stock:x.stock??0,
       status:x.status||'available',
       price:x.price??'',
       images:x.images||(x.image?[x.image]:[]),
       files:[],
-      options:x.options||null
+      options:x.options||null,
+      sku:x.sku||'',
+      mpn:x.mpn||''
     }
 );
 
@@ -293,7 +294,7 @@ export default function Admin(){
     a.click();
   };
 
-  // Importation et préremplissage du formulaire produit.
+  // Importation du produit et de ses variantes.
   const importProduct=(product:any)=>{
     const normalize=(value:string)=>
       (value||'')
@@ -306,6 +307,72 @@ export default function Admin(){
       (b:any)=>normalize(b.name)===normalize(product.brand||'')
     );
 
+    const parseImportedOptions=(v:any)=>{
+      if(v?.options&&typeof v.options==='object'&&!Array.isArray(v.options)){
+        return v.options;
+      }
+
+      const name=String(v?.name||'').trim();
+      const value=String(v?.value||'').trim();
+
+      if(name&&value&&name.toLowerCase()!==value.toLowerCase()){
+        return {[name]:value};
+      }
+
+      const text=value||name;
+      const options:any={};
+
+      text.split(/[·|]/).forEach((part:string)=>{
+        const pieces=part.split(/[:=]/);
+
+        if(pieces.length>=2){
+          const key=pieces.shift()?.trim();
+          const val=pieces.join(':').trim();
+
+          if(key&&val)options[key]=val;
+        }
+      });
+
+      if(!Object.keys(options).length&&text){
+        options['Option']=text;
+      }
+
+      return Object.keys(options).length?options:null;
+    };
+
+    const importedVariants=(Array.isArray(product.variants)?product.variants:[])
+      .map((v:any,i:number)=>{
+        const options=parseImportedOptions(v);
+
+        const variantName=String(
+          v?.value||
+          v?.name||
+          (options
+            ?Object.entries(options).map(([k,val])=>`${k} : ${val}`).join(' · ')
+            :`Variante ${i+1}`)
+        );
+
+        const currency=String(v?.currency||product.currency||'').toUpperCase();
+
+        const price=['MAD','DH','DHS'].includes(currency)
+          ?v?.price??''
+          :'';
+
+        return {
+          name:variantName,
+          stock:Math.max(0,Number(v?.stock)||0),
+          status:v?.status||'available',
+          price,
+          images:Array.isArray(v?.images)
+            ?v.images
+            :(v?.image?[v.image]:[]),
+          files:[],
+          options,
+          sku:v?.sku||'',
+          mpn:v?.mpn||''
+        };
+      });
+
     setImportedProduct({
       ...product,
       brand_id:matchedBrand?.id||'',
@@ -313,17 +380,21 @@ export default function Admin(){
         ['MAD','DH','DHS'].includes(
           String(product.currency||'').toUpperCase()
         )
-          ? product.price??''
-          : ''
+          ?product.price??''
+          :''
     });
 
     setImgs(Array.isArray(product.images)?product.images:[]);
+    setVrows(importedVariants);
+    setOptionGroups(getOptionGroups({variants:importedVariants}));
     setFormVersion(v=>v+1);
 
     setMsg(
-      matchedBrand
-        ? `Import réussi. Marque reconnue : ${matchedBrand.name}. Vérifie le formulaire.`
-        : 'Import réussi. Vérifie les informations et sélectionne la marque manuellement.'
+      importedVariants.length
+        ?`Import réussi : ${importedVariants.length} variante(s) détectée(s). Vérifie les informations avant d'enregistrer.`
+        :matchedBrand
+          ?`Import réussi. Marque reconnue : ${matchedBrand.name}. Vérifie le formulaire.`
+          :'Import réussi. Vérifie les informations et sélectionne la marque manuellement.'
     );
   };
 
@@ -351,11 +422,6 @@ export default function Admin(){
 
     if(groups.length<2){
       setMsg('Ajoute au moins deux groupes d’options, par exemple Couleur et Taille.');
-      return;
-    }
-
-    if(groups.some(g=>g.values.length===0)){
-      setMsg('Ajoute au moins une valeur dans chaque groupe.');
       return;
     }
 
@@ -391,7 +457,9 @@ export default function Admin(){
           status:old?.status||'available',
           price:old?.price??'',
           images:old?.images||[],
-          files:old?.files||[]
+          files:old?.files||[],
+          sku:old?.sku||'',
+          mpn:old?.mpn||''
         });
 
         return;
@@ -487,6 +555,9 @@ export default function Admin(){
         o.options=r.options;
       }
 
+      if(r.sku)o.sku=String(r.sku);
+      if(r.mpn)o.mpn=String(r.mpn);
+
       const pr=parseFloat(String(r.price).replace(',','.'));
 
       if(String(r.price).trim()!==''&&isFinite(pr)){
@@ -566,11 +637,13 @@ export default function Admin(){
 
   const startEdit=(p:any)=>{
     setEdit(p);
+    setImportedProduct(null);
     setVrows(toRows(p));
     setOptionGroups(getOptionGroups(p));
     setImgs(p.images||[]);
     setMsg('');
     setTab('new');
+    setFormVersion(v=>v+1);
   };
 
   const setV=(i:number,patch:any)=>
@@ -1199,7 +1272,7 @@ export default function Admin(){
             className="border p-2"
           >
             <option value="">Marque</option>
-            {brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+            {brands.map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
 
           <select name="cat" defaultValue={edit?.category_id||''} className="border p-2">
@@ -1339,7 +1412,9 @@ export default function Admin(){
                           {r.name}
                         </p>
                         <p className="text-[11px] text-ink/50">
-                          Combinaison automatique
+                          {r.sku?`SKU : ${r.sku}`:''}
+                          {r.sku&&r.mpn?' · ':''}
+                          {r.mpn?`MPN : ${r.mpn}`:''}
                         </p>
                       </div>
                       :<input
@@ -1398,14 +1473,14 @@ export default function Admin(){
                   <option value="soldout">Épuisé</option>
                 </select>
 
-                {r.images.length>0&&(
+                {r.images?.length>0&&(
                   <div className="flex flex-wrap gap-2">
-                    {r.images.map((u:string)=>(
-                      <div key={u} className="relative">
+                    {r.images.map((u:string,j:number)=>(
+                      <div key={`${u}-${j}`} className="relative">
                         <img src={u} alt="" className="h-16 w-14 object-cover"/>
                         <button
                           type="button"
-                          onClick={()=>setV(i,{images:r.images.filter((x:string)=>x!==u)})}
+                          onClick={()=>setV(i,{images:r.images.filter((_:string,k:number)=>k!==j)})}
                           className="absolute right-0 top-0 bg-ink px-1 text-xs text-white"
                         >
                           ×
@@ -1444,7 +1519,9 @@ export default function Admin(){
                   price:'',
                   images:[],
                   files:[],
-                  options:null
+                  options:null,
+                  sku:'',
+                  mpn:''
                 }
               ])}
               className="w-full rounded-full border border-plum py-2 text-sm text-plum"
@@ -1462,12 +1539,12 @@ export default function Admin(){
 
           {imgs.length>0&&(
             <div className="flex gap-2 flex-wrap">
-              {imgs.map(u=>(
-                <div key={u} className="relative">
+              {imgs.map((u,i)=>(
+                <div key={`${u}-${i}`} className="relative">
                   <img src={u} alt="" className="w-16 h-20 object-cover"/>
                   <button
                     type="button"
-                    onClick={()=>setImgs(imgs.filter(x=>x!==u))}
+                    onClick={()=>setImgs(previous=>previous.filter((_,j)=>j!==i))}
                     className="absolute top-0 right-0 bg-ink text-white text-xs px-1"
                   >
                     ×
