@@ -53,9 +53,10 @@ const money=(n:number)=>new Intl.NumberFormat('fr-MA',{
   maximumFractionDigits:0
 }).format(n);
 
-export default function AdminHome({stats:s,go}:{
+export default function AdminHome({stats:s,go,editProduct}:{
   stats:S;
-  go:(t:string)=>void
+  go:(t:string)=>void;
+  editProduct:(p:Product)=>void
 }){
   const [period,setPeriod]=useState<'7'|'30'|'all'>('7');
 
@@ -285,6 +286,28 @@ export default function AdminHome({stats:s,go}:{
           <p className="text-xs text-ink/60">Panier moyen des commandes livrées</p>
           <p className="mt-1 font-semibold text-plum">{money(average)}</p>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-sand bg-white p-4">
+        <h2 className="font-serif text-xl text-plum">À faire aujourd’hui</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button type="button" onClick={()=>go("orders")} className="rounded-xl border border-sand p-3 text-left">
+            <b className="block text-2xl text-plum">{pending.length}</b>
+            <span className="text-sm">Commandes à confirmer</span>
+          </button>
+          <button type="button" onClick={()=>go("orders")} className="rounded-xl border border-sand p-3 text-left">
+            <b className="block text-2xl text-plum">{ongoing.length}</b>
+            <span className="text-sm">Commandes à préparer / suivre</span>
+          </button>
+        </div>
+        {(low.length>0||out.length>0)&&<div className="mt-4 space-y-2">
+          <p className="text-xs font-semibold uppercase text-ink/60">Stocks à vérifier</p>
+          {[...out,...low].slice(0,5).map(p=><div key={p.id} className="flex items-center justify-between gap-2 text-sm">
+            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+            <span className="text-xs text-rose">{p.availability==="soldout"?"Épuisé":String(p.stock)+" restant(s)"}</span>
+            <button type="button" onClick={()=>editProduct(p)} className="text-xs underline">Modifier</button>
+          </div>)}
+        </div>}
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
