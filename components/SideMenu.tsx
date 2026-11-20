@@ -180,11 +180,10 @@ export default function SideMenu(){
             </div>
           </div>
 
-          <div className="border-b border-[#F0E1E8] bg-white px-5 py-4">
-            <SearchBox compact/>
-          </div>
-
           <div className="flex-1 overflow-y-auto overscroll-contain" style={{paddingBottom:'env(safe-area-inset-bottom)'}}>
+            <div className="border-b border-[#F0E1E8] bg-white px-5 py-4">
+              <SearchBox compact/>
+            </div>
 
             <div className="px-5 pb-2 pt-5">
               <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#A27B8D]">
