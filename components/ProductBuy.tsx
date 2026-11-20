@@ -2,6 +2,7 @@
 'use client';
 
 import {useState,useEffect} from 'react';
+import {useClient} from '@/components/ClientProvider';
 import Link from 'next/link';
 import Stars from '@/components/Stars';
 import HeartButton from '@/components/HeartButton';
@@ -114,6 +115,7 @@ const INITIAL_VARIANTS=12;
 
 export default function ProductBuy({p}:{p:any}) {
   const {add,lines}=useCart();
+  const {subscribeRestock,restockStatus,restockErrors}=useClient();
 
   const vs:any[]=(p.variants||[]).map((x:any)=>
     typeof x==='string'?{name:x}:x
@@ -243,6 +245,7 @@ export default function ProductBuy({p}:{p:any}) {
 
   const full=max!=null&&inCart>=max;
   const needV=hasV&&!cur;
+  const restockKey=`${p.id}:${v||''}`;
   const needAck=pre&&mode==='cart';
 
   const status=mode==='pre'||needAck
@@ -498,7 +501,7 @@ export default function ProductBuy({p}:{p:any}) {
         {!needV&&mode==='notify'&&(
           <div className={note}>
             <b className="text-plum">Épuisé.</b>
-            {' '}Écrivez-nous pour être prévenue de son retour.
+            {' '}Inscrivez-vous gratuitement pour recevoir une notification dès que cet article sera de nouveau disponible.
           </div>
         )}
 
@@ -714,9 +717,16 @@ export default function ProductBuy({p}:{p:any}) {
               Réserver sur WhatsApp
             </a>
           ):mode==='notify'?(
-            <a href={wa('je souhaite être prévenue du retour de')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-              Me prévenir sur WhatsApp
-            </a>
+            <div className="space-y-2">
+              <button type="button"
+                onClick={()=>{subscribeRestock(p.id,v||null);}}
+                disabled={Boolean(restockStatus[restockKey])}
+                className={`${btn} ${restockStatus[restockKey]?'border border-rose/30 bg-blush text-plum':'bg-rose text-white shadow-md hover:bg-plum'}`}>
+                {restockStatus[restockKey]?'Alerte activée ✓':'Me prévenir du retour en stock'}
+              </button>
+              {restockErrors[restockKey]&&<p role="alert" className="text-center text-xs text-red-700">{restockErrors[restockKey]}</p>}
+              {restockStatus[restockKey]&&<p className="text-center text-xs text-ink/60">Vous recevrez une notification dans votre espace client dès le retour de cet article.</p>}
+            </div>
           ):mode==='order'?(
             <a href={wa('je souhaite commander')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
               Commander sur WhatsApp
