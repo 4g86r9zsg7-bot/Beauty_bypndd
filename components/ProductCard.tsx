@@ -12,8 +12,15 @@ export default function ProductCard({
   imageFit?:'cover'|'contain';
 }){
   const imgs:string[]=p.images||[];
-  const promo=p.old_price&&p.old_price>p.price;
-  const off=promo?Math.round(100-p.price/p.old_price*100):0;
+  const variants=Array.isArray(p.variants)?p.variants:[];
+  const available=variants.filter((v:any)=>v&&typeof v==='object'&&['available','last'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0));
+  const variantPrices=available.map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
+  const basePrice=Number(p.price)||0;
+  const startPrice=variantPrices.length?Math.min(...variantPrices):basePrice;
+  const differentPrices=variantPrices.length>1&&Math.max(...variantPrices)!==Math.min(...variantPrices);
+  const displayPrice=variants.length&&variantPrices.length?startPrice:basePrice;
+  const promo=p.old_price&&p.old_price>displayPrice;
+  const off=promo?Math.round(100-displayPrice/p.old_price*100):0;
 
   const pre=p.availability==='preorder';
   const arr=p.availability==='arrival';
@@ -73,7 +80,7 @@ export default function ProductCard({
 
         <div className="pt-2">
           <p className="truncate text-[9px] uppercase tracking-[0.16em] text-plum/70">
-            {p.brands?.name||'\u00a0'}
+            {[p.source_name||p.brands?.name,p.commercial_range==='petit_prix'?'Petit prix':p.commercial_range==='marques'?'Marques':p.commercial_range==='premium'?'Premium':null].filter(Boolean).join(' · ')||'\u00a0'}
           </p>
 
           <p className="mt-1 min-h-[2.5em] font-serif text-sm leading-snug text-ink line-clamp-2 sm:text-base">
@@ -82,7 +89,7 @@ export default function ProductCard({
 
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
             <span className={`font-semibold ${promo&&!sold?'text-rose':'text-ink'}`}>
-              {eur(p.price)}
+              {differentPrices?'À partir de ':''}{eur(displayPrice)}
             </span>
             {promo&&(
               <s className="text-xs text-ink/50">{eur(p.old_price)}</s>
