@@ -46,7 +46,7 @@ export default async function Home(){
       .select('*')
       .eq('active',true)
       .order('created_at',{ascending:false}),
-    supabase.from('products').select('id,name,category_id,brand_id,variants')
+    supabase.from('products').select('id,name')
   ]);
 
   const cats=uniq(c);
