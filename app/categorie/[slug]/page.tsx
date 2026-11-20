@@ -228,14 +228,6 @@ export default async function Cat({
     q = q.neq('availability', 'soldout');
   }
 
-  if (sp.min && isFinite(Number(sp.min))) {
-    q = q.gte('price', Number(sp.min));
-  }
-
-  if (sp.max && isFinite(Number(sp.max))) {
-    q = q.lte('price', Number(sp.max));
-  }
-
   const o = sp.sort;
 
   q = o === 'asc'
