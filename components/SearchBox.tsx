@@ -79,7 +79,7 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
       ref={ref}
       className={compact
         ?'relative w-full rounded-2xl bg-white p-3 text-ink shadow-2xl'
-        :'relative z-50 mx-auto mt-8 w-full max-w-xl'}
+         :'relative mx-auto mt-8 w-full max-w-xl'}
     >
       {!compact&&(
         <p className="mb-2 text-[11px] uppercase tracking-[0.25em] text-blush">
