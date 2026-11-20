@@ -66,6 +66,7 @@ export default function AdminHome({stats:s,go,editProduct}:{
   const delivered=orders.filter(o=>o.status==='delivered');
   const ongoing=orders.filter(o=>['confirmed','preparing','shipped'].includes(o.status));
   const pending=orders.filter(o=>o.status==='pending');
+  const preorderOrders=orders.filter(o=>!['delivered','cancelled'].includes(o.status)&&(o.items||[]).some(i=>i.preorder));
 
   const periodOrders=useMemo(()=>{
     if(period==='all')return delivered;
@@ -298,6 +299,10 @@ export default function AdminHome({stats:s,go,editProduct}:{
           <button type="button" onClick={()=>go("orders")} className="rounded-xl border border-sand p-3 text-left">
             <b className="block text-2xl text-plum">{ongoing.length}</b>
             <span className="text-sm">Commandes à préparer / suivre</span>
+          </button>
+          <button type="button" onClick={()=>go("orders")} className="rounded-xl border border-sand p-3 text-left">
+            <b className="block text-2xl text-plum">{preorderOrders.length}</b>
+            <span className="text-sm">Précommandes à suivre</span>
           </button>
         </div>
         {(low.length>0||out.length>0)&&<div className="mt-4 space-y-2">
