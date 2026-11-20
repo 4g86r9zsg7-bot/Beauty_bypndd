@@ -5,7 +5,6 @@ import {useState,useEffect} from 'react';
 import Link from 'next/link';
 import Stars from '@/components/Stars';
 import HeartButton from '@/components/HeartButton';
-import PriceAlertButton from '@/components/PriceAlertButton';
 import {useCart} from '@/lib/cart';
 import {WA,eur} from '@/lib/supabase';
 import {DELIVERY,PREORDER} from '@/lib/shop';
@@ -441,8 +440,6 @@ export default function ProductBuy({p}:{p:any}) {
             </>
           )}
         </div>
-
-        <PriceAlertButton productId={p.id}/>
 
         {!needV&&(
           <div className={`mt-4 flex flex-col gap-1.5 rounded-xl border p-3.5 ${
