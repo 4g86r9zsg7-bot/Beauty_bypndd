@@ -138,6 +138,7 @@ export default function ProductBuy({p}:{p:any}) {
   const [done,setDone]=useState(false);
   const [ack,setAck]=useState(false);
   const [descriptionExpanded,setDescriptionExpanded]=useState(false);
+  const productDescription=String(p.description??'').trim();
   const [expandedOptionGroups,setExpandedOptionGroups]=useState<Record<string,boolean>>({});
   const [legacyExpanded,setLegacyExpanded]=useState(false);
 
@@ -760,8 +761,8 @@ export default function ProductBuy({p}:{p:any}) {
         </div>
 
         {/* DESCRIPTION REPLIABLE */}
-        {p.description&&(
-          <div className="mt-9 border-t border-sand pt-6">
+        {productDescription&&(
+          <section className="mt-9 rounded-2xl border border-sand bg-white p-5 sm:p-6">
             <h2 className="font-serif text-xl text-plum">
               Description du produit
             </h2>
@@ -770,11 +771,11 @@ export default function ProductBuy({p}:{p:any}) {
               <p className={`whitespace-pre-line text-sm leading-7 text-ink/75 ${
                 descriptionExpanded?'':'line-clamp-4'
               }`}>
-                {p.description}
+                {productDescription}
               </p>
             </div>
 
-            {String(p.description).length>220&&(
+            {productDescription.length>220&&(
               <button type="button"
                 onClick={()=>setDescriptionExpanded(value=>!value)}
                 aria-expanded={descriptionExpanded}
@@ -783,7 +784,7 @@ export default function ProductBuy({p}:{p:any}) {
                 <span>{descriptionExpanded?'↑':'↓'}</span>
               </button>
             )}
-          </div>
+          </section>
         )}
 
       </div>
