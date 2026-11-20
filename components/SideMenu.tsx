@@ -5,6 +5,7 @@ import {useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
 import Link from 'next/link';
 import {supabase} from '@/lib/supabase';
+import SearchBox from '@/components/SearchBox';
 
 const LABEL:Record<string,string>={
   maquillage:'Maquillage',
@@ -179,27 +180,9 @@ export default function SideMenu(){
             </div>
           </div>
 
-          <form
-            action="/categorie/tous"
-            onSubmit={hide}
-            role="search"
-            className="border-b border-[#F0E1E8] bg-white px-5 py-4"
-          >
-            <div className="relative">
-              <svg className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#98647A]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <circle cx="11" cy="11" r="6.5"/>
-                <path d="M16 16l4.5 4.5"/>
-              </svg>
-              <input
-                name="q"
-                type="search"
-                enterKeyHint="search"
-                autoComplete="off"
-                placeholder="Rechercher un produit..."
-                className="w-full rounded-full border border-[#EBDCE3] bg-[#FCF7F9] py-3.5 pl-11 pr-4 text-sm text-[#45313B] placeholder:text-[#A98D9B] focus:border-[#B66A8A] focus:outline-none focus:ring-2 focus:ring-[#EED8E2]"
-              />
-            </div>
-          </form>
+          <div className="border-b border-[#F0E1E8] bg-white px-5 py-4">
+            <SearchBox compact/>
+          </div>
 
           <div className="flex-1 overflow-y-auto overscroll-contain" style={{paddingBottom:'env(safe-area-inset-bottom)'}}>
 
