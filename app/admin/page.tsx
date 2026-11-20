@@ -194,6 +194,7 @@ export default function Admin(){
 
   const [revs,setRevs]=useState<any[]>([]);
   const [promos,setPromos]=useState<any[]>([]);
+  const [activity,setActivity]=useState<any[]>([]);
   const [pf,setPf]=useState<any>({kind:'percent',active:true});
   const [of,setOf]=useState('all');
   const [oq,setOq]=useState('');
@@ -242,6 +243,15 @@ export default function Admin(){
       .order('created_at',{ascending:false});
 
     setPromos(pc.data||[]);
+
+    const al=await supabase.from('admin_activity_logs').select('*').order('created_at',{ascending:false}).limit(100);
+    setActivity(al.data||[]);
+  }
+
+  async function logActivity(action:string,entityType:string,entityId:string|null,label:string,details:any={}){
+    const {data:{user}}=await supabase.auth.getUser();
+    if(!user)return;
+    await supabase.from('admin_activity_logs').insert({admin_user_id:user.id,action,entity_type:entityType,entity_id:entityId,entity_label:label,details});
   }
 
   useEffect(()=>{check()},[]);
@@ -350,6 +360,7 @@ export default function Admin(){
     setBusyId('');
 
     setMsg(error?error.message:`Statut mis à jour : ${SL[status]}`);
+    if(!error){const order=orders.find(o=>o.id===id);await logActivity('Changement de statut','commande',id,order?.name||'Commande',{status});}
 
     await load();
   };
@@ -745,6 +756,7 @@ export default function Admin(){
     setMsg(error?error.message:(edit?'Produit modifié':'Produit ajouté'));
 
     if(!error){
+      await logActivity(edit?'Modification produit':'Création produit','produit',edit?.id||null,name,{availability:av,stock});
       resetNew();
       load();
       setTab('products');
@@ -838,7 +850,9 @@ export default function Admin(){
   };
 
   const upd=async(id:string,patch:any)=>{
-    await supabase.from('products').update(patch).eq('id',id);
+    const product=prods.find(p=>p.id===id);
+    const {error}=await supabase.from('products').update(patch).eq('id',id);
+    if(!error)await logActivity('Modification rapide produit','produit',id,product?.name||'Produit',patch);
     load();
   };
 
@@ -870,6 +884,7 @@ export default function Admin(){
           ['home','Tableau de bord'],
           ['orders','Commandes'],
           ['products','Produits'],
+          ['history','Historique'],
           ['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' masqués':revs.length})`],
           ['promos','Codes promo'],
           ['new','Ajouter un produit']
@@ -935,6 +950,17 @@ export default function Admin(){
             productRows:prods
           }}
         />
+      )}
+
+      {tab==='history'&&(
+        <section className="space-y-3">
+          <div><h2 className="font-serif text-2xl text-plum">Historique de gestion</h2><p className="text-xs text-ink/60">100 dernières opérations enregistrées</p></div>
+          {activity.length===0?<p className="rounded-xl border border-sand bg-white p-4 text-sm">Aucune opération enregistrée pour le moment.</p>:activity.map((a:any)=>(<article key={a.id} className="rounded-xl border border-sand bg-white p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2"><b>{a.action}</b><time className="text-xs text-ink/50">{new Date(a.created_at).toLocaleString('fr-FR')}</time></div>
+            <p className="mt-1">{a.entity_label||a.entity_type}</p>
+            {a.details&&Object.keys(a.details).length>0&&<pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-ink/60">{JSON.stringify(a.details,null,2)}</pre>}
+          </article>))}
+        </section>
       )}
 
       {tab==='promos'&&(
