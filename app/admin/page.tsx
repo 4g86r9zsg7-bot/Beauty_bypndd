@@ -1171,10 +1171,14 @@ export default function Admin(){
                 </span>
               </div>
 
-              <p className="mt-2">
-                <a href={`tel:${o.phone}`} className="underline">{o.phone}</a>
-                {' '}· {o.address}, {o.city}
-              </p>
+              <div className="mt-2 space-y-2">
+                <p><span className="font-semibold">Type :</span> {(o.items||[]).some((i:any)=>i.preorder)?'Précommande':'Commande classique'} · <span className="font-semibold">Délai :</span> {(o.items||[]).some((i:any)=>i.preorder)?'2 à 3 semaines':'24 à 48 heures'}</p>
+                <p><a href={`tel:${o.phone}`} className="underline">{o.phone}</a>{' '}· {o.address}, {o.city}</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button type="button" onClick={()=>navigator.clipboard?.writeText(String(o.phone||''))} className="rounded-full border border-sand px-3 py-1.5">Copier le téléphone</button>
+                  <button type="button" onClick={()=>navigator.clipboard?.writeText([o.address,o.city].filter(Boolean).join(', '))} className="rounded-full border border-sand px-3 py-1.5">Copier l’adresse</button>
+                </div>
+              </div>
 
               {o.notes&&<p className="text-xs">Note : {o.notes}</p>}
 
