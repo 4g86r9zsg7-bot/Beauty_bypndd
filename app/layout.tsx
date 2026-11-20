@@ -91,7 +91,7 @@ export default function L({children}:{children:React.ReactNode}){
             <span>Paiement à la livraison</span>
           </div>
 
-          <header className="sticky top-0 z-20 border-b border-white/10 bg-[#14040c]/95 text-white backdrop-blur">
+          <header className="sticky top-0 z-[200] border-b border-white/10 bg-[#14040c]/95 text-white backdrop-blur">
             <div className="mx-auto flex max-w-[1500px] items-center gap-2 px-4 py-3 lg:gap-6 lg:px-8">
               <SideMenu/>
               <Link href="/" className="mx-auto text-center leading-none lg:mx-0 lg:text-left">
