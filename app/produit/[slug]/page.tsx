@@ -139,6 +139,10 @@ export default async function P({params}:{params:{slug:string}}){
   const images=getImages(p.images);
   const productUrl=`${SITE}/produit/${p.slug}`;
 
+  const schemaVariants=Array.isArray(p.variants)?p.variants.filter((v:any)=>v&&typeof v==='object'&&['available','last'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0)):[];
+  const schemaPrices=schemaVariants.map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
+  const schemaPrice=schemaPrices.length?Math.min(...schemaPrices):Number(p.price);
+
   const availability=
     p.availability==='soldout'
       ?'https://schema.org/OutOfStock'
@@ -159,7 +163,7 @@ export default async function P({params}:{params:{slug:string}}){
     offers:{
       '@type':'Offer',
       priceCurrency:'MAD',
-      price:Number(p.price),
+      price:schemaPrice,
       availability,
       url:productUrl
     }
