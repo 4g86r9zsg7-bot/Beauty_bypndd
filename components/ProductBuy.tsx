@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useState} from 'react';
+import {useState,useEffect} from 'react';
 import Link from 'next/link';
 import Stars from '@/components/Stars';
 import HeartButton from '@/components/HeartButton';
