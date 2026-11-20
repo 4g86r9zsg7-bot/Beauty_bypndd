@@ -321,7 +321,14 @@ export default function Admin(){
       flt==='all'||
       (flt==='out'&&p.availability==='soldout')||
       (flt==='hidden'&&!p.active)||
-      (flt==='stock'&&p.availability!=='soldout'&&p.active)
+      (flt==='stock'&&p.availability!=='soldout'&&p.active)||
+      (flt==='preorder'&&p.availability==='preorder')||
+      (flt==='arrival'&&p.availability==='arrival')||
+      (flt==='noimage'&&(!Array.isArray(p.images)||p.images.length===0))||
+      (flt==='nodesc'&&(!String(p.description||'').trim()))||
+      (flt==='petit_prix'&&p.commercial_range==='petit_prix')||
+      (flt==='marques'&&p.commercial_range==='marques')||
+      (flt==='premium'&&p.commercial_range==='premium')
     )
   );
 
@@ -914,6 +921,7 @@ export default function Admin(){
             setTab(t);
             window.scrollTo({top:0});
           }}
+          editProduct={(p:any)=>startEdit(p)}
           stats={{
             orders:orders.length,
             pending:orders.filter(o=>o.status==='pending').length,
@@ -1250,6 +1258,13 @@ export default function Admin(){
               <option value="stock">En vente</option>
               <option value="out">Épuisés</option>
               <option value="hidden">Masqués</option>
+              <option value="preorder">Précommandes</option>
+              <option value="arrival">Arrivages</option>
+              <option value="noimage">Sans photo</option>
+              <option value="nodesc">Sans description</option>
+              <option value="petit_prix">Gamme Petit prix</option>
+              <option value="marques">Gamme Marques</option>
+              <option value="premium">Gamme Premium</option>
             </select>
           </div>
 
