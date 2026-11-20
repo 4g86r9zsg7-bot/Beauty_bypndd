@@ -13,7 +13,8 @@ export default function ProductCard({
 }){
   const imgs:string[]=p.images||[];
   const variants=Array.isArray(p.variants)?p.variants:[];
-  const available=variants.filter((v:any)=>v&&typeof v==='object'&&['available','last'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0));
+  const reservable=p.availability==='preorder'||p.availability==='arrival';
+  const available=variants.filter((v:any)=>v&&typeof v==='object'&&['available','last','preorder','arrival'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0||reservable));
   const variantPrices=available.map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
   const basePrice=Number(p.price)||0;
   const startPrice=variantPrices.length?Math.min(...variantPrices):basePrice;
