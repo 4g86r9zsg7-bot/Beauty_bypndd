@@ -213,6 +213,11 @@ export default function Admin(){
   const [em,setEm]=useState('');
   const [pw,setPw]=useState('');
   const [tab,setTab]=useState('home');
+  const [currentPassword,setCurrentPassword]=useState('');
+  const [newPassword,setNewPassword]=useState('');
+  const [confirmPassword,setConfirmPassword]=useState('');
+  const [passwordBusy,setPasswordBusy]=useState(false);
+  const [passwordMessage,setPasswordMessage]=useState('');
 
   const [orders,setO]=useState<any[]>([]);
   const [prods,setP]=useState<any[]>([]);
@@ -312,6 +317,57 @@ export default function Admin(){
 
     return()=>clearInterval(t);
   },[ok]);
+
+  async function changeAdminPassword(e:any){
+    e.preventDefault();
+    setPasswordMessage('');
+
+    if(newPassword.length<10){
+      setPasswordMessage('Le nouveau mot de passe doit contenir au moins 10 caractères.');
+      return;
+    }
+
+    if(newPassword!==confirmPassword){
+      setPasswordMessage('Les deux nouveaux mots de passe ne correspondent pas.');
+      return;
+    }
+
+    setPasswordBusy(true);
+
+    try{
+      const {data:{user},error:userError}=await supabase.auth.getUser();
+      if(userError||!user?.email)throw new Error('Session administrateur introuvable. Reconnecte-toi puis réessaie.');
+
+      const {data:admin,error:adminError}=await supabase
+        .from('admins')
+        .select('user_id')
+        .eq('user_id',user.id)
+        .maybeSingle();
+
+      if(adminError||!admin)throw new Error('Accès refusé : ce compte ne possède pas les droits administrateur.');
+
+      const {data:verified,error:verifyError}=await supabase.auth.signInWithPassword({
+        email:user.email,
+        password:currentPassword
+      });
+
+      if(verifyError||verified.user?.id!==user.id){
+        throw new Error('Le mot de passe actuel est incorrect.');
+      }
+
+      const {error:updateError}=await supabase.auth.updateUser({password:newPassword});
+      if(updateError)throw updateError;
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordMessage('Mot de passe administrateur modifié avec succès.');
+    }catch(error:any){
+      setPasswordMessage(error?.message||'Impossible de modifier le mot de passe. Réessaie.');
+    }finally{
+      setPasswordBusy(false);
+    }
+  }
 
   async function login(e:any){
     e.preventDefault();
@@ -945,7 +1001,8 @@ export default function Admin(){
           ['history','Historique'],
           ['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' masqués':revs.length})`],
           ['promos','Codes promo'],
-          ['new','Ajouter un produit']
+          ['new','Ajouter un produit'],
+          ['security','Mot de passe']
         ].map(([k,l])=>(
           <button
             key={k}
@@ -1008,6 +1065,68 @@ export default function Admin(){
             productRows:prods
           }}
         />
+      )}
+
+      {tab==='security'&&(
+        <section className="max-w-xl space-y-4 rounded-2xl border border-sand bg-white p-4 sm:p-6">
+          <div>
+            <h2 className="font-serif text-2xl text-plum">Changer mon mot de passe</h2>
+            <p className="mt-1 text-sm text-ink/65">Cette modification concerne uniquement ton compte administrateur. Tes droits d’accès à l’administration restent inchangés.</p>
+          </div>
+
+          <form onSubmit={changeAdminPassword} className="space-y-3">
+            <label className="block text-sm font-medium">
+              Mot de passe actuel
+              <input
+                type="password"
+                autoComplete="current-password"
+                required
+                value={currentPassword}
+                onChange={e=>setCurrentPassword(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-sand p-3"
+                placeholder="Saisis ton mot de passe actuel"
+              />
+            </label>
+
+            <label className="block text-sm font-medium">
+              Nouveau mot de passe
+              <input
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={10}
+                value={newPassword}
+                onChange={e=>setNewPassword(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-sand p-3"
+                placeholder="10 caractères minimum"
+              />
+            </label>
+
+            <label className="block text-sm font-medium">
+              Confirmer le nouveau mot de passe
+              <input
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={10}
+                value={confirmPassword}
+                onChange={e=>setConfirmPassword(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-sand p-3"
+                placeholder="Répète le nouveau mot de passe"
+              />
+            </label>
+
+            {passwordMessage&&<p role="status" className={`text-sm ${passwordMessage.includes('succès')?'text-green-700':'text-red-700'}`}>{passwordMessage}</p>}
+
+            <button
+              type="submit"
+              disabled={passwordBusy}
+              className="w-full rounded-lg bg-ink py-3 font-medium text-white disabled:opacity-50"
+            >
+              {passwordBusy?'Modification en cours…':'Modifier mon mot de passe'}
+            </button>
+          </form>
+        </section>
       )}
 
       {tab==='history'&&(
