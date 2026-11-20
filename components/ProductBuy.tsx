@@ -111,6 +111,20 @@ function getSwatch(variant:any,value:string){
   return swatch||colorValue(value);
 }
 
+function isLikelyColor(value:string){
+  const key=normalizeColor(value);
+  return /^#[0-9a-f]{3,8}$/i.test(key)||
+    isMultiColor(value)||
+    Object.prototype.hasOwnProperty.call(colorMap,key);
+}
+
+function isVariantSoldOut(variant:any){
+  const status=variant?.status||'available';
+  return status==='soldout'||
+    (variant?.stock!=null&&Number(variant.stock)<=0&&
+      !['preorder','arrival'].includes(status));
+}
+
 const INITIAL_VARIANTS=12;
 
 export default function ProductBuy({p}:{p:any}) {
@@ -529,88 +543,86 @@ export default function ProductBuy({p}:{p:any}) {
                   </p>
 
                   {colorGroup?(
-                    <>
-                      <div className={`grid gap-2 ${
-                        group.values.length>6
-                          ?'grid-cols-4 sm:grid-cols-5'
-                          :'grid-cols-3 sm:grid-cols-4'
-                      }`}>
-                        {visibleValues.map(value=>{
-                          const on=selectedOptions[group.name]===value;
+                    <div className="flex flex-wrap gap-x-4 gap-y-3">
+                      {visibleValues.map(value=>{
+                        const on=selectedOptions[group.name]===value;
+                        const matching=vs.filter(x=>
+                          String(x.options?.[group.name]??'')===value&&
+                          optionGroups.every(other=>
+                            other.name===group.name||
+                            !selectedOptions[other.name]||
+                            String(x.options?.[other.name]??'')===selectedOptions[other.name]
+                          )
+                        );
+                        const unavailable=matching.length>0&&matching.every(isVariantSoldOut);
+                        const exists=matching.length>0;
+                        const representative=matching[0]||vs.find(x=>
+                          String(x.options?.[group.name]??'')===value
+                        );
+                        const swatch=getSwatch(representative,value);
 
-                          const representative=vs.find(x=>
-                            String(x.options?.[group.name]??'')===value
-                          );
-
-                          const image=vimgs(representative)[0];
-                          const swatch=getSwatch(representative,value);
-
-                          return (
-                            <button key={value} type="button"
-                              title={value}
-                              aria-label={`Couleur ${value}`}
-                              aria-pressed={on}
-                              onClick={()=>chooseOption(group.name,value)}
-                              className={`group flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-1.5 text-center transition ${
-                                on
-                                  ?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
-                                  :'border-plum/15 hover:border-rose'
-                              }`}>
-                              <span className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
-                                on?'ring-2 ring-rose ring-offset-1':''
-                              }`}>
-                                {image?(
-                                  <img src={image} alt={value}
-                                    className="h-full w-full object-contain bg-white"/>
-                                ):(
-                                  <span className="block h-full w-full"
-                                    style={{background:swatch}}/>
-                                )}
-                                {on&&(
-                                  <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-plum text-white shadow">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="m5 12 4 4L19 6"/>
-                                    </svg>
-                                  </span>
-                                )}
-                              </span>
-                              <span className={`mt-1.5 w-full break-words text-[10px] leading-tight ${
-                                on?'font-semibold text-plum':'text-ink/80'
-                              }`}>
-                                {value}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {hiddenCount>0&&(
-                        <button type="button"
-                          onClick={()=>setExpandedOptionGroups(previous=>({
-                            ...previous,
-                            [group.name]:!previous[group.name]
-                          }))}
-                          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-plum underline decoration-rose/50 underline-offset-4">
-                          {expanded
-                            ?'Voir moins'
-                            :`Voir toutes les teintes (${group.values.length})`}
-                          <span>{expanded?'↑':'↓'}</span>
-                        </button>
-                      )}
-                    </>
-                  ):(
+                        return (
+                          <button key={value} type="button"
+                            title={unavailable?value+' — épuisé':value}
+                            aria-label={`Couleur ${value}${unavailable?' — épuisé':''}`}
+                            aria-pressed={on}
+                            disabled={!exists}
+                            onClick={()=>chooseOption(group.name,value)}
+                            className="group flex w-[68px] flex-col items-center gap-1.5 text-center disabled:cursor-not-allowed disabled:opacity-30">
+                            <span className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 bg-white p-[3px] transition ${
+                              on?'border-rose ring-2 ring-rose/20 ring-offset-2'
+                              :unavailable?'border-sand'
+                              :'border-transparent group-hover:border-plum/40'
+                            }`}>
+                              <span className="h-full w-full rounded-full border border-black/10"
+                                style={{background:swatch}}/>
+                              {on&&(
+                                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/15 text-white">
+                                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="m5 12 4 4L19 6"/>
+                                  </svg>
+                                </span>
+                              )}
+                              {unavailable&&(
+                                <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                  <span className="h-[2px] w-12 rotate-[-45deg] rounded-full bg-ink/70"/>
+                                </span>
+                              )}
+                            </span>
+                            <span className={`max-w-full break-words text-[10px] leading-tight ${
+                              on?'font-semibold text-plum':'text-ink/80'
+                            }`}>{value}</span>
+                            {unavailable&&<span className="text-[9px] text-ink/45">Épuisé</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    ):( 
                     <div className="flex flex-wrap gap-2">
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
+                        const matching=vs.filter(x=>
+                          String(x.options?.[group.name]??'')===value&&
+                          optionGroups.every(other=>
+                            other.name===group.name||
+                            !selectedOptions[other.name]||
+                            String(x.options?.[other.name]??'')===selectedOptions[other.name]
+                          )
+                        );
+                        const unavailable=matching.length>0&&matching.every(isVariantSoldOut);
+                        const exists=matching.length>0;
                         return (
                           <button key={value} type="button"
                             onClick={()=>chooseOption(group.name,value)}
+                            disabled={!exists}
                             aria-pressed={on}
-                            className={`min-w-12 rounded-xl border px-4 py-3 text-xs transition ${
+                            className={`relative min-w-12 rounded-xl border px-4 py-3 text-xs transition disabled:cursor-not-allowed disabled:opacity-30 ${
                               on?'border-plum bg-plum text-white shadow-sm'
+                              :unavailable?'border-sand bg-sand/20 text-ink/45'
                               :'border-plum/25 bg-white text-plum hover:border-rose'
                             }`}>
-                            {value}
+                            <span className={unavailable?'line-through':''}>{value}</span>
+                            {unavailable&&<span className="ml-1 block text-[9px] no-underline">Épuisé</span>}
                           </button>
                         );
                       })}
@@ -637,7 +649,8 @@ export default function ProductBuy({p}:{p:any}) {
               {(legacyExpanded?vs:vs.slice(0,INITIAL_VARIANTS)).map(x=>{
                 const on=x.name===legacyV;
                 const image=vimgs(x)[0];
-                const hasSwatch=Boolean(x.swatch||x.color||x.hex);
+                const colorVariant=isLikelyColor(String(x.name||''));
+                const unavailable=isVariantSoldOut(x);
 
                 return (
                   <button key={x.name} type="button"
@@ -646,40 +659,43 @@ export default function ProductBuy({p}:{p:any}) {
                       resetSelection();
                     }}
                     aria-pressed={on}
-                    className={`flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-1.5 text-center transition ${
-                      on
-                        ?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
+                    aria-label={`${x.name}${unavailable?' — épuisé':''}`}
+                    className={colorVariant
+                      ?'flex min-w-[64px] flex-col items-center gap-1.5 rounded-xl px-1 py-2 text-center transition'
+                      :`flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-2 text-center transition ${
+                        on?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
                         :'border-plum/15 hover:border-rose'
-                    }`}>
-                    <span className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
-                      on?'ring-2 ring-rose ring-offset-1':''
-                    }`}>
-                      {image?(
-                        <img src={image} alt={x.name}
-                          className="h-full w-full object-contain bg-white"/>
-                      ):(
-                        <span className="block h-full w-full"
-                          style={{background:hasSwatch?getSwatch(x,x.name||''):colorValue(x.name||'')}}
-                        />
-                      )}
-                      {on&&(
-                        <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-plum text-white shadow">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m5 12 4 4L19 6"/>
-                          </svg>
+                      }`}>
+                    {colorVariant?(
+                      <>
+                        <span className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 p-[3px] ${
+                          on?'border-rose ring-2 ring-rose/20 ring-offset-2'
+                          :'border-transparent'
+                        }`}>
+                          <span className="h-full w-full rounded-full border border-black/10"
+                            style={{background:getSwatch(x,x.name||'')}}/>
+                          {on&&<span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/15 text-white"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6"/></svg></span>}
+                          {unavailable&&<span className="absolute inset-0 flex items-center justify-center"><span className="h-[2px] w-12 rotate-[-45deg] rounded-full bg-ink/70"/></span>}
                         </span>
-                      )}
-                    </span>
-                    <span className={`mt-1.5 w-full break-words text-[10px] leading-tight ${
-                      on?'font-semibold text-plum':'text-ink/80'
-                    }`}>
-                      {x.name}
-                    </span>
-                    {x.price!=null&&(
-                      <span className="mt-1 text-[10px] text-plum">{eur(Number(x.price))}</span>
-                    )}
-                    {label(x)&&(
-                      <span className="mt-1 text-[9px] text-ink/50">{label(x).trim()}</span>
+                        <span className={`max-w-full break-words text-[10px] leading-tight ${on?'font-semibold text-plum':'text-ink/80'}`}>{x.name}</span>
+                        {unavailable&&<span className="text-[9px] text-ink/45">Épuisé</span>}
+                      </>
+                    ):(
+                      <>
+                        <span className={`relative block aspect-square w-full overflow-hidden rounded-lg ${
+                          on?'ring-2 ring-rose ring-offset-1':''
+                        }`}>
+                          {image?(
+                            <img src={image} alt={x.name} className="h-full w-full object-contain bg-white"/>
+                          ):(
+                            <span className="block h-full w-full" style={{background:getSwatch(x,x.name||'')}}/>
+                          )}
+                          {on&&<span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-plum text-white shadow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6"/></svg></span>}
+                        </span>
+                        <span className={`mt-1.5 w-full break-words text-[10px] leading-tight ${on?'font-semibold text-plum':'text-ink/80'}`}>{x.name}</span>
+                        {x.price!=null&&<span className="mt-1 text-[10px] text-plum">{eur(Number(x.price))}</span>}
+                        {label(x)&&<span className="mt-1 text-[9px] text-ink/50">{label(x).trim()}</span>}
+                      </>
                     )}
                   </button>
                 );
