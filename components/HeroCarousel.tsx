@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type {ReactNode} from 'react';
@@ -58,95 +59,78 @@ export default function HeroCarousel({
     }
   ];
 
+  const slide=slides[active];
+
   return (
-    <section className="relative left-1/2 z-40 w-screen -translate-x-1/2 bg-[#14040c] text-white lg:-mt-6">
-      <div className="relative min-h-[610px] overflow-hidden md:min-h-[540px]">
-
-        {slides.map((slide,index)=>(
+    <section className="relative left-1/2 z-40 w-screen -translate-x-1/2 overflow-visible bg-[#14040c] text-white lg:-mt-6">
+      <div className="relative min-h-[560px] overflow-hidden md:min-h-[540px]">
+        <div className="absolute inset-0">
           <div
-            key={index}
-            aria-hidden={active!==index}
-            className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-              active===index
-                ?'translate-x-0 opacity-100'
-                :index<active
-                  ?'-translate-x-8 opacity-0'
-                  :'translate-x-8 opacity-0'
-            }`}
-            style={{pointerEvents:active===index?'auto':'none'}}
-          >
-            <div
-              className="absolute inset-0"
-              style={{
-                background:index===2
-                  ?'radial-gradient(60% 70% at 78% 35%,rgba(198,161,91,.22),transparent 62%),linear-gradient(118deg,#14040c 0%,#3B0F27 45%,#2a0a1b 100%)'
-                  :'radial-gradient(60% 70% at 78% 35%,rgba(238,111,176,.28),transparent 62%),linear-gradient(118deg,#14040c 0%,#3B0F27 45%,#2a0a1b 100%)'
-              }}
+            className="absolute inset-0"
+            style={{
+              background:active===2
+                ?'radial-gradient(60% 70% at 78% 35%,rgba(198,161,91,.22),transparent 62%),linear-gradient(118deg,#14040c 0%,#3B0F27 45%,#2a0a1b 100%)'
+                :'radial-gradient(60% 70% at 78% 35%,rgba(238,111,176,.28),transparent 62%),linear-gradient(118deg,#14040c 0%,#3B0F27 45%,#2a0a1b 100%)'
+            }}
+          />
+          {slide.image?(
+            <img
+              src={slide.image}
+              alt=""
+              aria-hidden="true"
+              fetchPriority={active===0?'high':'auto'}
+              decoding="async"
+              className="absolute bottom-0 left-0 h-[260px] w-full object-cover object-center opacity-90 mix-blend-lighten md:bottom-auto md:left-auto md:right-0 md:top-0 md:h-full md:w-[62%] md:object-center"
             />
+          ):(
+            <div className="absolute bottom-0 right-0 hidden h-full w-[62%] items-center justify-center md:flex">
+              <span className="font-serif text-7xl italic text-[#EE6FB0]/50">
+                {active===1?'Nouveautés':'Offres exclusives'}
+              </span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#14040c]/90 via-[#240817]/55 to-transparent"/>
+        </div>
 
-            {slide.image?(
-              <img
-                src={slide.image}
-                alt=""
-                aria-hidden="true"
-                fetchPriority={index===0?'high':'auto'}
-                decoding="async"
-                className="absolute bottom-0 left-0 h-[280px] w-full object-cover object-center opacity-90 mix-blend-lighten md:bottom-auto md:left-auto md:right-0 md:top-0 md:h-full md:w-[62%] md:object-center"
-              />
-            ):(
-              <div className="absolute bottom-0 right-0 hidden h-full w-[62%] items-center justify-center md:flex">
-                <span className="font-serif text-7xl italic text-[#EE6FB0]/50">
-                  {index===1?'Nouveautés':'Offres exclusives'}
-                </span>
-              </div>
-            )}
+        <div className="relative mx-auto flex min-h-[560px] max-w-[1500px] items-start px-5 pb-24 pt-10 md:min-h-[540px] md:items-center md:px-6 md:pb-16 md:pt-14 lg:px-10">
+          <div className="w-full md:max-w-[54%]">
+            <span className="inline-block max-w-full rounded-full border border-white/30 bg-white/5 px-4 py-2 text-[9px] uppercase tracking-[0.22em] backdrop-blur-sm sm:px-5 sm:text-[10px] sm:tracking-[0.3em]">
+              {slide.eyebrow}
+            </span>
 
-            <div className="absolute inset-0 bg-gradient-to-r from-[#14040c]/90 via-[#240817]/55 to-transparent"/>
+            <p className="mt-7 text-[10px] uppercase tracking-[0.25em] text-white/75 sm:text-[11px] sm:tracking-[0.35em]">
+              Beauté, mode &amp; accessoires
+            </p>
 
-            <div className="relative mx-auto flex min-h-[610px] max-w-[1500px] items-start px-6 pb-28 pt-12 md:min-h-[540px] md:items-center md:pb-16 md:pt-14 lg:px-10">
-              <div className="w-full md:max-w-[54%]">
+            <h1 className="mt-3 max-w-2xl break-words font-serif text-4xl leading-[1.08] sm:text-5xl md:text-6xl lg:text-7xl">
+              {slide.title}
+            </h1>
 
-                <span className="inline-block rounded-full border border-white/30 bg-white/5 px-5 py-2 text-[10px] uppercase tracking-[0.3em] backdrop-blur-sm">
-                  {slide.eyebrow}
-                </span>
+            <div className="mt-4 h-[2px] w-36 bg-gradient-to-r from-[#EE6FB0] to-transparent sm:w-44"/>
 
-                <p className="mt-8 text-[11px] uppercase tracking-[0.35em] text-white/75">
-                  Beauté, mode &amp; accessoires
-                </p>
+            <p className="mt-5 max-w-md font-serif text-lg leading-relaxed text-white/90 sm:text-xl">
+              {slide.subtitle}
+            </p>
 
-                <h1 className="mt-3 max-w-2xl font-serif text-5xl leading-[1.05] md:text-6xl lg:text-7xl">
-                  {slide.title}
-                </h1>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                href={slide.href}
+                className="rounded-full bg-[#EE6FB0] px-5 py-3.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#2a0a1b] shadow-[0_0_30px_rgba(238,111,176,.35)] transition hover:brightness-110 active:scale-95 sm:px-7 sm:py-4 sm:text-[10px] sm:tracking-[0.16em]"
+              >
+                {slide.button} →
+              </Link>
 
-                <div className="mt-4 h-[2px] w-44 bg-gradient-to-r from-[#EE6FB0] to-transparent"/>
-
-                <p className="mt-5 max-w-md font-serif text-xl leading-relaxed text-white/90">
-                  {slide.subtitle}
-                </p>
-
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                    href={slide.href}
-                    tabIndex={active===index?0:-1}
-                    className="rounded-full bg-[#EE6FB0] px-7 py-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2a0a1b] shadow-[0_0_30px_rgba(238,111,176,.35)] transition hover:brightness-110 active:scale-95"
-                  >
-                    {slide.button} →
-                  </Link>
-
-                  <Link
-                    href={slide.secondHref}
-                    tabIndex={active===index?0:-1}
-                    className="rounded-full border border-[#EE6FB0]/80 bg-white/5 px-7 py-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-sm transition hover:bg-white/10 active:scale-95"
-                  >
-                    {slide.second}
-                  </Link>
-                </div>
-              </div>
+              <Link
+                href={slide.secondHref}
+                className="rounded-full border border-[#EE6FB0]/80 bg-white/5 px-5 py-3.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm transition hover:bg-white/10 active:scale-95 sm:px-7 sm:py-4 sm:text-[10px] sm:tracking-[0.16em]"
+              >
+                {slide.second}
+              </Link>
             </div>
           </div>
-        ))}
+        </div>
 
-        <div className="absolute bottom-7 left-0 right-0 z-20 flex items-center justify-center gap-4">
+        <div className="absolute bottom-5 left-0 right-0 z-20 flex items-center justify-center gap-4 md:bottom-7">
           <button
             type="button"
             aria-label="Bannière précédente"
@@ -178,7 +162,7 @@ export default function HeroCarousel({
         </div>
       </div>
 
-      <div className="relative z-20 mx-auto -mt-1 max-w-2xl px-5 pb-5 md:-mt-0 md:pb-7">
+      <div className="relative z-50 mx-auto -mt-1 w-full max-w-2xl px-4 pb-6 sm:px-5 md:pb-7">
         {search}
       </div>
     </section>
