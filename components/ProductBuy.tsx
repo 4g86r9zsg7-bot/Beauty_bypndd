@@ -230,7 +230,8 @@ export default function ProductBuy({p}:{p:any}) {
     const status=x.status||'available';
     if(status==='soldout')return false;
     if(status==='preorder'||status==='arrival')return true;
-    return ['available','last'].includes(status)&&(x.stock==null||Number(x.stock)>0);
+    const parentReservable=p.availability==='preorder'||p.availability==='arrival';
+    return ['available','last'].includes(status)&&(x.stock==null||Number(x.stock)>0||parentReservable);
   });
   const availablePrices=availableVariants.map((x:any)=>Number(x.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
   const startPrice=availablePrices.length?Math.min(...availablePrices):Number(p.price);
