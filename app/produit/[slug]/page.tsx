@@ -1,5 +1,6 @@
 
 import {notFound} from 'next/navigation';
+import Link from 'next/link';
 import type {Metadata} from 'next';
 import {supabase} from '@/lib/supabase';
 import ProductBuy from '@/components/ProductBuy';
@@ -110,6 +111,23 @@ export default async function P({params}:{params:{slug:string}}){
 
   if(!p)notFound();
 
+  const {data:allCategories}=await supabase
+    .from('categories')
+    .select('id,name,slug,parent_id');
+
+  const categoryMap=new Map((allCategories||[]).map((category:any)=>[category.id,category]));
+  const categoryTrail:any[]=[];
+  let currentCategory:any=p.category_id?categoryMap.get(p.category_id):null;
+  let depth=0;
+
+  while(currentCategory&&depth<6){
+    categoryTrail.unshift(currentCategory);
+    currentCategory=currentCategory.parent_id
+      ?categoryMap.get(currentCategory.parent_id)
+      :null;
+    depth++;
+  }
+
   const now=new Date().toISOString();
 
   const {data:offersData}=await supabase
@@ -185,6 +203,20 @@ export default async function P({params}:{params:{slug:string}}){
           __html:JSON.stringify(ld).replace(/</g,'\\u003c')
         }}
       />
+
+      <nav aria-label="Fil d’Ariane" className="mx-auto w-full max-w-[1500px] px-4 pt-4 text-xs text-ink/60 sm:px-6 lg:px-10">
+        <Link href="/" className="transition hover:text-plum">Accueil</Link>
+        {categoryTrail.map((category:any)=>(
+          <span key={category.id}>
+            <span aria-hidden="true" className="mx-2">/</span>
+            <Link href={`/categorie/${category.slug}`} className="transition hover:text-plum">
+              {category.name}
+            </Link>
+          </span>
+        ))}
+        <span aria-hidden="true" className="mx-2">/</span>
+        <span className="font-medium text-plum" aria-current="page">{p.name}</span>
+      </nav>
 
       <ProductBuy p={{...p,rating_avg:avg,rating_count:rl.length}}/>
 
