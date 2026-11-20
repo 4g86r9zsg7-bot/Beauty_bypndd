@@ -9,6 +9,7 @@ import CartLink from '@/components/CartLink';
 import SideMenu from '@/components/SideMenu';
 import Shortcuts from '@/components/Shortcuts';
 import BellLink from '@/components/BellLink';
+import HeaderSearch from '@/components/HeaderSearch';
 import {ClientProvider} from '@/components/ClientProvider';
 import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';
 import {IG} from '@/lib/shop';
@@ -101,12 +102,7 @@ export default function L({children}:{children:React.ReactNode}){
                 <Shortcuts header/>
               </div>
               <div className="flex items-center gap-0.5">
-                <Link href="/categorie/tous" aria-label="Rechercher" className="p-2 text-white">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                    <circle cx="11" cy="11" r="6.5"/>
-                    <path d="M16 16l4.5 4.5"/>
-                  </svg>
-                </Link>
+                <HeaderSearch/>
                 <BellLink/>
                 <CartLink/>
               </div>
