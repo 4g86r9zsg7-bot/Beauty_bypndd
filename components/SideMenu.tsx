@@ -100,6 +100,12 @@ export default function SideMenu(){
 
   const services=[
     {
+      href:'/compte',
+      title:'Mon compte',
+      subtitle:'Connexion et historique de commandes',
+      icon:<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+    },
+    {
       href:'/favoris',
       title:'Mes favoris',
       subtitle:'Vos produits préférés',
