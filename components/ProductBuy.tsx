@@ -229,7 +229,7 @@ export default function ProductBuy({p}:{p:any}) {
     else if(cur.stock!=null&&cur.stock<=0&&!pre)mode='pre';
     else if(arrival)mode='order';
   }else if(!hasV){
-    if(p.availability==='soldout'||(!pre&&!arrival&&p.stock<=0))mode='pre';
+    if(p.availability==='soldout'||(!pre&&!arrival&&p.stock<=0))mode='notify';
     else if(arrival)mode='reserve';
   }
 
@@ -245,12 +245,14 @@ export default function ProductBuy({p}:{p:any}) {
   const needAck=pre&&mode==='cart';
 
   const status=mode==='pre'||needAck
-    ?`Précommande : ${PREORDER}`
-    :mode==='reserve'?'Prochain arrivage'
-    :mode==='notify'?'Épuisé'
+    ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
+    :mode==='reserve'
+    ?{label:'Prochain arrivage',detail:'Réservation possible sur WhatsApp',tone:'blue',icon:'calendar'}
+    :mode==='notify'
+    ?{label:'Épuisé',detail:'Actuellement indisponible',tone:'red',icon:'x'}
     :(vst==='last'||(left!=null&&left>0&&left<=3))
-    ?'Dernières pièces disponibles'
-    :`Disponible immédiatement · livraison ${DELIVERY}`;
+    ?{label:'Stock limité',detail:'Dernières pièces disponibles',tone:'amber',icon:'alert'}
+    :{label:'En stock',detail:`Disponible immédiatement · livraison ${DELIVERY}`,tone:'green',icon:'check'};
 
   const label=(x:any)=>{
     const s=x.status||'available';
@@ -431,11 +433,42 @@ export default function ProductBuy({p}:{p:any}) {
         </div>
 
         {!needV&&(
-          <div className="mt-4 flex items-center gap-2 text-sm text-ink/70">
-            <span className={`h-2 w-2 rounded-full ${
-              mode==='notify'?'bg-red-400':mode==='pre'?'bg-amber-500':'bg-green-600'
-            }`}/>
-            {status}
+          <div className={`mt-4 flex flex-col gap-1.5 rounded-xl border p-3.5 ${
+            status.tone==='green'?'border-green-200 bg-green-50/80':
+            status.tone==='amber'?'border-amber-200 bg-amber-50/80':
+            status.tone==='blue'?'border-sky-200 bg-sky-50/80':
+            'border-red-200 bg-red-50/80'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                status.tone==='green'?'bg-green-100 text-green-700':
+                status.tone==='amber'?'bg-amber-100 text-amber-700':
+                status.tone==='blue'?'bg-sky-100 text-sky-700':
+                'bg-red-100 text-red-700'
+              }`}>
+                {status.tone==='green'?(
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+                ):status.tone==='amber'?(
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                ):status.tone==='blue'?(
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                ):(
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                )}
+              </span>
+              <span className={`text-sm font-semibold ${
+                status.tone==='green'?'text-green-800':
+                status.tone==='amber'?'text-amber-800':
+                status.tone==='blue'?'text-sky-800':
+                'text-red-800'
+              }`}>{status.label}</span>
+            </div>
+            <p className={`pl-8 text-xs leading-relaxed ${
+              status.tone==='green'?'text-green-800/80':
+              status.tone==='amber'?'text-amber-800/80':
+              status.tone==='blue'?'text-sky-800/80':
+              'text-red-800/80'
+            }`}>{status.detail}</p>
           </div>
         )}
 
