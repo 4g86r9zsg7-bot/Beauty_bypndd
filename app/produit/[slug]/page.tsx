@@ -8,6 +8,7 @@ import ProductOfferUpsell from '@/components/ProductOfferUpsell';
 import Suggestions from '@/components/Suggestions';
 import TrustBlock from '@/components/TrustBlock';
 import Reviews from '@/components/Reviews';
+import RecentlyViewed from '@/components/RecentlyViewed';
 
 export const dynamic='force-dynamic';
 
@@ -219,6 +220,7 @@ export default async function P({params}:{params:{slug:string}}){
       </nav>
 
       <ProductBuy p={{...p,rating_avg:avg,rating_count:rl.length}}/>
+      <RecentlyViewed product={p}/>
 
       <ProductOfferUpsell
         productId={String(p.id)}
