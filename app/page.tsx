@@ -80,6 +80,7 @@ export default async function Home(){
     cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id
     ??'00000000-0000-0000-0000-000000000000';
 
+  // Vitrines classées par priorité : nouveautés, bonnes affaires et disponibilité immédiate d'abord.
   const defs:{tone:string;title:string;href:string;f:(q:any)=>any}[]=[
     {
       tone:'nouveautes',
@@ -88,16 +89,16 @@ export default async function Home(){
       f:q=>q.eq('is_new',true).not('availability','in','(arrival,preorder)')
     },
     {
+      tone:'promo',
+      title:'Promotions et bonnes affaires',
+      href:'/categorie/promotions',
+      f:q=>q.not('old_price','is',null).not('availability','in','(arrival,preorder)')
+    },
+    {
       tone:'immediat',
       title:'Disponibles immédiatement',
       href:'/categorie/tous',
       f:q=>q.in('availability',['available','last']).gt('stock',0)
-    },
-    {
-      tone:'coeur',
-      title:'Coups de cœur',
-      href:'/categorie/coups-de-coeur',
-      f:q=>q.eq('featured',true)
     },
     {
       tone:'ventes',
@@ -106,22 +107,22 @@ export default async function Home(){
       f:q=>q.eq('is_bestseller',true).not('availability','in','(arrival,preorder)')
     },
     {
-      tone:'promo',
-      title:'Promotions et bonnes affaires',
-      href:'/categorie/promotions',
-      f:q=>q.not('old_price','is',null).not('availability','in','(arrival,preorder)')
-    },
-    {
-      tone:'arrivages',
-      title:'Prochains arrivages',
-      href:'/categorie/arrivages',
-      f:q=>q.eq('availability','arrival')
+      tone:'coeur',
+      title:'Coups de cœur',
+      href:'/categorie/coups-de-coeur',
+      f:q=>q.eq('featured',true)
     },
     {
       tone:'precommandes',
       title:'Précommandes',
       href:'/categorie/precommandes',
       f:q=>q.eq('availability','preorder')
+    },
+    {
+      tone:'arrivages',
+      title:'Prochains arrivages',
+      href:'/categorie/arrivages',
+      f:q=>q.eq('availability','arrival')
     },
     {
       tone:'cadeaux',
@@ -150,7 +151,7 @@ export default async function Home(){
       .filter((x:any)=>x.availability!=='soldout');
 
     const fresh=all.filter((x:any)=>!seen.has(x.id));
-    const items=(fresh.length>=4?fresh:all).slice(0,16);
+    const items=(fresh.length>=4?fresh:all).slice(0,8);
 
     items.forEach((x:any)=>seen.add(x.id));
 
