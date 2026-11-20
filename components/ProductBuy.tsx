@@ -133,6 +133,8 @@ export default function ProductBuy({p}:{p:any}) {
   const [legacyV,setLegacyV]=useState('');
   const [selectedOptions,setSelectedOptions]=useState<Record<string,string>>({});
   const [pic,setPic]=useState<string|null>(null);
+  const [galleryOpen,setGalleryOpen]=useState(false);
+  const [touchStartX,setTouchStartX]=useState<number|null>(null);
   const [done,setDone]=useState(false);
   const [ack,setAck]=useState(false);
   const [descriptionExpanded,setDescriptionExpanded]=useState(false);
@@ -178,6 +180,33 @@ export default function ProductBuy({p}:{p:any}) {
   const vph=vimgs(cur);
   const thumbs=vph.length>0?vph:gen;
   const shown=(pic&&thumbs.includes(pic)?pic:null)||vph[0]||base;
+  const shownIndex=Math.max(0,thumbs.indexOf(shown));
+  const changePhoto=(direction:number)=>{
+    if(thumbs.length<2)return;
+    setPic(thumbs[(shownIndex+direction+thumbs.length)%thumbs.length]);
+  };
+  const handleSwipeEnd=(endX:number)=>{
+    if(touchStartX===null)return;
+    const delta=endX-touchStartX;
+    if(Math.abs(delta)>45)changePhoto(delta<0?1:-1);
+    setTouchStartX(null);
+  };
+
+  useEffect(()=>{
+    if(!galleryOpen)return;
+    const previousOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    const onKeyDown=(event:KeyboardEvent)=>{
+      if(event.key==='Escape')setGalleryOpen(false);
+      if(event.key==='ArrowRight')changePhoto(1);
+      if(event.key==='ArrowLeft')changePhoto(-1);
+    };
+    window.addEventListener('keydown',onKeyDown);
+    return ()=>{
+      document.body.style.overflow=previousOverflow;
+      window.removeEventListener('keydown',onKeyDown);
+    };
+  },[galleryOpen,shownIndex,thumbs.length]);
 
   const availableVariants=vs.filter((x:any)=>x&&typeof x==='object'&&['available','last'].includes(x.status||'available')&&(x.stock==null||Number(x.stock)>0));
   const availablePrices=availableVariants.map((x:any)=>Number(x.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
@@ -255,44 +284,39 @@ export default function ProductBuy({p}:{p:any}) {
 
       {/* GALERIE PHOTOS */}
       <div className="min-w-0 md:sticky md:top-24 md:self-start">
-        <div className="relative overflow-hidden rounded-2xl bg-white">
-          <div className="aspect-[4/5]">
+        <div className="relative overflow-hidden rounded-2xl border border-sand/70 bg-white shadow-sm">
+          <button type="button" onClick={()=>setGalleryOpen(true)}
+            onTouchStart={event=>setTouchStartX(event.touches[0]?.clientX??null)}
+            onTouchEnd={event=>handleSwipeEnd(event.changedTouches[0]?.clientX??0)}
+            aria-label="Agrandir la photo du produit"
+            className="group relative block aspect-[4/5] w-full cursor-zoom-in bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose">
             {shown&&(
               <img src={shown} alt={p.name}
-                className="h-full w-full bg-white object-contain transition duration-500"/>
+                draggable={false}
+                className="h-full w-full bg-white object-contain transition duration-500 group-hover:scale-[1.02]"/>
             )}
-          </div>
-
+            <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-plum shadow-sm">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M10.8 7.8v6M7.8 10.8h6"/>
+              </svg>
+              Agrandir
+            </span>
+          </button>
           <HeartButton id={p.id}/>
-
         </div>
 
         {thumbs.length>1&&(
           <div className="mt-3 flex items-center justify-center gap-4">
-            <button type="button" aria-label="Photo précédente"
-              onClick={()=>
-                setPic(thumbs[
-                  (Math.max(0,thumbs.indexOf(shown))-1+thumbs.length)%thumbs.length
-                ])
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-plum/15 bg-white text-plum shadow-sm transition hover:border-rose hover:bg-blush/30">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 5l-7 7 7 7"/>
-              </svg>
+            <button type="button" aria-label="Photo précédente" onClick={()=>changePhoto(-1)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-plum/20 bg-white text-plum shadow-sm transition hover:border-rose hover:bg-blush/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
             </button>
-            <span className="text-[10px] uppercase tracking-[0.16em] text-ink/50">
-              {Math.max(0,thumbs.indexOf(shown))+1} / {thumbs.length}
+            <span className="rounded-full bg-blush/40 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-plum">
+              {shownIndex+1} / {thumbs.length}
             </span>
-            <button type="button" aria-label="Photo suivante"
-              onClick={()=>
-                setPic(thumbs[
-                  (Math.max(0,thumbs.indexOf(shown))+1)%thumbs.length
-                ])
-              }
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-plum/15 bg-white text-plum shadow-sm transition hover:border-rose hover:bg-blush/30">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 5l7 7-7 7"/>
-              </svg>
+            <button type="button" aria-label="Photo suivante" onClick={()=>changePhoto(1)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-plum/20 bg-white text-plum shadow-sm transition hover:border-rose hover:bg-blush/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7"/></svg>
             </button>
           </div>
         )}
@@ -303,12 +327,60 @@ export default function ProductBuy({p}:{p:any}) {
               <button key={u} type="button" onClick={()=>setPic(u)}
                 aria-label={`Voir la photo ${i+1}`}
                 aria-pressed={u===shown}
-                className={`h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${
-                  u===shown?'border-rose shadow-sm':'border-transparent opacity-75 hover:opacity-100'
+                className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 bg-white p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose ${
+                  u===shown?'border-rose shadow-md ring-1 ring-rose/20':'border-sand opacity-80 hover:border-plum/40 hover:opacity-100'
                 }`}>
                 <img src={u} alt="" className="h-full w-full object-contain bg-white"/>
+                {u===shown&&<span className="absolute inset-x-1 bottom-1 h-0.5 rounded-full bg-rose"/>}
               </button>
             ))}
+          </div>
+        )}
+
+        {galleryOpen&&(
+          <div role="dialog" aria-modal="true" aria-label={`Galerie photos de ${p.name}`}
+            onClick={()=>setGalleryOpen(false)}
+            onTouchStart={event=>setTouchStartX(event.touches[0]?.clientX??null)}
+            onTouchEnd={event=>handleSwipeEnd(event.changedTouches[0]?.clientX??0)}
+            className="fixed inset-0 z-[1000] flex flex-col bg-white/[0.98] p-3 backdrop-blur-sm sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-xs font-medium uppercase tracking-[0.16em] text-plum">{p.name}</span>
+              <button type="button" aria-label="Fermer la galerie" onClick={()=>setGalleryOpen(false)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-plum/15 bg-white text-plum shadow-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m18 6-12 12M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="relative flex min-h-0 flex-1 items-center justify-center py-4" onClick={event=>event.stopPropagation()}>
+              {shown&&<img src={shown} alt={p.name} draggable={false} className="max-h-full max-w-full select-none object-contain"/>}
+              {thumbs.length>1&&(
+                <>
+                  <button type="button" aria-label="Photo précédente" onClick={()=>changePhoto(-1)}
+                    className="absolute left-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-plum/15 bg-white/95 text-plum shadow-md sm:left-4">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+                  </button>
+                  <button type="button" aria-label="Photo suivante" onClick={()=>changePhoto(1)}
+                    className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-plum/15 bg-white/95 text-plum shadow-md sm:right-4">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-3 pb-2">
+              <span className="rounded-full bg-blush/50 px-4 py-2 text-xs font-medium tracking-wider text-plum">{shownIndex+1} / {thumbs.length}</span>
+            </div>
+            {thumbs.length>1&&(
+              <div className="flex justify-center gap-2 overflow-x-auto pb-2">
+                {thumbs.map((u,i)=>(
+                  <button key={u} type="button" onClick={event=>{event.stopPropagation();setPic(u);}}
+                    aria-label={`Afficher la photo ${i+1}`} aria-pressed={u===shown}
+                    className={`h-14 w-12 shrink-0 overflow-hidden rounded-lg border-2 bg-white p-0.5 ${
+                      u===shown?'border-rose':'border-sand opacity-70'
+                    }`}>
+                    <img src={u} alt="" className="h-full w-full object-contain"/>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
