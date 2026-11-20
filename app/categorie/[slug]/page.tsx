@@ -255,7 +255,8 @@ export default async function Cat({
   const allProducts = [...(data || [])];
   const productPrice = (p:any) => {
     const vars=Array.isArray(p.variants)?p.variants:[];
-    const prices=vars.filter((v:any)=>v&&typeof v==='object'&&['available','last'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0))
+    const reservable=p.availability==='preorder'||p.availability==='arrival';
+    const prices=vars.filter((v:any)=>v&&typeof v==='object'&&['available','last','preorder','arrival'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0||reservable))
       .map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
     return prices.length?Math.min(...prices):Number(p.price)||0;
   };
