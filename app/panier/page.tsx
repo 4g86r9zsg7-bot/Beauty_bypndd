@@ -564,6 +564,28 @@ export default function Panier(){
             <section className={card}>
               <h2 className={h2}>Récapitulatif</h2>
 
+              {(()=>{
+                const hasPreorder=lines.some((l:any)=>l.pre);
+                const hasRegular=lines.some((l:any)=>!l.pre);
+                return (
+                  <div className="mt-4 rounded-2xl border border-rose/20 bg-blush/30 p-4">
+                    <p className="text-sm font-semibold text-plum">Délai estimé de livraison</p>
+                    <div className="mt-2 space-y-2 text-xs leading-relaxed text-ink/75">
+                      {hasRegular&&(
+                        <p><b>Articles disponibles :</b> {DELIVERY} après confirmation de la commande.</p>
+                      )}
+                      {hasPreorder&&(
+                        <p><b>Articles en précommande :</b> {PREORDER}. Le délai exact sera confirmé par WhatsApp.</p>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-ink/50">
+                      Cette estimation est indicative et commence après confirmation de votre commande.
+                    </p>
+                  </div>
+                );
+              })()}
+
+
               {freeOver>0&&(
                 <div className="mt-5 rounded-2xl border border-rose/15 bg-gradient-to-br from-blush/50 to-white p-4">
                   <div className="flex items-center justify-between gap-3">
