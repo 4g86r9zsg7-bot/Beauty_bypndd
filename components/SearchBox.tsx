@@ -53,7 +53,8 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
   const [items,setItems]=useState<any[]>([]);
   const [total,setTotal]=useState(0);
   const [open,setOpen]=useState(false);
-  const [loading,setLoading]=useState(false);\n  const [fuzzy,setFuzzy]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [fuzzy,setFuzzy]=useState(false);
   const ref=useRef<HTMLDivElement>(null);
   const inp=useRef<HTMLInputElement>(null);
   const seq=useRef(0);
