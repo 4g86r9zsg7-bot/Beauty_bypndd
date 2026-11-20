@@ -14,15 +14,11 @@ export default function TrustBlock({p}:{p:any}){
     availabilityText='Article actuellement indisponible. Contactez-nous pour connaître son retour.';
   }
 
-  const productInfo=p.brands?.name
-    ?`Marque indiquée sur la fiche : ${p.brands.name}.`
-    :'Consultez la description et les photos pour découvrir les informations disponibles sur cet article.';
-
   return (
     <section className="mt-10 grid gap-5 border-t border-sand pt-6 text-sm sm:grid-cols-3">
       <div>
-        <p className={h}>Informations produit</p>
-        <p className="mt-1 text-ink/80">{productInfo} Les détails communiqués sont présentés sur la fiche produit.</p>
+        <p className={h}>Authenticité garantie</p>
+        <p className="mt-1 text-ink/80">Chez BeautyByPND, nous proposons exclusivement des produits authentiques. Nous accordons une attention particulière à la provenance et à la qualité de chaque article afin de vous offrir une expérience d’achat en toute confiance.</p>
       </div>
       <div>
         <p className={h}>Disponibilité et délai</p>
