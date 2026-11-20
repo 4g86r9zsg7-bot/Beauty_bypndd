@@ -293,6 +293,27 @@ export default function ProductBuy({p}:{p:any}) {
       ].filter(Boolean).join('\\n')
     )}`;
 
+  const shareProduct=async()=>{
+    const productUrl=`https://beautybypndd.com/produit/${p.slug}`;
+    const shareText=[
+      `Découvrez ${p.name} chez BeautyByPND !`,
+      `Prix : ${eur(price)}`,
+      v?`Variante : ${v}`:null,
+      'Retrouvez la photo et tous les détails du produit en ouvrant ce lien :',
+      productUrl
+    ].filter(Boolean).join('\n');
+
+    if(typeof navigator!=='undefined'&&typeof navigator.share==='function'){
+      try{
+        await navigator.share({title:p.name,text:shareText,url:productUrl});
+        return;
+      }catch(error:any){
+        if(error?.name==='AbortError')return;
+      }
+    }
+
+    window.location.href=`https://wa.me/?text=${encodeURIComponent(shareText)}`;
+  };
   const resetSelection=()=>{
     setPic(null);
     setDone(false);
@@ -438,6 +459,19 @@ export default function ProductBuy({p}:{p:any}) {
         )}
 
         <h1 className="mt-3 font-serif text-3xl leading-tight text-ink md:text-4xl">{p.name}</h1>
+
+        <button type="button"
+          onClick={shareProduct}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-plum/25 bg-white px-4 py-2.5 text-xs font-semibold tracking-wide text-plum transition hover:border-plum hover:bg-blush/30 active:scale-[0.98]"
+          aria-label={`Partager ${p.name}`}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/>
+          </svg>
+          Partager ce produit
+        </button>
 
         {p.rating_count>0&&(
           <a href="#avis" className="mt-4 inline-flex items-center gap-2 text-sm text-plum">
