@@ -179,8 +179,12 @@ export default function ProductBuy({p}:{p:any}) {
   const thumbs=vph.length>0?vph:gen;
   const shown=(pic&&thumbs.includes(pic)?pic:null)||vph[0]||base;
 
-  const price=Number(cur?.price??p.price);
-  const promo=cur?.price==null&&p.old_price&&p.old_price>p.price;
+  const availableVariants=vs.filter((x:any)=>x&&typeof x==='object'&&['available','last'].includes(x.status||'available')&&(x.stock==null||Number(x.stock)>0));
+  const availablePrices=availableVariants.map((x:any)=>Number(x.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
+  const startPrice=availablePrices.length?Math.min(...availablePrices):Number(p.price);
+  const hasPriceRange=!cur&&availablePrices.length>1&&Math.max(...availablePrices)!==Math.min(...availablePrices);
+  const price=Number(cur?.price??(availablePrices.length?startPrice:p.price));
+  const promo=cur?.price==null&&p.old_price&&p.old_price>price;
 
   const pre=p.availability==='preorder';
   const arrival=p.availability==='arrival';
@@ -332,7 +336,7 @@ export default function ProductBuy({p}:{p:any}) {
         )}
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <span className="font-serif text-3xl text-plum">{eur(price)}</span>
+          <span className="font-serif text-3xl text-plum">{hasPriceRange?`À partir de ${eur(price)}`:eur(price)}</span>
           {promo&&(
             <>
               <s className="text-sm text-ink/40">{eur(p.old_price)}</s>
