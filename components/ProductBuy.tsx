@@ -265,7 +265,15 @@ export default function ProductBuy({p}:{p:any}) {
 
   const wa=(s:string)=>
     `https://wa.me/${WA}?text=${encodeURIComponent(
-      `Bonjour, ${s} : ${p.name}${v?` (${v})`:''} - ${price} DH`
+      [
+        `Bonjour BeautyByPND ! Je souhaite ${s} le produit suivant :`,
+        `Produit : ${p.name}`,
+        v?`Variante : ${v}`:null,
+        `Prix : ${price} DH`,
+        p.slug?`Lien du produit : https://beautybypnd.com/produit/${p.slug}`:null,
+        '',
+        'Pouvez-vous me confirmer sa disponibilité et les modalités de livraison ?'
+      ].filter(Boolean).join('\\n')
     )}`;
 
   const resetSelection=()=>{
