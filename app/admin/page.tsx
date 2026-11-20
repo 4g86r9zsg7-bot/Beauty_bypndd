@@ -137,6 +137,44 @@ const toRows=(p:any)=>(p?.variants||[]).map((x:any)=>
 const hasObjVars=(p:any)=>
   Array.isArray(p.variants)&&p.variants.some((x:any)=>typeof x==='object');
 
+const normalizeBrand=(value:any)=>
+  String(value||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\\u0300-\\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+
+const PREMIUM_BRANDS=[
+  'charlotte tilbury','dior','gisou','givenchy','grande cosmetics',
+  'kayali','narciso rodriguez','olaplex','rituals',
+  'sol de janeiro','valentino','ysl','jean paul gaultier','jean paul gautier'
+];
+
+const LOW_PRICE_BRANDS=[
+  'action','carmex','cien','deliplus','e l f','got2b','innovit',
+  'mercadona','primark','shein','vaseline'
+];
+
+const KNOWN_BRANDS=[
+  'aldo','anua','arencia','babyliss','bath body works','beauty of joseon',
+  'benefit cosmetics','bershka','calvin klein','celimax','centella',
+  'guess','huda beauty','kerastase','kiko milano','marvis','medicube',
+  'mielle','nature s bounty','nyx','panoxyl','real techniques','remington',
+  'skin1004','some by mi','the ordinary','victoria s secret','zara'
+];
+
+const getBrandRange=(name:any):string=>{
+  const normalized=normalizeBrand(name);
+  if(!normalized)return '';
+  if(LOW_PRICE_BRANDS.includes(normalized))return 'petit_prix';
+  if(PREMIUM_BRANDS.includes(normalized))return 'premium';
+  if(KNOWN_BRANDS.includes(normalized))return 'marques';
+  return '';
+};
+
+
+
 const autoAv=(av:string,n:number)=>
   ['available','last','soldout'].includes(av)
     ?(n<=0?'soldout':n<=3?'last':'available')
@@ -185,6 +223,7 @@ export default function Admin(){
   const [edit,setEdit]=useState<any>(null);
   const [importedProduct,setImportedProduct]=useState<any>(null);
   const [formVersion,setFormVersion]=useState(0);
+  const [commercialRange,setCommercialRange]=useState('');
   const [imgs,setImgs]=useState<string[]>([]);
   const [search,setSearch]=useState('');
   const [flt,setFlt]=useState('all');
@@ -492,6 +531,7 @@ export default function Admin(){
           :''
     });
 
+    setCommercialRange(getBrandRange(matchedBrand?.name||product.brand));
     setImgs(Array.isArray(product.images)?product.images:[]);
     setVrows(importedVariants);
     setOptionGroups(getOptionGroups({variants:importedVariants}));
@@ -508,6 +548,7 @@ export default function Admin(){
 
   const resetNew=()=>{
     setEdit(null);
+    setCommercialRange('');
     setImgs([]);
     setVrows([]);
     setOptionGroups([]);
@@ -765,6 +806,7 @@ export default function Admin(){
 
   const startEdit=(p:any)=>{
     setEdit(p);
+    setCommercialRange(p.commercial_range||getBrandRange(p.brands?.name||brands.find((b:any)=>b.id===p.brand_id)?.name));
     setImportedProduct(null);
     setVrows(toRows(p));
     setOptionGroups(getOptionGroups(p));
@@ -1430,6 +1472,10 @@ export default function Admin(){
           <select
             name="brand"
             defaultValue={importedProduct?.brand_id??edit?.brand_id??''}
+            onChange={e=>{
+              const selected=brands.find((b:any)=>b.id===e.target.value);
+              setCommercialRange(getBrandRange(selected?.name));
+            }}
             className="border p-2"
           >
             <option value="">Marque</option>
@@ -1443,16 +1489,23 @@ export default function Admin(){
             className="border p-2"
           />
 
-          <select
-            name="commercial_range"
-            defaultValue={edit?.commercial_range||''}
-            className="border p-2"
-          >
-            <option value="">Aucune gamme</option>
-            <option value="petit_prix">Petit prix</option>
-            <option value="marques">Marques</option>
-            <option value="premium">Premium</option>
-          </select>
+          <label className="grid gap-1 text-sm">
+            Gamme du produit
+            <select
+              name="commercial_range"
+              value={commercialRange}
+              onChange={e=>setCommercialRange(e.target.value)}
+              className="border p-2"
+            >
+              <option value="">À définir</option>
+              <option value="petit_prix">Petit prix</option>
+              <option value="marques">Marques</option>
+              <option value="premium">Premium</option>
+            </select>
+            <span className="text-xs text-ink/60">
+              La gamme est proposée automatiquement selon la marque. Tu peux toujours la modifier.
+            </span>
+          </label>
 
           <select name="cat" defaultValue={edit?.category_id||''} className="border p-2">
             <option value="">Catégorie</option>
