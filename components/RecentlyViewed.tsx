@@ -48,6 +48,15 @@ export default function RecentlyViewed({product}:{product:any}){
         current,
         ...previous.filter((item:any)=>item&&item.id!==product.id)
       ].slice(0,MAX_RECENT+1)));
+
+      // Historique léger des produits réellement ouverts, utilisé pour varier l'accueil.
+      const viewedKey='beautybypndd_viewed_products';
+      const savedViewed=JSON.parse(localStorage.getItem(viewedKey)||'[]');
+      const viewedIds=Array.isArray(savedViewed)?savedViewed.filter((id:any)=>typeof id==='string'):[];
+      localStorage.setItem(viewedKey,JSON.stringify([
+        product.id,
+        ...viewedIds.filter((id:any)=>id!==product.id)
+      ].slice(0,500)));
     }catch{
       // Le site reste utilisable même si le stockage local est indisponible.
     }
