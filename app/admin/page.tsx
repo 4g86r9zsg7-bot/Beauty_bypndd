@@ -852,9 +852,17 @@ export default function Admin(){
       return;
     }
 
+    const targetType=pf.target_type||'all';
+    const targetId=targetType==='all'?null:pf.target_id||null;
+    if(targetType!=='all'&&!targetId){setMsg('Choisis la cible de ce code promo.');return;}
+    if(targetType==='variant'&&!pf.target_variant){setMsg('Choisis aussi la variante concernée.');return;}
+
     const row:any={
       code,
       kind:pf.kind,
+      target_type:targetType,
+      target_id:targetId,
+      target_variant:targetType==='variant'?pf.target_variant:null,
       percent:pf.kind==='percent'?Math.min(90,Math.round(v)):null,
       amount:pf.kind==='fixed'?v:null,
       starts_at:pf.starts?new Date(pf.starts+'T00:00:00').toISOString():null,
@@ -869,7 +877,7 @@ export default function Admin(){
     setMsg(error?error.message:'Code enregistré');
 
     if(!error){
-      setPf({kind:'percent',active:true});
+      setPf({kind:'percent',active:true,target_type:'all'});
       load();
     }
   };
@@ -881,7 +889,10 @@ export default function Admin(){
     starts:c.starts_at?ld(c.starts_at):'',
     ends:c.expires_at?ld(c.expires_at):'',
     max:c.max_uses??'',
-    active:c.active
+    active:c.active,
+    target_type:c.target_type||'all',
+    target_id:c.target_id||'',
+    target_variant:c.target_variant||''
   });
 
   const togglePromo=async(c:any)=>{
@@ -1043,6 +1054,36 @@ export default function Admin(){
                 placeholder="Valeur"
                 className="w-28 border p-2"
               />
+            </div>
+
+            <div className="rounded-xl border border-sand bg-blush/20 p-3">
+              <label className="block text-xs font-semibold text-plum">
+                Ce code s’applique à
+                <select value={pf.target_type||'all'} onChange={e=>setPf({...pf,target_type:e.target.value,target_id:'',target_variant:''})} className="mt-1 w-full border bg-white p-2">
+                  <option value="all">Tout le catalogue</option>
+                  <option value="category">Une catégorie</option>
+                  <option value="brand">Une marque</option>
+                  <option value="product">Un produit précis</option>
+                  <option value="variant">Une variante précise</option>
+                </select>
+              </label>
+              {pf.target_type==='category'&&<select value={pf.target_id||''} onChange={e=>setPf({...pf,target_id:e.target.value})} className="mt-2 w-full border bg-white p-2">
+                <option value="">Choisir une catégorie</option>
+                {[...cats].sort((a:any,b:any)=>String(a.name).localeCompare(String(b.name))).map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>}
+              {pf.target_type==='brand'&&<select value={pf.target_id||''} onChange={e=>setPf({...pf,target_id:e.target.value})} className="mt-2 w-full border bg-white p-2">
+                <option value="">Choisir une marque</option>
+                {[...brands].sort((a:any,b:any)=>String(a.name).localeCompare(String(b.name))).map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>}
+              {(pf.target_type==='product'||pf.target_type==='variant')&&<select value={pf.target_id||''} onChange={e=>setPf({...pf,target_id:e.target.value,target_variant:''})} className="mt-2 w-full border bg-white p-2">
+                <option value="">Choisir un produit</option>
+                {[...prods].sort((a:any,b:any)=>String(a.name).localeCompare(String(b.name))).map((p:any)=><option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>}
+              {pf.target_type==='variant'&&pf.target_id&&<select value={pf.target_variant||''} onChange={e=>setPf({...pf,target_variant:e.target.value})} className="mt-2 w-full border bg-white p-2">
+                <option value="">Choisir une variante</option>
+                {(prods.find((p:any)=>p.id===pf.target_id)?.variants||[]).map((v:any,i:number)=><option key={String(v?.name||v)+'-'+i} value={typeof v==='string'?v:v?.name||''}>{typeof v==='string'?v:v?.name||('Variante '+(i+1))}</option>)}
+              </select>}
+              <p className="mt-2 text-[11px] text-ink/55">Une seule cible par code. La réduction sera calculée uniquement sur les articles concernés.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
