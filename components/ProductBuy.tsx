@@ -255,11 +255,11 @@ export default function ProductBuy({p}:{p:any}) {
 
       {/* GALERIE PHOTOS */}
       <div className="min-w-0 md:sticky md:top-24 md:self-start">
-        <div className="relative overflow-hidden rounded-2xl bg-sand">
+        <div className="relative overflow-hidden rounded-2xl bg-white">
           <div className="aspect-[4/5]">
             {shown&&(
               <img src={shown} alt={p.name}
-                className="h-full w-full object-contain transition duration-500"/>
+                className="h-full w-full bg-white object-contain transition duration-500"/>
             )}
           </div>
 
