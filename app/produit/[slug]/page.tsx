@@ -158,7 +158,8 @@ export default async function P({params}:{params:{slug:string}}){
   const images=getImages(p.images);
   const productUrl=`${SITE}/produit/${p.slug}`;
 
-  const schemaVariants=Array.isArray(p.variants)?p.variants.filter((v:any)=>v&&typeof v==='object'&&['available','last'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0)):[];
+  const schemaReservable=p.availability==='preorder'||p.availability==='arrival';
+  const schemaVariants=Array.isArray(p.variants)?p.variants.filter((v:any)=>v&&typeof v==='object'&&['available','last','preorder','arrival'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0||schemaReservable)):[];
   const schemaPrices=schemaVariants.map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
   const schemaPrice=schemaPrices.length?Math.min(...schemaPrices):Number(p.price);
 
