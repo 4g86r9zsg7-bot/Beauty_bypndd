@@ -220,7 +220,6 @@ export default async function P({params}:{params:{slug:string}}){
       </nav>
 
       <ProductBuy p={{...p,rating_avg:avg,rating_count:rl.length}}/>
-      <RecentlyViewed product={p}/>
 
       <ProductOfferUpsell
         productId={String(p.id)}
@@ -237,6 +236,8 @@ export default async function P({params}:{params:{slug:string}}){
         exclude={[p.id]}
         limit={4}
       />
+
+      <RecentlyViewed product={p}/>
     </>
   );
 }
