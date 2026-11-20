@@ -8,7 +8,6 @@ import {WA} from '@/lib/supabase';
 import CartLink from '@/components/CartLink';
 import SideMenu from '@/components/SideMenu';
 import Shortcuts from '@/components/Shortcuts';
-import BellLink from '@/components/BellLink';
 import HeaderSearch from '@/components/HeaderSearch';
 import BackToTop from '@/components/BackToTop';
 import {ClientProvider} from '@/components/ClientProvider';
@@ -104,7 +103,12 @@ export default function L({children}:{children:React.ReactNode}){
               </div>
               <div className="flex items-center gap-0.5">
                 <HeaderSearch/>
-                <BellLink/>
+                <Link href="/compte" aria-label="Espace client" title="Espace client" className="flex h-10 w-10 items-center justify-center rounded-full text-white transition hover:bg-white/10 hover:text-[#EE6FB0]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="8" r="3.5"/>
+                    <path d="M5 20a7 7 0 0 1 14 0"/>
+                  </svg>
+                </Link>
                 <CartLink/>
               </div>
             </div>
