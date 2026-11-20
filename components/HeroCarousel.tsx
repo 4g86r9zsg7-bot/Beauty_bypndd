@@ -59,8 +59,8 @@ export default function HeroCarousel({
   ];
 
   return (
-    <section className="relative left-1/2 z-10 w-screen -translate-x-1/2 overflow-hidden bg-[#14040c] text-white lg:-mt-6">
-      <div className="relative min-h-[610px] md:min-h-[540px]">
+    <section className="relative left-1/2 z-40 w-screen -translate-x-1/2 bg-[#14040c] text-white lg:-mt-6">
+      <div className="relative min-h-[610px] overflow-hidden md:min-h-[540px]">
 
         {slides.map((slide,index)=>(
           <div
