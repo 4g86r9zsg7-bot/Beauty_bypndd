@@ -220,7 +220,7 @@ export default function ProductBuy({p}:{p:any}) {
     :mode==='reserve'?'Prochain arrivage'
     :mode==='notify'?'Épuisé'
     :(vst==='last'||(left!=null&&left>0&&left<=3))
-    ?`Dernières pièces (${left} restant${left>1?'s':''})`
+    ?'Dernières pièces disponibles'
     :`Disponible immédiatement · livraison ${DELIVERY}`;
 
   const label=(x:any)=>{
