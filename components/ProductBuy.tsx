@@ -499,6 +499,11 @@ export default function ProductBuy({p}:{p:any}) {
             </>
           )}
         </div>
+        {hasPriceRange&&(
+          <p className="mt-1.5 text-xs leading-relaxed text-ink/55">
+            Le prix varie selon l’option choisie.
+          </p>
+        )}
 
         {!needV&&(
           <div className={`mt-4 flex flex-col gap-1.5 rounded-xl border p-3.5 ${
@@ -720,6 +725,7 @@ export default function ProductBuy({p}:{p:any}) {
                           {unavailable&&<span className="absolute inset-0 flex items-center justify-center"><span className="h-[2px] w-12 rotate-[-45deg] rounded-full bg-ink/70"/></span>}
                         </span>
                         <span className={`max-w-full break-words text-[10px] leading-tight ${on?'font-semibold text-plum':'text-ink/80'}`}>{x.name}</span>
+                        {x.price!=null&&<span className="text-[9px] font-medium text-plum">{eur(Number(x.price))}</span>}
                         {unavailable&&<span className="text-[9px] text-ink/45">Épuisé</span>}
                       </>
                     ):(
