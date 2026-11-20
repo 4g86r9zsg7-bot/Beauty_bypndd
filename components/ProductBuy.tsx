@@ -341,7 +341,7 @@ export default function ProductBuy({p}:{p:any}) {
             <>
               <s className="text-sm text-ink/40">{eur(p.old_price)}</s>
               <span className="rounded-full bg-blush px-3 py-1 text-xs font-semibold text-plum">
-                -{Math.round(100-p.price/p.old_price*100)}%
+                -{Math.round(100-price/p.old_price*100)}%
               </span>
             </>
           )}
