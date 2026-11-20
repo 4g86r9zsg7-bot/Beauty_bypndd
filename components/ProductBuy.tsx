@@ -225,7 +225,13 @@ export default function ProductBuy({p}:{p:any}) {
     };
   },[galleryOpen,shownIndex,thumbs.length]);
 
-  const availableVariants=vs.filter((x:any)=>x&&typeof x==='object'&&['available','last'].includes(x.status||'available')&&(x.stock==null||Number(x.stock)>0));
+  const availableVariants=vs.filter((x:any)=>{
+    if(!x||typeof x!=='object')return false;
+    const status=x.status||'available';
+    if(status==='soldout')return false;
+    if(status==='preorder'||status==='arrival')return true;
+    return ['available','last'].includes(status)&&(x.stock==null||Number(x.stock)>0);
+  });
   const availablePrices=availableVariants.map((x:any)=>Number(x.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
   const startPrice=availablePrices.length?Math.min(...availablePrices):Number(p.price);
   const hasPriceRange=!cur&&availablePrices.length>1&&Math.max(...availablePrices)!==Math.min(...availablePrices);
