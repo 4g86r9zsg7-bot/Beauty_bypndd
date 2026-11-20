@@ -15,12 +15,45 @@ const lab=(p:any)=>
     :p.availability==='preorder'?'Précommande'
     :p.availability==='arrival'?'Arrivage':'';
 
+const norm=(s:any)=>String(s??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+
+const editDistance=(a:string,b:string)=>{
+  const prev=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+    let diagonal=prev[0];
+    prev[0]=i;
+    for(let j=1;j<=b.length;j++){
+      const old=prev[j];
+      prev[j]=Math.min(prev[j]+1,prev[j-1]+1,diagonal+(a[i-1]===b[j-1]?0:1));
+      diagonal=old;
+    }
+  }
+  return prev[b.length];
+};
+
+const typoScore=(query:string,candidate:string)=>{
+  const q=norm(query), c=norm(candidate);
+  if(!q||!c)return 0;
+  if(c.includes(q)||q.includes(c))return 1;
+  const qt=q.split(' ').filter(Boolean), ct=c.split(' ').filter(Boolean);
+  const scores=qt.map(token=>{
+    let best=0;
+    for(const word of ct){
+      const d=editDistance(token,word);
+      const score=1-d/Math.max(token.length,word.length,1);
+      if(score>best)best=score;
+    }
+    return best;
+  });
+  return scores.reduce((a,b)=>a+b,0)/scores.length;
+};
+
 export default function SearchBox({compact=false}:{compact?:boolean}){
   const [v,setV]=useState('');
   const [items,setItems]=useState<any[]>([]);
   const [total,setTotal]=useState(0);
   const [open,setOpen]=useState(false);
-  const [loading,setLoading]=useState(false);
+  const [loading,setLoading]=useState(false);\n  const [fuzzy,setFuzzy]=useState(false);
   const ref=useRef<HTMLDivElement>(null);
   const inp=useRef<HTMLInputElement>(null);
   const seq=useRef(0);
@@ -63,8 +96,39 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
         .limit(30);
 
       if(id!==seq.current)return;
-      setItems([...(data||[])].sort((a:any,b:any)=>rk(a)-rk(b)).slice(0,6));
-      setTotal(count||0);
+
+      let found=[...(data||[])];
+      let usedFuzzy=false;
+      let foundTotal=count||0;
+
+      if(!found.length){
+        const {data:pool}=await supabase
+          .from('products')
+          .select('id,slug,name,price,images,availability,stock,brands(name)')
+          .eq('active',true)
+          .limit(1000);
+
+        if(id!==seq.current)return;
+
+        const ranked=(pool||[])
+          .map((p:any)=>({
+            p,
+            score:Math.max(
+              typoScore(t,p.name),
+              typoScore(t,p.brands?.name)
+            )
+          }))
+          .filter((x:any)=>x.score>=0.62)
+          .sort((a:any,b:any)=>b.score-a.score||rk(a.p)-rk(b.p));
+
+        found=ranked.slice(0,6).map((x:any)=>x.p);
+        foundTotal=ranked.length;
+        usedFuzzy=found.length>0;
+      }
+
+      setItems(found.sort((a:any,b:any)=>rk(a)-rk(b)).slice(0,6));
+      setTotal(foundTotal);
+      setFuzzy(usedFuzzy);
       setLoading(false);
     },180);
 
@@ -173,11 +237,11 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
 
           {items.length>0&&(
             <Link
-              href={`/categorie/tous?q=${encodeURIComponent(t)}`}
+              href={`/categorie/tous?q=${encodeURIComponent(fuzzy?(items[0]?.name||t):t)}`}
               onClick={()=>setOpen(false)}
               className="block px-4 py-3.5 text-center text-[11px] uppercase tracking-[0.18em] text-rose"
             >
-              Voir tous les résultats{total>items.length?` (${total})`:''}
+              {fuzzy?'Voir les résultats proches':'Voir tous les résultats'}{total>items.length?` (${total})`:''}
             </Link>
           )}
         </div>
