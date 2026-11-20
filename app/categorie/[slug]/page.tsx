@@ -31,6 +31,7 @@ const FIXED: Record<string, {title: string; desc: string; filter?: (q: any) => a
 
 const SORTS: [string, string][] = [
   ['', 'Plus récents'],
+  ['old', 'Les plus anciens'],
   ['pop', 'Plus vendus'],
   ['asc', 'Prix croissant'],
   ['desc', 'Prix décroissant']
@@ -236,7 +237,7 @@ export default async function Cat({
     ? q.order('price', {ascending: false})
     : o === 'pop'
     ? q.order('sold', {ascending: false})
-    : q.order('created_at', {ascending: false});
+    : q.order('created_at', {ascending: o === 'old'});
 
   const [{data}, {data: b}] = await Promise.all([
     q,
@@ -266,6 +267,7 @@ export default async function Cat({
       if(o==='asc')return productPrice(x)-productPrice(y);
       if(o==='desc')return productPrice(y)-productPrice(x);
       if(o==='pop')return Number(y.sold||0)-Number(x.sold||0);
+      if(o==='old')return rank(x)-rank(y)||new Date(x.created_at).getTime()-new Date(y.created_at).getTime();
       return rank(x)-rank(y);
     });
 
