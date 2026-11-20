@@ -78,7 +78,7 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
     <div
       ref={ref}
       className={compact
-        ?'relative z-50 w-full rounded-2xl bg-white p-3 text-ink shadow-2xl'
+        ?'relative w-full rounded-2xl bg-white p-3 text-ink shadow-2xl'
         :'relative z-50 mx-auto mt-8 w-full max-w-xl'}
     >
       {!compact&&(
