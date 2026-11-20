@@ -77,7 +77,7 @@ export default async function Home(){
       &&(!ends||ends>now)
       &&(max===null||uses<max)
       &&value>0;
-  }).slice(0,4);
+  });
 
   const nowIso=now.toISOString();
 
