@@ -244,6 +244,7 @@ export default function Admin(){
   const [oq,setOq]=useState('');
   const [fb,setFb]=useState('');
   const [fc,setFc]=useState('');
+  const [sortProducts,setSortProducts]=useState('recent');
 
   async function check(){
     const {data:{user}}=await supabase.auth.getUser();
@@ -418,8 +419,8 @@ export default function Admin(){
   const norm=(x:string)=>
     (x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
-  const shown=prods.filter(p=>
-    (!search||norm(`${p.name} ${p.brands?.name||''}`).includes(norm(search)))&&
+  const filteredProducts=prods.filter(p=>
+    (!search||norm(`${p.name} ${p.brands?.name||''} ${p.source_name||''} ${p.slug||''}`).includes(norm(search)))&&
     (!fb||p.brand_id===fb)&&
     (!fc||p.category_id===fc)&&
     (
@@ -433,9 +434,26 @@ export default function Admin(){
       (flt==='nodesc'&&(!String(p.description||'').trim()))||
       (flt==='petit_prix'&&p.commercial_range==='petit_prix')||
       (flt==='marques'&&p.commercial_range==='marques')||
-      (flt==='premium'&&p.commercial_range==='premium')
+      (flt==='premium'&&p.commercial_range==='premium')||
+      (flt==='new'&&!!p.is_new)||
+      (flt==='bestseller'&&!!p.is_bestseller)||
+      (flt==='featured'&&!!p.featured)||
+      (flt==='promo'&&Number(p.old_price)>Number(p.price))||
+      (flt==='lowstock'&&p.active&&!['preorder','arrival','soldout'].includes(p.availability)&&Number(p.stock)>0&&Number(p.stock)<=3)||
+      (flt==='variants'&&Array.isArray(p.variants)&&p.variants.length>0)||
+      (flt==='novariants'&&(!Array.isArray(p.variants)||p.variants.length===0))
     )
   );
+  const shown=[...filteredProducts].sort((a,b)=>{
+    if(sortProducts==='name_asc')return String(a.name||'').localeCompare(String(b.name||''),'fr');
+    if(sortProducts==='name_desc')return String(b.name||'').localeCompare(String(a.name||''),'fr');
+    if(sortProducts==='price_asc')return Number(a.price||0)-Number(b.price||0);
+    if(sortProducts==='price_desc')return Number(b.price||0)-Number(a.price||0);
+    if(sortProducts==='stock_asc')return Number(a.stock||0)-Number(b.stock||0);
+    if(sortProducts==='stock_desc')return Number(b.stock||0)-Number(a.stock||0);
+    if(sortProducts==='oldest')return new Date(a.created_at||0).getTime()-new Date(b.created_at||0).getTime();
+    return new Date(b.created_at||0).getTime()-new Date(a.created_at||0).getTime();
+  });
 
   const changeStatus=async(id:string,status:string)=>{
     if(busyId)return;
@@ -1478,25 +1496,32 @@ export default function Admin(){
             Plus vendus : {[...prods].sort((a,b)=>b.sold-a.sold).slice(0,3).map(p=>`${p.name} (${p.sold})`).join(', ')||'—'}
           </p>
 
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <input
               value={search}
               onChange={e=>setSearch(e.target.value)}
-              placeholder="Rechercher un produit ou une marque"
-              className="flex-1 border p-3 rounded-full"
+              placeholder="Rechercher par nom, marque ou référence"
+              className="w-full border p-3 rounded-full"
             />
 
             <select
               value={flt}
               onChange={e=>setFlt(e.target.value)}
-              className="border p-2 rounded-full"
+              className="w-full border p-3 rounded-full"
             >
-              <option value="all">Tous</option>
+              <option value="all">Tous les produits</option>
               <option value="stock">En vente</option>
               <option value="out">Épuisés</option>
               <option value="hidden">Masqués</option>
+              <option value="lowstock">Stock faible (1 à 3)</option>
               <option value="preorder">Précommandes</option>
               <option value="arrival">Arrivages</option>
+              <option value="new">Nouveautés</option>
+              <option value="bestseller">Best-sellers</option>
+              <option value="featured">Mis en avant</option>
+              <option value="promo">En promotion</option>
+              <option value="variants">Avec variantes</option>
+              <option value="novariants">Sans variantes</option>
               <option value="noimage">Sans photo</option>
               <option value="nodesc">Sans description</option>
               <option value="petit_prix">Gamme Petit prix</option>
