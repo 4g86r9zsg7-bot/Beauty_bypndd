@@ -778,13 +778,17 @@ export default function Admin(){
     setVrows(previous=>previous.map((r,j)=>j===i?{...r,...patch}:r));
 
   const toggleRev=async(id:string,published:boolean)=>{
-    await supabase.from('reviews').update({published}).eq('id',id);
+    const review=revs.find(r=>r.id===id);
+    const {error}=await supabase.from('reviews').update({published}).eq('id',id);
+    if(!error)await logActivity(published?'Publication avis':'Masquage avis','avis',id,review?.name||'Avis',{published});
     load();
   };
 
   const delRev=async(id:string)=>{
     if(confirm('Supprimer cet avis ?')){
-      await supabase.from('reviews').delete().eq('id',id);
+      const review=revs.find(r=>r.id===id);
+      const {error}=await supabase.from('reviews').delete().eq('id',id);
+      if(!error)await logActivity('Suppression avis','avis',id,review?.name||'Avis');
       load();
     }
   };
@@ -818,6 +822,7 @@ export default function Admin(){
     };
 
     const {error}=await supabase.from('promo_codes').upsert(row,{onConflict:'code'});
+    if(!error)await logActivity('Enregistrement code promo','code promo',code,code,{kind:row.kind,active:row.active});
 
     setMsg(error?error.message:'Code enregistré');
 
