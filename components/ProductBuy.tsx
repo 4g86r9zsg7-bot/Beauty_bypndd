@@ -229,7 +229,9 @@ export default function ProductBuy({p}:{p:any}) {
   const availablePrices=availableVariants.map((x:any)=>Number(x.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
   const startPrice=availablePrices.length?Math.min(...availablePrices):Number(p.price);
   const hasPriceRange=!cur&&availablePrices.length>1&&Math.max(...availablePrices)!==Math.min(...availablePrices);
-  const price=Number(cur?.price??(availablePrices.length?startPrice:p.price));
+  const price=cur
+    ?Number(cur.price??p.price)
+    :(availablePrices.length?startPrice:Number(p.price));
   const promo=cur?.price==null&&p.old_price&&p.old_price>price;
 
   const pre=p.availability==='preorder';
