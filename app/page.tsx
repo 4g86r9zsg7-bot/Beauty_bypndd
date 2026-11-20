@@ -34,7 +34,7 @@ const uniq=(a:any[]|null)=>{
 
 export default async function Home(){
 
-  const [{data:c},{data:b},{data:promoData}]=await Promise.all([
+  const [{data:c},{data:b},{data:promoData},{data:promoProducts}]=await Promise.all([
     supabase.from('categories')
       .select('*')
       .order('position',{nullsFirst:false})
@@ -45,7 +45,8 @@ export default async function Home(){
     supabase.from('promo_codes')
       .select('*')
       .eq('active',true)
-      .order('created_at',{ascending:false})
+      .order('created_at',{ascending:false}),
+    supabase.from('products').select('id,name,category_id,brand_id,variants')
   ]);
 
   const cats=uniq(c);
@@ -53,6 +54,16 @@ export default async function Home(){
   const top=cats.filter((x:any)=>!x.parent_id&&x.slug!=='sacs-accessoires');
 
   const now=new Date();
+  const promoProductRows=promoProducts||[];
+  const promoTargetLabel=(p:any)=>{
+    if(p.target_type==='category')return 'Catégorie · '+(cats.find((x:any)=>x.id===p.target_id)?.name||'Catégorie');
+    if(p.target_type==='brand')return 'Marque · '+(brands.find((x:any)=>x.id===p.target_id)?.name||'Marque');
+    if(p.target_type==='product'||p.target_type==='variant'){
+      const product=promoProductRows.find((x:any)=>x.id===p.target_id);
+      return (p.target_type==='variant'?'Variante · ':'Produit · ')+(product?.name||'Produit')+(p.target_type==='variant'&&p.target_variant?' · '+p.target_variant:'');
+    }
+    return 'Valable sur tout le catalogue';
+  };
 
   const promoCodes=(promoData||[]).filter((p:any)=>{
     const starts=p.starts_at?new Date(p.starts_at):null;
@@ -276,7 +287,10 @@ export default async function Home(){
                         :`-${eur(Number(p.amount))}`}
                     </p>
 
-                    <p className="mt-2 text-[10px] text-ink/55">
+                    <p className="mt-2 text-xs font-medium text-plum">
+                      {promoTargetLabel(p)}
+                    </p>
+                    <p className="mt-1 text-[10px] text-ink/55">
                       À saisir dans votre panier
                     </p>
 
