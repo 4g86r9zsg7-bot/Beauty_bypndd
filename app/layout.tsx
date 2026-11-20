@@ -10,6 +10,7 @@ import SideMenu from '@/components/SideMenu';
 import Shortcuts from '@/components/Shortcuts';
 import BellLink from '@/components/BellLink';
 import HeaderSearch from '@/components/HeaderSearch';
+import BackToTop from '@/components/BackToTop';
 import {ClientProvider} from '@/components/ClientProvider';
 import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';
 import {IG} from '@/lib/shop';
@@ -136,6 +137,7 @@ export default function L({children}:{children:React.ReactNode}){
             </nav>
           </footer>
 
+          <BackToTop/>
           <a href={`https://wa.me/${WA}`} aria-label="WhatsApp" className="fixed bottom-4 right-4 z-30 rounded-full shadow-lg">
             <WhatsAppIcon size={56}/>
           </a>
