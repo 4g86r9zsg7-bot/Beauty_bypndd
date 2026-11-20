@@ -1,8 +1,39 @@
-'use client';import Link from 'next/link';import {useClient} from '@/components/ClientProvider';
-export default function Notifications(){const {phone,notifs,unread,markRead,askPhone}=useClient();
-const bell=<span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blush text-plum"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17h12l-1.6-2.2V10a4.4 4.4 0 0 0-8.8 0v4.8z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span>;
-return <div className="mx-auto max-w-xl"><div className="flex items-end justify-between"><h1 className="font-serif text-4xl text-plum">Mes notifications</h1>{unread>0&&<button type="button" onClick={()=>markRead(null)} className="text-xs text-plum underline">Tout marquer comme lu</button>}</div>
-{!phone?<div className="py-14 text-center">{bell}<p className="mt-5 font-serif text-2xl text-plum">Suivez vos commandes</p><p className="mt-1 text-sm text-ink/60">Entrez votre numéro de téléphone pour voir vos notifications.</p><button type="button" onClick={askPhone} className="mt-6 rounded-full bg-rose px-8 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-white">Entrer mon numéro</button></div>
-:notifs.length===0?<div className="py-14 text-center">{bell}<p className="mt-5 font-serif text-2xl text-plum">Aucune notification</p><p className="mt-1 text-sm text-ink/60">Vous serez prévenue à chaque étape de votre commande.</p></div>
-:<ul className="mt-6 space-y-3">{notifs.map((n:any)=><li key={n.id}><button type="button" onClick={()=>markRead(n.id)} className={`w-full rounded-2xl p-4 text-left shadow-sm ${n.read?'bg-white':'bg-blush/50'}`}><span className="flex items-center justify-between gap-2"><b className="font-serif text-lg text-plum">{n.title}</b>{!n.read&&<span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose"/>}</span><span className="mt-1 block text-sm">{n.body}</span><span className="mt-1 block text-xs text-ink/50">{new Date(n.created_at).toLocaleString('fr-FR')}</span></button></li>)}</ul>}
-<p className="mt-8 text-center text-sm"><Link href="/suivi" className="underline">Suivre ma commande</Link></p></div>}
+'use client';
+import Link from 'next/link';
+import {useClient} from '@/components/ClientProvider';
+
+export default function Notifications(){
+  const {phone,notifs,unread,markRead,askPhone}=useClient();
+  const bell=<span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blush text-plum"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17h12l-1.6-2.2V10a4.4 4.4 0 0 0-8.8 0v4.8z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span>;
+  return <div className="mx-auto max-w-xl">
+    <div className="flex items-end justify-between">
+      <h1 className="font-serif text-4xl text-plum">Mes notifications</h1>
+      {unread>0&&<button type="button" onClick={()=>markRead(null)} className="text-xs text-plum underline">Tout marquer comme lu</button>}
+    </div>
+    {!phone?
+      <div className="py-14 text-center">{bell}<p className="mt-5 font-serif text-2xl text-plum">Suivez vos commandes et alertes</p><p className="mt-1 text-sm text-ink/60">Entrez votre numéro de téléphone pour retrouver vos notifications.</p><button type="button" onClick={askPhone} className="mt-6 rounded-full bg-rose px-8 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-white">Entrer mon numéro</button></div>
+    :notifs.length===0?
+      <div className="py-14 text-center">{bell}<p className="mt-5 font-serif text-2xl text-plum">Aucune notification</p><p className="mt-1 text-sm text-ink/60">Vous serez prévenue à chaque étape de votre commande ou lors du retour en stock d’un produit suivi.</p></div>
+    :
+      <ul className="mt-6 space-y-3">
+        {notifs.map((n:any)=><li key={n.id}>
+          {n.notification_type==='restock'&&n.product_slug?
+            <Link href={`/produit/${n.product_slug}`} onClick={()=>markRead(n.id)} className={`block w-full rounded-2xl p-4 text-left shadow-sm ${n.read?'bg-white':'bg-blush/50'}`}>
+              <span className="flex items-center justify-between gap-2"><b className="font-serif text-lg text-plum">{n.title}</b>{!n.read&&<span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose"/>}</span>
+              <span className="mt-1 block text-sm">{n.body}</span>
+              <span className="mt-1 block text-xs font-semibold text-rose">Voir le produit →</span>
+              <span className="mt-1 block text-xs text-ink/50">{new Date(n.created_at).toLocaleString('fr-FR')}</span>
+            </Link>
+          :
+            <button type="button" onClick={()=>markRead(n.id)} className={`w-full rounded-2xl p-4 text-left shadow-sm ${n.read?'bg-white':'bg-blush/50'}`}>
+              <span className="flex items-center justify-between gap-2"><b className="font-serif text-lg text-plum">{n.title}</b>{!n.read&&<span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose"/>}</span>
+              <span className="mt-1 block text-sm">{n.body}</span>
+              <span className="mt-1 block text-xs text-ink/50">{new Date(n.created_at).toLocaleString('fr-FR')}</span>
+            </button>
+          }
+        </li>)}
+      </ul>
+    }
+    <p className="mt-8 text-center text-sm"><Link href="/suivi" className="underline">Suivre ma commande</Link></p>
+  </div>;
+}
