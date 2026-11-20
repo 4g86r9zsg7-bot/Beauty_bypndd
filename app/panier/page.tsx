@@ -1,5 +1,3 @@
- 
-
 
 'use client';
 
@@ -94,7 +92,6 @@ export default function Panier(){
     cfg&&freeOver>0&&deliveryBase>=freeOver
   );
 
-  // Les frais restent cachés tant que la ville n'est pas renseignée.
   const hasCity=f.city.trim().length>0;
   const fee=hasCity?(freeDeliveryReached?0:fee0):0;
   const cur=cfg?.currency||'DH';
@@ -133,7 +130,7 @@ export default function Panier(){
     setBusy(true);
 
     const {data,error}=await supabase.rpc(
-      hasOffer?'place_order2':'place_order',
+      hasOffer?'place_order2_secure':'place_order_secure',
       {
         p_c:f,
         p_items:lines.map((l:any)=>
@@ -150,13 +147,6 @@ export default function Panier(){
     if(error)return setErr(error.message);
 
     setOrder(data);
-
-    try{
-      localStorage.setItem(
-        'lastOrder',
-        JSON.stringify({n:data.number,p:data.phone})
-      );
-    }catch{}
 
     clear();
     window.scrollTo({top:0,behavior:'smooth'});
@@ -202,6 +192,32 @@ export default function Panier(){
               Nous vous remercions pour votre confiance.
             </p>
           </div>
+
+          <section className={`${card} mb-4 border-rose/30 bg-blush/30`}>
+            <h2 className={h2}>Votre code secret de suivi</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink/70">
+              Conservez précieusement ce code. Il sera nécessaire, avec votre numéro de téléphone, pour consulter votre commande, demander une annulation ou publier un avis.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose/20 bg-white p-4">
+              <span className="break-all font-mono text-lg font-bold tracking-wider text-plum">
+                {order.access_code}
+              </span>
+              <button
+                type="button"
+                onClick={()=>{
+                  if(order.access_code&&navigator.clipboard?.writeText){
+                    navigator.clipboard.writeText(order.access_code);
+                  }
+                }}
+                className="rounded-full bg-rose px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white"
+              >
+                Copier le code
+              </button>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-plum">
+              Attention : ce code ne sera affiché qu’une seule fois sur cette page. Notez-le ou faites une capture d’écran.
+            </p>
+          </section>
 
           <section className={card}>
             <h2 className={h2}>Récapitulatif</h2>
