@@ -295,6 +295,14 @@ export default function ProductBuy({p}:{p:any}) {
                 draggable={false}
                 className="h-full w-full bg-white object-contain transition duration-500 group-hover:scale-[1.02]"/>
             )}
+            {thumbs.length>0&&(
+              <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-[#14040c]/75 px-3 py-2 text-[10px] font-semibold tracking-wider text-white shadow-sm backdrop-blur-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/>
+                </svg>
+                {shownIndex+1} / {thumbs.length}
+              </span>
+            )}
             <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-plum shadow-sm">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M10.8 7.8v6M7.8 10.8h6"/>
