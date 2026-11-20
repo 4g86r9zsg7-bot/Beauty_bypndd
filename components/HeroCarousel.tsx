@@ -62,7 +62,7 @@ export default function HeroCarousel({
   const slide=slides[active];
 
   return (
-    <section className="relative left-1/2 z-40 w-screen -translate-x-1/2 overflow-visible bg-[#14040c] text-white lg:-mt-6">
+    <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-visible bg-[#14040c] text-white lg:-mt-6">
       <div className="relative min-h-[560px] overflow-hidden md:min-h-[540px]">
         <div className="absolute inset-0">
           <div
@@ -162,7 +162,7 @@ export default function HeroCarousel({
         </div>
       </div>
 
-      <div className="relative z-50 mx-auto -mt-1 w-full max-w-2xl px-4 pb-6 sm:px-5 md:pb-7">
+      <div className="relative mx-auto -mt-1 w-full max-w-2xl px-4 pb-6 sm:px-5 md:pb-7">
         {search}
       </div>
     </section>
