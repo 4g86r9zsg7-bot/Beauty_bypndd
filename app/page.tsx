@@ -160,6 +160,16 @@ export default async function Home(){
       :null;
   });
 
+  // Une vitrine dédiée permet aussi de redécouvrir les produits plus anciens.
+  const {data:olderData}=await supabase.from('products')
+    .select('*,brands(name)')
+    .eq('active',true)
+    .order('created_at',{ascending:true})
+    .limit(80);
+  const olderItems=(olderData||[])
+    .filter((p:any)=>p.availability!=='soldout'&&!seen.has(p.id))
+    .slice(0,8);
+
   return (
     <>
       <Shortcuts/>
@@ -343,6 +353,7 @@ export default async function Home(){
       {/* VITRINES PRODUITS */}
       <div className="mt-8 space-y-2">
         {shelves}
+        {olderItems.length>0&&<Shelf tone="anciens" title="À redécouvrir" href="/categorie/tous?sort=old" items={olderItems}/>}
       </div>
 
       {/* MARQUES */}
