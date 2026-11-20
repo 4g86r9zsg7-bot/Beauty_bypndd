@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 
 type SP = {
   brand?: string;
+  range?: string;
   sort?: string;
   stock?: string;
   availability?: string;
@@ -258,9 +259,23 @@ export default async function Cat({
     return sold ? 2 : pre || arr ? 1 : 0;
   };
 
-  const list = [...(data || [])].sort(
-    (x: any, y: any) => rank(x) - rank(y)
-  );
+  const allProducts = [...(data || [])];
+  const productPrice = (p:any) => {
+    const vars=Array.isArray(p.variants)?p.variants:[];
+    const prices=vars.filter((v:any)=>v&&typeof v==='object'&&['available','last'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0))
+      .map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
+    return prices.length?Math.min(...prices):Number(p.price)||0;
+  };
+  const list = allProducts
+    .filter((p:any)=>!sp.range||p.commercial_range===sp.range)
+    .filter((p:any)=>!sp.min||!isFinite(Number(sp.min))||productPrice(p)>=Number(sp.min))
+    .filter((p:any)=>!sp.max||!isFinite(Number(sp.max))||productPrice(p)<=Number(sp.max))
+    .sort((x:any,y:any)=>{
+      if(o==='asc')return productPrice(x)-productPrice(y);
+      if(o==='desc')return productPrice(y)-productPrice(x);
+      if(o==='pop')return Number(y.sold||0)-Number(x.sold||0);
+      return rank(x)-rank(y);
+    });
 
   const seen = new Set<string>();
 
@@ -283,7 +298,7 @@ export default async function Cat({
     const p = new URLSearchParams();
     const m: any = {...sp, ...over};
 
-    for (const k of ['q', 'brand', 'sort', 'availability', 'stock', 'min', 'max']) {
+    for (const k of ['q', 'brand', 'range', 'sort', 'availability', 'stock', 'min', 'max']) {
       if (m[k]) p.set(k, m[k]);
     }
 
@@ -303,6 +318,7 @@ export default async function Cat({
 
   if (sp.q) chips.push([`« ${sp.q} »`, url({q: ''})]);
   if (brandName) chips.push([brandName, url({brand: ''})]);
+  if (sp.range) chips.push([{petit_prix:'Petit prix',marques:'Marques',premium:'Premium'}[sp.range]||sp.range,url({range:''})]);
 
   if (sp.availability) {
     chips.push([availabilityLabel, url({availability: '', stock: ''})]);
@@ -337,6 +353,27 @@ export default async function Cat({
           {list.length} produit{list.length > 1 ? 's' : ''}
         </p>
       </div>
+
+      {cat&&(
+        <section aria-label="Gammes de produits" className="mt-6 grid grid-cols-3 gap-2">
+          {([
+            ['petit_prix','Petit prix','Des essentiels à prix doux'],
+            ['marques','Marques','Vos marques préférées'],
+            ['premium','Premium','Une sélection premium']
+          ] as [string,string,string][]).map(([value,label,desc])=>{
+            const count=allProducts.filter((p:any)=>p.commercial_range===value).length;
+            return (
+              <Link key={value} href={url({range:sp.range===value?'':value})}
+                aria-pressed={sp.range===value}
+                className={`rounded-xl border p-3 text-center transition ${sp.range===value?'border-plum bg-blush/50':'border-sand bg-white hover:border-plum/50'}`}>
+                <span className="block font-serif text-sm text-plum sm:text-base">{label}</span>
+                <span className="mt-1 block text-[10px] leading-snug text-ink/60">{desc}</span>
+                <span className="mt-1 block text-[10px] text-ink/50">{count} produit{count>1?'s':''}</span>
+              </Link>
+            );
+          })}
+        </section>
+      )}
 
       {/* Barre filtres + tri */}
       <div className="relative mt-6 flex items-center justify-between gap-3 border-y border-sand py-3">
