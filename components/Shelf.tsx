@@ -14,6 +14,7 @@ const TONES:Record<string,Tone>={
   arrivages:{band:'border-y border-dashed border-plum/30',kicker:'Bientôt disponible',btn:OUT,line:'bg-plum'},
   precommandes:{band:'bg-plum/5',kicker:'Réservez dès maintenant',btn:OUT,line:'bg-rose'},
   cadeaux:{band:'bg-[#f6efe6]',kicker:'Pour offrir',center:true,btn:OUT,line:'bg-plum'},
+  anciens:{band:'bg-[#FCF8F8]',kicker:'Des références à redécouvrir',btn:OUT,line:'bg-plum'},
 };
 
 export default function Shelf({tone,title,href,items}:{tone:string;title:string;href:string;items:any[]}){
