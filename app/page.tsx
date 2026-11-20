@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {supabase,eur} from '@/lib/supabase';
 import Shortcuts from '@/components/Shortcuts';
 import Hero from '@/components/Hero';
-import Shelf from '@/components/Shelf';
+import HomeShelves from '@/components/HomeShelves';
 import Suggestions from '@/components/Suggestions';
 import PersonalizedPromo from '@/components/PersonalizedPromo';
 
@@ -151,36 +151,27 @@ export default async function Home(){
           .select('*,brands(name)')
           .eq('active',true)
           .order('created_at',{ascending:false})
-          .limit(40)
+          .limit(100)
       )
     )
   );
 
-  const seen=new Set<string>();
+  const groups=defs.map((d,i)=>({
+    tone:d.tone,
+    title:d.title,
+    href:d.href,
+    items:(((fetched[i] as any).data)||[])
+      .filter((p:any)=>p.availability!=='soldout')
+  }));
 
-  const shelves=defs.map((d,i)=>{
-    const all=(((fetched[i] as any).data)||[])
-      .filter((x:any)=>x.availability!=='soldout');
-
-    const fresh=all.filter((x:any)=>!seen.has(x.id));
-    const items=(fresh.length>=4?fresh:all).slice(0,8);
-
-    items.forEach((x:any)=>seen.add(x.id));
-
-    return items.length
-      ?<Shelf key={d.tone} tone={d.tone} title={d.title} href={d.href} items={items}/>
-      :null;
-  });
-
-  // Une vitrine dédiée permet aussi de redécouvrir les produits plus anciens.
+  // Réserve de produits plus anciens pour compléter la découverte sans doublons.
   const {data:olderData}=await supabase.from('products')
     .select('*,brands(name)')
     .eq('active',true)
     .order('created_at',{ascending:true})
-    .limit(80);
+    .limit(100);
   const olderItems=(olderData||[])
-    .filter((p:any)=>p.availability!=='soldout'&&!seen.has(p.id))
-    .slice(0,8);
+    .filter((p:any)=>p.availability!=='soldout');
 
   return (
     <>
@@ -302,8 +293,7 @@ export default async function Home(){
 
       {/* VITRINES PRODUITS */}
       <div className="mt-8 space-y-2">
-        {shelves}
-        {olderItems.length>0&&<Shelf tone="anciens" title="À redécouvrir" href="/categorie/tous?sort=old" items={olderItems}/>}
+        <HomeShelves groups={groups} olderItems={olderItems}/>
       </div>
 
       {/* MARQUES */}
