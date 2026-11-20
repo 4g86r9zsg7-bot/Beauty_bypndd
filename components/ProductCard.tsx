@@ -43,7 +43,7 @@ export default function ProductCard({
 
   return (
     <div className="group relative min-w-0">
-      <Link href={`/produit/${p.slug}`} className="block">
+      <div className="block">
         <div className={`relative overflow-hidden bg-sand ${
           imageFit==='contain'?'aspect-square':'aspect-[4/5]'
         }`}>
@@ -104,9 +104,13 @@ export default function ProductCard({
             )}
           </p>
         </div>
-      </Link>
+      </div>
 
-      <CardBuy p={p}/>
+      <Link href={`/produit/${p.slug}`} aria-label={`Voir la fiche produit ${p.name}`} className="absolute inset-0 z-[1] rounded-sm cursor-pointer" />
+
+      <div className="relative z-10">
+        <CardBuy p={p}/>
+      </div>
       <HeartButton id={p.id}/>
     </div>
   );
