@@ -707,6 +707,8 @@ export default function Admin(){
     const row:any={
       name,
       brand_id:fd.get('brand')||null,
+      source_name:String(fd.get('source_name')||'').trim()||null,
+      commercial_range:fd.get('commercial_range')||null,
       category_id:fd.get('cat')||null,
       description:fd.get('desc'),
       price:Number(fd.get('price')),
@@ -1382,6 +1384,24 @@ export default function Admin(){
           >
             <option value="">Marque</option>
             {brands.map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+
+          <input
+            name="source_name"
+            placeholder="Marque / provenance affichée (ex : SHEIN, Action...)"
+            defaultValue={importedProduct?.brand??edit?.source_name??''}
+            className="border p-2"
+          />
+
+          <select
+            name="commercial_range"
+            defaultValue={edit?.commercial_range||''}
+            className="border p-2"
+          >
+            <option value="">Aucune gamme</option>
+            <option value="petit_prix">Petit prix</option>
+            <option value="marques">Marques</option>
+            <option value="premium">Premium</option>
           </select>
 
           <select name="cat" defaultValue={edit?.category_id||''} className="border p-2">
