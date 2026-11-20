@@ -31,6 +31,8 @@ export default function RecentlyViewed({product}:{product:any}){
       slug:product.slug,
       name:product.name,
       price:product.price,
+      category_id:product.category_id||null,
+      brand_id:product.brand_id||null,
       old_price:product.old_price,
       images:Array.isArray(product.images)?product.images:[],
       availability:product.availability,
