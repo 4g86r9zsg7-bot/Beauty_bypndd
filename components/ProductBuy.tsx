@@ -259,7 +259,7 @@ export default function ProductBuy({p}:{p:any}) {
           <div className="aspect-[4/5]">
             {shown&&(
               <img src={shown} alt={p.name}
-                className="h-full w-full object-cover transition duration-500"/>
+                className="h-full w-full object-contain transition duration-500"/>
             )}
           </div>
 
@@ -303,7 +303,7 @@ export default function ProductBuy({p}:{p:any}) {
                 className={`h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${
                   u===shown?'border-rose shadow-sm':'border-transparent opacity-75 hover:opacity-100'
                 }`}>
-                <img src={u} alt="" className="h-full w-full object-cover"/>
+                <img src={u} alt="" className="h-full w-full object-contain bg-white"/>
               </button>
             ))}
           </div>
@@ -433,7 +433,7 @@ export default function ProductBuy({p}:{p:any}) {
                               }`}>
                                 {image?(
                                   <img src={image} alt={value}
-                                    className="h-full w-full object-cover"/>
+                                    className="h-full w-full object-contain bg-white"/>
                                 ):(
                                   <span className="block h-full w-full"
                                     style={{background:swatch}}/>
@@ -528,7 +528,7 @@ export default function ProductBuy({p}:{p:any}) {
                     }`}>
                       {image?(
                         <img src={image} alt={x.name}
-                          className="h-full w-full object-cover"/>
+                          className="h-full w-full object-contain bg-white"/>
                       ):(
                         <span className="block h-full w-full"
                           style={{background:hasSwatch?getSwatch(x,x.name||''):colorValue(x.name||'')}}
