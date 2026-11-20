@@ -14,22 +14,22 @@ export default function TrustBlock({p}:{p:any}){
     availabilityText='Article actuellement indisponible. Contactez-nous pour connaître son retour.';
   }
 
+  const sections=[
+    {title:'Authenticité garantie',content:'Chez BeautyByPND, nous proposons exclusivement des produits authentiques. Nous accordons une attention particulière à la provenance et à la qualité de chaque article afin de vous offrir une expérience d’achat en toute confiance.'},
+    {title:'Disponibilité et délai',content:availabilityText},
+    {title:'Livraison et paiement',content:< >Paiement à la livraison. <Link href="/livraison" className="font-medium text-plum underline underline-offset-4">Consulter les frais et conditions</Link>.</>}
+  ].filter(section=>typeof section.content==='string'?section.content.trim().length>0:Boolean(section.content));
+
+  if(!sections.length)return null;
+
   return (
-    <section className="mt-10 grid gap-5 border-t border-sand pt-6 text-sm sm:grid-cols-3">
-      <div>
-        <p className={h}>Authenticité garantie</p>
-        <p className="mt-1 text-ink/80">Chez BeautyByPND, nous proposons exclusivement des produits authentiques. Nous accordons une attention particulière à la provenance et à la qualité de chaque article afin de vous offrir une expérience d’achat en toute confiance.</p>
-      </div>
-      <div>
-        <p className={h}>Disponibilité et délai</p>
-        <p className="mt-1 text-ink/80">{availabilityText}</p>
-      </div>
-      <div>
-        <p className={h}>Livraison et paiement</p>
-        <p className="mt-1 text-ink/80">
-          Paiement à la livraison. <Link href="/livraison" className="font-medium text-plum underline underline-offset-4">Consulter les frais et conditions</Link>.
-        </p>
-      </div>
+    <section className="mt-10 grid gap-3 border-t border-sand pt-6 text-sm sm:grid-cols-3" aria-label="Informations utiles">
+      {sections.map(section=>(
+        <div key={section.title} className="rounded-2xl border border-sand bg-white p-4">
+          <p className={h}>{section.title}</p>
+          <div className="mt-2 leading-relaxed text-ink/80">{section.content}</div>
+        </div>
+      ))}
     </section>
   );
 }
