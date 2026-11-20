@@ -78,8 +78,8 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
     <div
       ref={ref}
       className={compact
-        ?'relative w-full rounded-2xl bg-white p-3 text-ink shadow-2xl'
-         :'relative mx-auto mt-8 w-full max-w-xl'}
+        ?'relative z-30 w-full rounded-2xl bg-white p-3 text-ink shadow-2xl'
+         :'relative z-30 mx-auto mt-8 w-full max-w-xl'}
     >
       {!compact&&(
         <p className="mb-2 text-[11px] uppercase tracking-[0.25em] text-blush">
@@ -137,7 +137,7 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
       </form>
 
       {open&&t&&(
-        <div className="absolute left-0 right-0 top-full z-[100] mt-2 max-h-[min(55vh,440px)] overflow-y-auto overscroll-contain rounded-2xl border border-sand bg-white text-ink shadow-2xl">
+        <div className={`${compact?'absolute left-0 right-0 top-full z-[200] mt-2':'relative mt-2'} max-h-[min(55vh,440px)] overflow-y-auto overscroll-contain rounded-2xl border border-sand bg-white text-ink shadow-2xl`}>
           {items.map(p=>{
             const l=lab(p);
             return (
@@ -148,7 +148,7 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
                 className="flex items-center gap-3 border-b border-sand px-3 py-3 active:bg-cream"
               >
                 <span className="h-16 w-12 shrink-0 overflow-hidden bg-sand">
-                  {p.images?.[0]&&<img src={p.images[0]} alt="" loading="lazy" className="h-full w-full object-cover"/>}
+                  {p.images?.[0]&&<img src={p.images[0]} alt="" loading="lazy" className="h-full w-full bg-white object-contain"/>}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[10px] uppercase tracking-[0.18em] text-plum/70">{p.brands?.name}</span>
