@@ -114,7 +114,8 @@ export default function Panier(){
     const {data}=await supabase.rpc('check_promo',{
       p_code:f.promo,
       p_sub:subtotal,
-      p_phone:f.phone
+      p_phone:f.phone,
+      p_items:lines.filter((l:any)=>!l.offer).map((l:any)=>({id:l.id,qty:l.qty,variant:l.variant}))
     });
 
     setPr(data||{ok:false,message:'Code promo invalide'});
