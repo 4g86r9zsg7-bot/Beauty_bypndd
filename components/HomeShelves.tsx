@@ -11,8 +11,6 @@ type Group={
 };
 
 const VIEWED_KEY='beautybypndd_viewed_products';
-const SESSION_KEY='beautybypndd_discovery_session';
-
 function hash(value:string){
   let h=2166136261;
   for(let i=0;i<value.length;i++){
@@ -31,28 +29,29 @@ function readViewed(){
   }
 }
 
-function getSessionSeed(){
-  try{
-    let seed=sessionStorage.getItem(SESSION_KEY);
-    if(!seed){
-      seed=String(Math.random()).slice(2);
-      sessionStorage.setItem(SESSION_KEY,seed);
-    }
-    return seed;
-  }catch{
-    return String(Date.now());
-  }
+function initialSelection(groups:Group[],olderItems:any[]){
+  const used=new Set<string>();
+  const selected=groups.map(group=>{
+    const items=group.items
+      .filter((p:any)=>p&&p.id&&p.availability!=='soldout')
+      .filter((p:any)=>group.tone!=='promo'||(Number(p.old_price)>Number(p.price)&&Number(p.price)>0))
+      .filter((p:any)=>!used.has(p.id))
+      .slice(0,8);
+    items.forEach((p:any)=>used.add(p.id));
+    return {...group,items};
+  }).filter(group=>group.items.length>0);
+  const older=olderItems
+    .filter((p:any)=>p&&p.id&&p.availability!=='soldout'&&!used.has(p.id))
+    .slice(0,8);
+  return {groups:selected,older};
 }
 
 export default function HomeShelves({groups,olderItems}:{groups:Group[];olderItems:any[]}){
-  const [selection,setSelection]=useState<{groups:Group[];older:any[]}>({
-    groups:groups.map(group=>({...group,items:group.items.slice(0,8)})),
-    older:olderItems.slice(0,8)
-  });
+  const [selection,setSelection]=useState<{groups:Group[];older:any[]}>(()=>initialSelection(groups,olderItems));
 
   useEffect(()=>{
     const viewed=readViewed();
-    const seed=getSessionSeed();
+    const seed=String(Math.random()).slice(2);
     const used=new Set<string>();
 
     const rank=(items:any[],tone:string)=>{
