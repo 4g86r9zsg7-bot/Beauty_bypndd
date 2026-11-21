@@ -80,15 +80,18 @@ export default function L({children}:{children:React.ReactNode}){
     <body className={`${serif.variable} ${sans.variable} overflow-x-hidden`}>
       <ClientProvider>
         <CartProvider>
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-[#0c0208] px-4 py-2.5 text-center text-[11px] uppercase tracking-[0.18em] text-white">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EE6FB0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/>
-              <circle cx="7" cy="17.5" r="1.8"/>
-              <circle cx="17" cy="17.5" r="1.8"/>
-            </svg>
-            <span>Livraison à domicile en 24 à 48 h</span>
-            <span className="text-[#EE6FB0]">•</span>
-            <span>Paiement à la livraison</span>
+          <div className="flex flex-col items-center justify-center gap-1 bg-[#0c0208] px-4 py-2.5 text-center text-white">
+            <div className="flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EE6FB0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/>
+                <circle cx="7" cy="17.5" r="1.8"/>
+                <circle cx="17" cy="17.5" r="1.8"/>
+              </svg>
+              <span>Livraison partout au Maroc</span>
+            </div>
+            <p className="text-[10px] tracking-[0.08em] text-white/85">
+              Paiement à la livraison <span className="px-1 text-[#EE6FB0]">·</span> Commandez en toute sérénité
+            </p>
           </div>
 
           <header className="relative z-[500] border-b border-white/10 bg-[#14040c]/95 text-white backdrop-blur">
