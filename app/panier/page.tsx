@@ -41,6 +41,7 @@ export default function Panier(){
   const [order,setOrder]=useState<any>(null);
   const [qt,setQt]=useState<any>(null);
   const [pr,setPr]=useState<any>(null);
+  const [promoBusy,setPromoBusy]=useState(false);
   const [codeCopied,setCodeCopied]=useState(false);
   const [copyError,setCopyError]=useState('');
 
@@ -111,20 +112,54 @@ export default function Panier(){
   const finalTotal=subtotal-disc-od+fee;
 
   const applyPromo=async()=>{
-    if(hasOffer||!f.promo.trim())return;
+    const code=f.promo.trim().toUpperCase();
 
-    const {data}=await supabase.rpc('check_promo',{
-      p_code:f.promo,
-      p_sub:subtotal,
-      p_phone:f.phone,
-      p_items:lines.filter((l:any)=>!l.offer).map((l:any)=>({id:l.id,qty:l.qty,variant:l.variant}))
-    });
+    if(hasOffer||promoBusy||!code)return;
 
-    setPr(data||{ok:false,message:'Code promo invalide'});
+    if(!f.phone.trim()){
+      setPr({ok:false,message:'Renseignez votre numéro de téléphone avant d’appliquer le code.'});
+      return;
+    }
+
+    setPromoBusy(true);
+    setPr(null);
+
+    try{
+      const {data,error}=await supabase.rpc('check_promo',{
+        p_code:code,
+        p_sub:subtotal,
+        p_phone:f.phone,
+        p_items:lines.filter((l:any)=>!l.offer).map((l:any)=>({id:l.id,qty:l.qty,variant:l.variant}))
+      });
+
+      if(error)throw error;
+
+      const result=data||{ok:false,message:'Code promo invalide'};
+      setPr(result);
+
+      if(result.ok){
+        setF(prev=>({...prev,promo:code}));
+      }
+    }catch(error:any){
+      setPr({
+        ok:false,
+        message:error?.message||'Impossible de vérifier ce code pour le moment. Réessayez.'
+      });
+    }finally{
+      setPromoBusy(false);
+    }
+  };
+
+  const removePromo=()=>{
+    setF(prev=>({...prev,promo:''}));
+    setPr(null);
   };
 
   const set=(k:string)=>(e:any)=>{
-    setF({...f,[k]:e.target.value});
+    const value=e.target.value;
+    setF(prev=>({...prev,[k]:value}));
+    if(k==='phone')setPr(null);
+    if(k==='promo')setPr(null);
   };
 
   async function submit(e:any){
@@ -772,30 +807,37 @@ export default function Panier(){
                 </p>
               </div>
 
-              <div className="mt-5">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink/70">
-                  Code promotionnel
-                </p>
+              <div className="mt-5 rounded-2xl border border-rose/20 bg-blush/25 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-rose">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.5 13.5 13 21l-10-10V3h8z"/>
+                      <circle cx="7.5" cy="7.5" r="1"/>
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-plum">Vous avez un code promo ?</p>
+                    <p className="text-[11px] text-ink/55">Ajoutez-le ici pour profiter de votre réduction.</p>
+                  </div>
+                </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
-                    placeholder="Votre code"
+                    aria-label="Code promotionnel"
+                    placeholder="Saisir votre code"
                     value={f.promo}
-                    disabled={hasOffer}
-                    onChange={e=>{
-                      set('promo')(e);
-                      setPr(null);
-                    }}
+                    disabled={hasOffer||promoBusy}
+                    onChange={set('promo')}
                     className={`${inp} min-w-0 flex-1 uppercase disabled:opacity-50`}
                   />
 
                   <button
                     type="button"
                     onClick={applyPromo}
-                    disabled={hasOffer}
-                    className="rounded-xl border border-plum px-3 text-[10px] font-semibold uppercase tracking-wider text-plum transition hover:bg-blush disabled:opacity-50"
+                    disabled={hasOffer||promoBusy||!f.promo.trim()}
+                    className="rounded-xl bg-plum px-5 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-rose disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Appliquer
+                    {promoBusy?'Vérification…':'Appliquer'}
                   </button>
                 </div>
 
@@ -806,11 +848,25 @@ export default function Panier(){
                 )}
 
                 {pr&&(
-                  <p className={`mt-2 text-xs ${pr.ok?'text-plum':'text-red-700'}`}>
-                    {pr.ok
-                      ?`Code appliqué : -${eur(pr.discount,cur)}`
-                      :pr.message}
-                  </p>
+                  <div
+                    role={pr.ok?'status':'alert'}
+                    className={`mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl p-3 text-xs ${pr.ok?'border border-rose/20 bg-white text-plum':'border border-red-200 bg-red-50 text-red-700'}`}
+                  >
+                    <span className="min-w-0">
+                      {pr.ok
+                        ?<>Code <b>{f.promo.toUpperCase()}</b> appliqué : <b>-{eur(pr.discount,cur)}</b></>
+                        :pr.message}
+                    </span>
+                    {pr.ok&&(
+                      <button
+                        type="button"
+                        onClick={removePromo}
+                        className="shrink-0 font-semibold underline underline-offset-4 hover:text-rose"
+                      >
+                        Retirer
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
