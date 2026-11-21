@@ -693,6 +693,22 @@ function getCurrencyPrice(value: any): string {
 }
 
 
+/* DÉTECTION BERSHKA / INDITEX
+   Bershka sert son catalogue via des services internes non documentés.
+   On ne les appelle pas et on ne contourne pas Akamai/les restrictions du site.
+   Cette détection permet au moins de donner une explication précise au lieu
+   d'afficher un échec générique après les tentatives Shopify/WooCommerce.
+*/
+function isBershkaProductUrl(inputUrl: string): boolean {
+  try {
+    const url = new URL(inputUrl);
+    return /(^|\\.)bershka\\.com$/i.test(url.hostname) &&
+      /-c0p\\d+\\.html$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 /* SECOURS SHOPIFY : API publique produit, uniquement sur le même domaine */
 async function fetchShopifyProductJson(inputUrl: string): Promise<any | null> {
   const sourceUrl = await validateUrl(inputUrl);
@@ -915,6 +931,11 @@ export async function POST(request: NextRequest) {
       const wooData = await fetchWooCommerceProductJson(input).catch(() => null);
       const wooProduct = wooData ? normalizeWooCommerceProduct(wooData, input) : null;
       if (wooProduct) return NextResponse.json(wooProduct);
+      if (isBershkaProductUrl(input)) {
+        throw new Error(
+          'Bershka bloque actuellement la lecture automatique depuis notre serveur. Le site ne fournit pas d’API publique documentée pour ses fiches produits. Nous ne contournons pas ses protections. Essaie de nouveau plus tard ou utilise le transfert manuel ; aucune information ne sera inventée.'
+        );
+      }
       throw primaryError;
     }
     const html = page.html;
