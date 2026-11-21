@@ -65,7 +65,7 @@ const subtree = (all: any[], id: any, depth = 0): any[] =>
     : [id, ...kidsOf(all, id).flatMap((k) => subtree(all, k.id, depth + 1))];
 
 // ---------- Métadonnées SEO ----------
-export async function generateMetadata({params}: {params: {slug: string}}) {
+export async function generateMetadata({params,searchParams}: {params: {slug: string}; searchParams?: SP}) {
   const s = params.slug;
   const all = await getCats();
   const f = FIXED[s];
@@ -121,10 +121,12 @@ export async function generateMetadata({params}: {params: {slug: string}}) {
       canonical: `/categorie/${s}`
     },
     robots: {
-      index: true,
+      // Les pages filtrées restent accessibles aux visiteurs, mais ne créent pas
+      // des variantes indexables de la même catégorie dans Google.
+      index: !searchParams || !Object.values(searchParams).some((value) => Boolean(value)),
       follow: true,
       googleBot: {
-        index: true,
+        index: !searchParams || !Object.values(searchParams).some((value) => Boolean(value)),
         follow: true
       }
     },
