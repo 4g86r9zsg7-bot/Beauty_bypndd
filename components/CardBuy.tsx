@@ -17,30 +17,30 @@ export default function CardBuy({p}:{p:any}){
   const hasV=(p.variants||[]).length>0;
   const sold=p.availability==='soldout'||(!pre&&!arr&&p.stock<=0);
 
-  const base="mt-2 block w-full rounded-full border py-2.5 text-center text-[11px] uppercase tracking-[0.16em] transition";
+  const base="mt-2 block w-full rounded-full border py-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.13em] transition";
 
   const href=`/produit/${p.slug}`;
 
   if(sold)return (
-    <Link href={href} className={`${base} border-ink/30 text-ink/50`}>
+    <Link href={href} className={`${base} border-ink/20 bg-white text-ink/50`}>
       Indisponible
     </Link>
   );
 
   if(arr)return (
-    <Link href={href} className={`${base} border-plum text-plum`}>
+    <Link href={href} className={`${base} border-plum bg-white text-plum hover:bg-plum hover:text-white`}>
       Réserver
     </Link>
   );
 
   if(pre)return (
-    <Link href={href} className={`${base} border-plum text-plum`}>
+    <Link href={href} className={`${base} border-plum bg-white text-plum hover:bg-plum hover:text-white`}>
       Précommander
     </Link>
   );
 
   if(hasV)return (
-    <Link href={href} className={`${base} border-ink text-ink`}>
+    <Link href={href} className={`${base} border-rose bg-white text-plum hover:bg-rose hover:text-white`}>
       Choisir les options
     </Link>
   );
@@ -65,14 +65,13 @@ export default function CardBuy({p}:{p:any}){
 
   const buyNow=()=>{
     if(full||busy)return;
-
     setBusy(true);
     addProduct();
     router.push('/panier');
   };
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-2 space-y-1.5">
       <button
         type="button"
         disabled={full}
@@ -81,7 +80,7 @@ export default function CardBuy({p}:{p:any}){
           setOk(true);
           setTimeout(()=>setOk(false),1800);
         }}
-        className={`${base} mt-0 border-ink ${ok?'bg-plum':'bg-ink'} text-white disabled:opacity-40`}
+        className={`${base} mt-0 border-rose ${ok?'bg-plum':'bg-rose'} text-white shadow-sm hover:bg-plum disabled:opacity-40`}
       >
         {full
           ?'Stock maximum atteint'
@@ -94,7 +93,7 @@ export default function CardBuy({p}:{p:any}){
         type="button"
         disabled={full||busy}
         onClick={buyNow}
-        className={`${base} mt-0 border-plum bg-plum text-white hover:bg-rose disabled:opacity-40`}
+        className={`${base} mt-0 border-plum bg-white text-plum hover:bg-plum hover:text-white disabled:opacity-40`}
       >
         {busy?'Redirection…':'Acheter maintenant'}
       </button>
