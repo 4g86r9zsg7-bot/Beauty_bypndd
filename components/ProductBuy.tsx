@@ -352,6 +352,7 @@ export default function ProductBuy({p}:{p:any}) {
             className="group relative block aspect-[4/5] w-full cursor-zoom-in bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose">
             {shown&&(
               <img src={shown} alt={p.name}
+                loading="eager" fetchPriority="high" decoding="async"
                 draggable={false}
                 className="h-full w-full bg-white object-contain transition duration-500 group-hover:scale-[1.02]"/>
             )}
@@ -398,7 +399,7 @@ export default function ProductBuy({p}:{p:any}) {
                 className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-xl border-2 bg-white p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose ${
                   u===shown?'border-rose shadow-md ring-1 ring-rose/20':'border-sand opacity-80 hover:border-plum/40 hover:opacity-100'
                 }`}>
-                <img src={u} alt="" className="h-full w-full object-contain bg-white"/>
+                <img src={u} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain bg-white"/>
                 {u===shown&&<span className="absolute inset-x-1 bottom-1 h-0.5 rounded-full bg-rose"/>}
               </button>
             ))}
@@ -419,7 +420,7 @@ export default function ProductBuy({p}:{p:any}) {
               </button>
             </div>
             <div className="relative flex min-h-0 flex-1 items-center justify-center py-4" onClick={event=>event.stopPropagation()}>
-              {shown&&<img src={shown} alt={p.name} draggable={false} className="max-h-full max-w-full select-none object-contain"/>}
+              {shown&&<img src={shown} alt={p.name} loading="lazy" decoding="async" draggable={false} className="max-h-full max-w-full select-none object-contain"/>}
               {thumbs.length>1&&(
                 <>
                   <button type="button" aria-label="Photo précédente" onClick={()=>changePhoto(-1)}
@@ -444,7 +445,7 @@ export default function ProductBuy({p}:{p:any}) {
                     className={`h-14 w-12 shrink-0 overflow-hidden rounded-lg border-2 bg-white p-0.5 ${
                       u===shown?'border-rose':'border-sand opacity-70'
                     }`}>
-                    <img src={u} alt="" className="h-full w-full object-contain"/>
+                    <img src={u} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain"/>
                   </button>
                 ))}
               </div>
@@ -737,7 +738,7 @@ export default function ProductBuy({p}:{p:any}) {
                           on?'ring-2 ring-rose ring-offset-1':''
                         }`}>
                           {image?(
-                            <img src={image} alt={x.name} className="h-full w-full object-contain bg-white"/>
+                            <img src={image} alt={x.name} loading="lazy" decoding="async" className="h-full w-full object-contain bg-white"/>
                           ):(
                             <span className="block h-full w-full" style={{background:getSwatch(x,x.name||'')}}/>
                           )}
