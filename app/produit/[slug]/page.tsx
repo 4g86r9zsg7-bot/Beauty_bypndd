@@ -144,19 +144,14 @@ export default async function P({params}:{params:{slug:string}}){
 
   const {data:rv}=await supabase
     .from('reviews')
-    .select('rating,comment,customer_name,created_at,order:orders!reviews_order_id_fkey(status,items)')
+    .select('rating,comment,customer_name,created_at')
     .eq('product_id',p.id)
     .eq('published',true)
     .order('created_at',{ascending:false});
 
-  const rl=(rv||[]).map((review:any)=>{
-    const order=Array.isArray(review.order)?review.order[0]:review.order;
-    const orderItems=Array.isArray(order?.items)?order.items:[];
-    const verified=order?.status==='delivered'&&orderItems.some(
-      (item:any)=>String(item?.id||'')===String(p.id)
-    );
-    return {...review,verified};
-  });
+  // Keep the public reviews query independent from the protected orders table.
+  // Purchase verification will be added through a dedicated safe server-side source.
+  const rl=(rv||[]).map((review:any)=>({...review,verified:false}));
   const avg=rl.length
     ?rl.reduce((s:number,x:any)=>s+Number(x.rating||0),0)/rl.length
     :0;
