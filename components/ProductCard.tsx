@@ -1,4 +1,3 @@
-
 import Link from 'next/link';
 import {eur} from '@/lib/supabase';
 import CardBuy from '@/components/CardBuy';
@@ -20,35 +19,35 @@ export default function ProductCard({
   const startPrice=variantPrices.length?Math.min(...variantPrices):basePrice;
   const differentPrices=variantPrices.length>1&&Math.max(...variantPrices)!==Math.min(...variantPrices);
   const displayPrice=variants.length&&variantPrices.length?startPrice:basePrice;
-  const promo=p.old_price&&p.old_price>displayPrice;
-  const off=promo?Math.round(100-displayPrice/p.old_price*100):0;
+  const promo=Boolean(p.old_price&&Number(p.old_price)>displayPrice);
+  const off=promo?Math.round(100-displayPrice/Number(p.old_price)*100):0;
 
   const pre=p.availability==='preorder';
   const arr=p.availability==='arrival';
   const sold=p.availability==='soldout'||(!pre&&!arr&&p.stock<=0);
   const inStock=!sold&&!pre&&!arr;
 
-  const tag="px-2.5 py-1 text-[10px] tracking-[0.14em] uppercase leading-none";
   const badges:{t:string;c:string}[]=[];
+  if(sold)badges.push({t:'Épuisé',c:'bg-white/95 text-ink'});
+  if(arr)badges.push({t:'Arrivage',c:'bg-plum text-white'});
+  if(pre)badges.push({t:'Précommande',c:'bg-plum text-white'});
+  if(!sold&&promo)badges.push({t:`PROMO -${off}%`,c:'bg-rose text-white'});
+  if(!sold&&p.is_bestseller)badges.push({t:'Best-seller',c:'bg-white/95 text-plum'});
+  if(!sold&&p.is_new)badges.push({t:'Nouveau',c:'bg-white/95 text-plum'});
 
-  if(sold)badges.push({t:'Épuisé',c:'bg-white text-ink'});
-  if(arr)badges.push({t:'Arrivage',c:'bg-deep text-white'});
-  if(pre)badges.push({t:'Précommande',c:'bg-deep text-white'});
-  if(!sold&&promo)badges.push({t:`-${off}%`,c:'bg-rose text-white'});
-  if(!sold&&p.is_bestseller)badges.push({t:'Best-seller',c:'bg-plum text-white'});
-  if(!sold&&p.is_new)badges.push({t:'Nouveau',c:'bg-white text-plum'});
-
-  const imageClass=imageFit==='contain'
-    ?'object-contain p-2'
-    :'object-cover';
+  const imageClass=imageFit==='contain'?'object-contain p-3':'object-cover';
+  const brandLine=[
+    p.source_name||p.brands?.name,
+    p.commercial_range==='petit_prix'?'Petit prix':p.commercial_range==='marques'?'Marques':p.commercial_range==='premium'?'Premium':null
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className="group relative min-w-0">
       <div className="block">
-        <div className={`relative overflow-hidden bg-sand ${
+        <div className={`relative overflow-hidden rounded-xl bg-white ring-1 ring-[#eadde2] shadow-sm transition duration-300 group-hover:shadow-md ${
           imageFit==='contain'?'aspect-square':'aspect-[4/5]'
         }`}>
-          {imgs[0]&&(
+          {imgs[0]?(
             <img
               src={imgs[0]}
               alt={p.name}
@@ -58,6 +57,10 @@ export default function ProductCard({
                 imgs[1]?'group-hover:opacity-0':'group-hover:scale-105'
               } ${sold?'opacity-60':''}`}
             />
+          ):(
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#FCF4F6] to-white">
+              <span className="font-serif text-4xl text-plum/35">{String(p.name||'B').charAt(0)}</span>
+            </div>
           )}
 
           {imgs[1]&&(
@@ -70,44 +73,47 @@ export default function ProductCard({
             />
           )}
 
-          <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+          <div className="absolute left-2 top-2 flex max-w-[85%] flex-col items-start gap-1.5">
             {badges.slice(0,2).map(b=>(
-              <span key={b.t} className={`${tag} ${b.c}`}>
+              <span key={b.t} className={`rounded-full px-2.5 py-1.5 text-[9px] font-semibold tracking-[0.1em] shadow-sm ${b.c}`}>
                 {b.t}
               </span>
             ))}
           </div>
         </div>
 
-        <div className="pt-2">
-          <p className="truncate text-[9px] uppercase tracking-[0.16em] text-plum/70">
-            {[p.source_name||p.brands?.name,p.commercial_range==='petit_prix'?'Petit prix':p.commercial_range==='marques'?'Marques':p.commercial_range==='premium'?'Premium':null].filter(Boolean).join(' · ')||'\u00a0'}
+        <div className="pt-2.5">
+          <p className="truncate text-[9px] font-medium uppercase tracking-[0.14em] text-plum/75">
+            {brandLine||'\u00a0'}
           </p>
 
           <p className="mt-1 min-h-[2.5em] font-serif text-sm leading-snug text-ink line-clamp-2 sm:text-base">
             {p.name}
           </p>
 
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm">
-            <span className={`font-semibold ${promo&&!sold?'text-rose':'text-ink'}`}>
+          <div className="mt-2 flex min-h-[25px] flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className={`text-[15px] font-bold tracking-tight ${promo&&!sold?'text-rose':'text-plum'}`}>
               {differentPrices?'À partir de ':''}{eur(displayPrice)}
             </span>
             {promo&&(
-              <s className="text-xs text-ink/50">{eur(p.old_price)}</s>
+              <s className="text-[11px] text-ink/45">{eur(p.old_price)}</s>
             )}
-          </p>
+          </div>
 
-          <p className="mt-1 h-4 text-[10px]">
+          <p className="mt-1 min-h-[16px] text-[10px]">
             {inStock&&(
               p.availability==='last'
-                ?<span className="text-rose">Stock limité</span>
-                :<span className="text-green-700">● En stock</span>
+                ?<span className="font-medium text-rose">Stock limité</span>
+                :<span className="font-medium text-green-700">● En stock</span>
             )}
+            {pre&&<span className="font-medium text-plum">Précommande</span>}
+            {arr&&<span className="font-medium text-plum">Arrivage prochainement</span>}
+            {sold&&<span className="text-ink/50">Momentanément indisponible</span>}
           </p>
         </div>
       </div>
 
-      <Link href={`/produit/${p.slug}`} aria-label={`Voir la fiche produit ${p.name}`} className="absolute inset-0 z-[1] rounded-sm cursor-pointer" />
+      <Link href={`/produit/${p.slug}`} aria-label={`Voir la fiche produit ${p.name}`} className="absolute inset-0 z-[1] cursor-pointer rounded-xl" />
 
       <div className="relative z-10">
         <CardBuy p={p}/>
