@@ -11,15 +11,21 @@ import PersonalizedPromo from '@/components/PersonalizedPromo';
 export const revalidate=30;
 
 export const metadata={
-  title:'Beauty_bypndd | Le luxe à petit prix',
-  description:'Beauté, soins, parfums et mode : grandes marques authentiques à prix accessibles. Livraison à domicile et paiement à la livraison.',
+  title:'BeautyByPND | Le luxe à petit prix',
+  description:'Découvrez BeautyByPND : maquillage, soins, parfums et mode avec de grandes marques à prix accessibles. Livraison partout au Maroc et paiement à la livraison.',
   openGraph:{
-    title:'Beauty_bypndd | Le luxe à petit prix',
+    title:'BeautyByPND | Le luxe à petit prix',
     description:'Beauté, soins, parfums et mode : grandes marques authentiques à prix accessibles.',
     url:'/',
-    siteName:'Beauty_bypndd',
+    siteName:'BeautyByPND',
     locale:'fr_FR',
     type:'website'
+  },
+  alternates:{canonical:'/'},
+  twitter:{
+    card:'summary_large_image',
+    title:'BeautyByPND | Le luxe à petit prix',
+    description:'Maquillage, soins, parfums et mode avec livraison partout au Maroc.'
   }
 };
 
