@@ -206,7 +206,22 @@ export default function Panier(){
     const hasPre=its.some(i=>i.preorder);
 
     const txt=encodeURIComponent(
-      `Nouvelle commande #${order.number} - ${order.name} (${order.phone}) - ${order.address}, ${order.city} - ${its.map(i=>`${i.qty}x ${i.name}${i.variant?` (${i.variant})`:''}${i.preorder?' [PRÉCOMMANDE]':''}`).join(', ')} - Total ${order.total} ${cur} - Paiement à la livraison`
+      [
+        'Bonjour, je souhaite confirmer ma commande.',
+        `Client : ${order.name}`,
+        `Téléphone : ${order.phone}`,
+        `Adresse : ${order.address}, ${order.city}`,
+        '',
+        'Détail de la commande :',
+        ...its.map(i=>`• ${i.qty} × ${i.name}${i.variant?` (${i.variant})`:''}${i.preorder?' — PRÉCOMMANDE':''} : ${eur(Number(i.price||0)*Number(i.qty||0),cur)}`),
+        '',
+        `Sous-total : ${eur(order.subtotal,cur)}`,
+        Number(order.discount)>0?`Réductions : -${eur(order.discount,cur)}`:null,
+        Number(order.delivery_fee)>0?`Livraison : ${eur(order.delivery_fee,cur)}`:'Livraison : offerte',
+        `Total à payer : ${eur(order.total,cur)}`,
+        'Paiement à la livraison en espèces.',
+        hasPre?'Délai des précommandes : 2 à 3 semaines (à confirmer).':'Délai estimé : 24 à 48 h après confirmation.'
+      ].filter(Boolean).join('\n')
     );
 
     return(
@@ -221,7 +236,7 @@ export default function Panier(){
             </span>
 
             <p className="mt-5 text-xs uppercase tracking-[0.25em] text-rose">
-              Beauty_bypndd
+              BeautyByPND
             </p>
 
             <h1 className="mt-2 font-serif text-4xl text-plum">
@@ -342,9 +357,11 @@ export default function Panier(){
                 Confirmez votre commande sur WhatsApp pour accélérer son traitement.
               </li>
 
-              <li>
-                Livraison à domicile en <b>{DELIVERY}</b> après confirmation.
-              </li>
+              {its.some(i=>!i.preorder)&&(
+                <li>
+                  Livraison à domicile en <b>{DELIVERY}</b> après confirmation pour les articles disponibles.
+                </li>
+              )}
 
               {hasPre&&(
                 <li>
@@ -395,7 +412,7 @@ export default function Panier(){
           </span>
 
           <p className="mt-6 text-xs uppercase tracking-[0.22em] text-rose">
-            Beauty_bypndd
+            BeautyByPND
           </p>
 
           <h1 className="mt-2 font-serif text-3xl text-plum">
@@ -426,7 +443,7 @@ export default function Panier(){
 
         <div className="mb-7">
           <p className="text-xs uppercase tracking-[0.22em] text-rose">
-            Beauty_bypndd
+            BeautyByPND
           </p>
 
           <h1 className="mt-2 font-serif text-4xl text-plum">
