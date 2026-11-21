@@ -41,6 +41,8 @@ export default function Panier(){
   const [order,setOrder]=useState<any>(null);
   const [qt,setQt]=useState<any>(null);
   const [pr,setPr]=useState<any>(null);
+  const [codeCopied,setCodeCopied]=useState(false);
+  const [copyError,setCopyError]=useState('');
 
   useEffect(()=>{
     if(!lines.length){
@@ -153,6 +155,44 @@ export default function Panier(){
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
+  const copyAccessCode=async()=>{
+    const code=String(order?.access_code||'').trim();
+    if(!code){setCopyError('Code indisponible.');return;}
+
+    setCopyError('');
+    setCodeCopied(false);
+
+    try{
+      if(navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(code);
+        setCodeCopied(true);
+        return;
+      }
+    }catch(e){
+      // Utiliser la méthode de secours ci-dessous.
+    }
+
+    try{
+      const area=document.createElement('textarea');
+      area.value=code;
+      area.setAttribute('readonly','');
+      area.style.position='fixed';
+      area.style.top='0';
+      area.style.left='-9999px';
+      area.style.opacity='0';
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      area.setSelectionRange(0,area.value.length);
+      const copied=document.execCommand('copy');
+      document.body.removeChild(area);
+      if(!copied)throw new Error('Copie non autorisée');
+      setCodeCopied(true);
+    }catch(e){
+      setCopyError('La copie automatique a échoué. Appuyez longuement sur le code pour le sélectionner et le copier.');
+    }
+  };
+
   const inp="w-full rounded-xl border border-sand bg-white px-4 py-3.5 text-base text-ink placeholder:text-ink/40 transition focus:border-rose focus:outline-none focus:ring-2 focus:ring-rose/20";
 
   const card="rounded-2xl border border-sand/70 bg-white p-5 shadow-sm sm:p-6";
@@ -205,16 +245,22 @@ export default function Panier(){
               </span>
               <button
                 type="button"
-                onClick={()=>{
-                  if(order.access_code&&navigator.clipboard?.writeText){
-                    navigator.clipboard.writeText(order.access_code);
-                  }
-                }}
-                className="rounded-full bg-rose px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white"
+                onClick={copyAccessCode}
+                className="rounded-full bg-rose px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-plum active:scale-95"
               >
-                Copier le code
+                {codeCopied?'Code copié !':'Copier le code'}
               </button>
             </div>
+            {codeCopied&&(
+              <p role="status" className="mt-2 text-xs font-medium text-green-700">
+                Votre code a été copié. Vous pouvez le coller dans le suivi de commande.
+              </p>
+            )}
+            {copyError&&(
+              <p role="alert" className="mt-2 text-xs leading-relaxed text-red-700">
+                {copyError}
+              </p>
+            )}
             <p className="mt-3 text-xs leading-relaxed text-plum">
               Attention : ce code ne sera affiché qu’une seule fois sur cette page. Notez-le ou faites une capture d’écran.
             </p>
