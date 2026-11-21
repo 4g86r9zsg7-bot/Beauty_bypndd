@@ -412,7 +412,7 @@ export default function ProductImporter({ onImport }: Props) {
           <textarea value={manualImages} onChange={e => setManualImages(e.target.value)} placeholder="Liens des photos (un lien par ligne, facultatif)" rows={3} className="w-full rounded-lg border px-3 py-2 text-sm text-gray-900" />
           <button type="button" onClick={() => {
             if (!manualName.trim()) { setMessage('Ajoute au moins le nom du produit.'); return; }
-            const imageList = [...new Set(manualImages.split(/\\s+/).map(value => value.trim()).filter(value => /^https?:\\/\\//i.test(value)))];
+            const imageList = [...new Set(manualImages.split(/\s+/).map(value => value.trim()).filter(value => /^https?:\/\//i.test(value)))];
             onImport({
               name: manualName.trim(),
               brand: manualBrand.trim(),
