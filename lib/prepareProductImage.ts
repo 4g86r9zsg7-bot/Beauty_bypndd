@@ -23,6 +23,7 @@ export async function prepareProductImage(file: File): Promise<PreparedImage> {
 
   if (
     file.type === 'image/gif' ||
+    file.type === 'image/apng' ||
     file.type === 'image/svg+xml' ||
     file.type === 'image/webp'
   ) {
@@ -63,9 +64,8 @@ export async function prepareProductImage(file: File): Promise<PreparedImage> {
       };
     }
 
-    // Si aucune réduction de dimensions n'est nécessaire et que le résultat
-    // est plus lourd, conserver le fichier original.
-    if (scale === 1 && converted.size >= file.size) {
+    // Ne jamais remplacer un original par un fichier plus lourd.
+    if (converted.size >= file.size) {
       return unchanged();
     }
 
