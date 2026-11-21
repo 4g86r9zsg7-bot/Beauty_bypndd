@@ -373,6 +373,8 @@ Je souhaite confirmer cette précommande.`
                   <img
                     src={item.image}
                     alt={item.name}
+                    loading="lazy"
+                    decoding="async"
                     className="h-24 w-24 rounded-2xl bg-[#f8eeee] object-cover"
                   />
                 ) : (
