@@ -133,7 +133,7 @@ export default async function P({params}:{params:{slug:string}}){
 
   const {data:offersData}=await supabase
     .from('offers')
-    .select('*, offer_items(id,variant,qty, products(*))')
+    .select('id,title,kind,pack_price,stock,sold,buy_qty,offer_items(id,variant,qty,products(id,name,price,stock,variants,availability,active,images))')
     .eq('active',true)
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gt.${now}`)
@@ -144,12 +144,19 @@ export default async function P({params}:{params:{slug:string}}){
 
   const {data:rv}=await supabase
     .from('reviews')
-    .select('rating,comment,customer_name,created_at')
+    .select('rating,comment,customer_name,created_at,order:orders!reviews_order_id_fkey(status,items)')
     .eq('product_id',p.id)
     .eq('published',true)
     .order('created_at',{ascending:false});
 
-  const rl=rv||[];
+  const rl=(rv||[]).map((review:any)=>{
+    const order=Array.isArray(review.order)?review.order[0]:review.order;
+    const orderItems=Array.isArray(order?.items)?order.items:[];
+    const verified=order?.status==='delivered'&&orderItems.some(
+      (item:any)=>String(item?.id||'')===String(p.id)
+    );
+    return {...review,verified};
+  });
   const avg=rl.length
     ?rl.reduce((s:number,x:any)=>s+Number(x.rating||0),0)/rl.length
     :0;
@@ -158,15 +165,48 @@ export default async function P({params}:{params:{slug:string}}){
   const images=getImages(p.images);
   const productUrl=`${SITE}/produit/${p.slug}`;
 
-  const schemaReservable=p.availability==='preorder'||p.availability==='arrival';
-  const schemaVariants=Array.isArray(p.variants)?p.variants.filter((v:any)=>v&&typeof v==='object'&&['available','last','preorder','arrival'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0||schemaReservable)):[];
-  const schemaPrices=schemaVariants.map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
-  const schemaPrice=schemaPrices.length?Math.min(...schemaPrices):Number(p.price);
+  const schemaVariants=Array.isArray(p.variants)
+    ?p.variants.filter((v:any)=>v&&typeof v==='object')
+    :[];
 
-  const availability=
-    p.availability==='soldout'
+  const parentIsPreorder=p.availability==='preorder'||p.availability==='arrival';
+
+  const getSchemaAvailability=(variant:any)=>{
+    const status=String(variant?.status||'').toLowerCase();
+    const stock=variant?.stock==null?null:Number(variant.stock);
+
+    if(status==='soldout'||status==='out_of_stock'){
+      return 'https://schema.org/OutOfStock';
+    }
+    if(status==='preorder'||status==='arrival'){
+      return 'https://schema.org/PreOrder';
+    }
+    if(stock!==null&&Number.isFinite(stock)){
+      if(stock>0)return 'https://schema.org/InStock';
+      return parentIsPreorder
+        ?'https://schema.org/PreOrder'
+        :'https://schema.org/OutOfStock';
+    }
+    if(parentIsPreorder)return 'https://schema.org/PreOrder';
+    if(p.availability==='soldout'||Number(p.stock)<=0){
+      return 'https://schema.org/OutOfStock';
+    }
+    return 'https://schema.org/InStock';
+  };
+
+  const schemaVariantOffers=schemaVariants.map((variant:any)=>({
+    '@type':'Offer',
+    priceCurrency:'MAD',
+    price:Number(variant.price??p.price),
+    availability:getSchemaAvailability(variant),
+    url:productUrl,
+    name:cleanText(variant.name)||undefined
+  })).filter((offer:any)=>Number.isFinite(offer.price)&&offer.price>0);
+
+  const parentAvailability=
+    p.availability==='soldout'||(Number(p.stock)<=0&&!parentIsPreorder)
       ?'https://schema.org/OutOfStock'
-      :(p.availability==='preorder'||p.availability==='arrival')
+      :parentIsPreorder
         ?'https://schema.org/PreOrder'
         :'https://schema.org/InStock';
 
@@ -180,13 +220,15 @@ export default async function P({params}:{params:{slug:string}}){
       '@type':'Brand',
       name:brand
     }:undefined,
-    offers:{
-      '@type':'Offer',
-      priceCurrency:'MAD',
-      price:schemaPrice,
-      availability,
-      url:productUrl
-    }
+    offers:schemaVariantOffers.length
+      ?schemaVariantOffers
+      :{
+        '@type':'Offer',
+        priceCurrency:'MAD',
+        price:Number(p.price),
+        availability:parentAvailability,
+        url:productUrl
+      }
   };
 
   if(rl.length){
