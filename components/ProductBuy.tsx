@@ -155,6 +155,7 @@ export default function ProductBuy({p}:{p:any}) {
   const [ack,setAck]=useState(false);
   const [descriptionExpanded,setDescriptionExpanded]=useState(false);
   const productDescription=String(p.description??'').trim();
+  const productIngredients=String(p.ingredients??'').trim();
   const [expandedOptionGroups,setExpandedOptionGroups]=useState<Record<string,boolean>>({});
   const [legacyExpanded,setLegacyExpanded]=useState(false);
 
@@ -842,6 +843,20 @@ export default function ProductBuy({p}:{p:any}) {
             </>
           )}
         </div>
+
+        {productIngredients&&(
+          <section className="mt-6 rounded-2xl border border-sand bg-white p-5 sm:p-6">
+            <h2 className="font-serif text-xl text-plum">
+              Ingrédients
+            </h2>
+            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/75">
+              {productIngredients}
+            </p>
+            <p className="mt-3 text-[11px] leading-relaxed text-ink/50">
+              Consultez l’emballage du produit pour la liste la plus récente et les éventuelles précautions d’utilisation.
+            </p>
+          </section>
+        )}
 
         {/* DESCRIPTION REPLIABLE */}
         {productDescription&&(
