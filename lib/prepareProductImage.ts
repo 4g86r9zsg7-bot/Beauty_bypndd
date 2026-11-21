@@ -58,7 +58,7 @@ export async function prepareProductImage(file: File): Promise<PreparedImage> {
     if (converted.type !== 'image/webp') {
       return {
         blob: converted,
-        extension: 'jpg',
+        extension: converted.type === 'image/png' ? 'png' : 'jpg',
         contentType: converted.type || 'image/jpeg'
       };
     }
