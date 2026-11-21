@@ -845,6 +845,7 @@ export default function Admin(){
       category_id:fd.get('cat')||null,
       description:fd.get('desc'),
       ingredients:String(fd.get('ingredients')||'').trim()||null,
+      benefits:String(fd.get('benefits')||'').trim()||null,
       price:Number(fd.get('price')),
       old_price:fd.get('old')?Number(fd.get('old')):null,
       stock,
@@ -2008,6 +2009,18 @@ export default function Admin(){
 
           <p className="text-xs text-ink/60">
             Renseigne uniquement les ingrédients confirmés sur l’emballage ou la fiche officielle du fabricant.
+          </p>
+
+          <textarea
+            name="benefits"
+            placeholder="Bénéfices annoncés par le fabricant (facultatif)"
+            defaultValue={importedProduct?.benefits??edit?.benefits??''}
+            rows={3}
+            className="border p-2"
+          />
+
+          <p className="text-xs text-ink/60">
+            Indique uniquement les bénéfices confirmés par le fabricant ou l’emballage.
           </p>
 
           <textarea
