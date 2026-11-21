@@ -37,7 +37,7 @@ function fixText(value: string) {
 
 function extractSheinLink(value: string) {
   const match = value.match(
-    /https?:\/\/(?:[a-z0-9-]+\.)*shein\.[a-z.]+\/[^\s<>"']+/i
+    /https?:\/\/(?:onelink\.shein\.com|(?:www\.|m\.)?shein\.com)\/[^\s<>"']+/i
   );
 
   if (!match) return '';
@@ -101,9 +101,17 @@ export default function SheinForm() {
       return;
     }
 
+    let parsedLink: URL;
+    try {
+      parsedLink = new URL(cleanLink);
+    } catch {
+      setErr('Veuillez coller un lien de partage SHEIN valide.');
+      return;
+    }
+
     if (
-      !/^https:\/\/onelink\.shein\.com\//i.test(cleanLink) &&
-      !/^https:\/\/(www\.|m\.)?shein\./i.test(cleanLink)
+      parsedLink.protocol !== 'https:' ||
+      !['onelink.shein.com', 'www.shein.com', 'm.shein.com', 'shein.com'].includes(parsedLink.hostname)
     ) {
       setErr('Veuillez coller un lien de partage SHEIN valide.');
       return;
@@ -303,7 +311,10 @@ Je souhaite confirmer cette précommande.`
               required
               rows={4}
               value={link}
-              onChange={e => setLink(e.target.value)}
+              onChange={e => {
+                setLink(e.target.value);
+                if (err) setErr('');
+              }}
               placeholder={'I found some great items at SHEIN!\nhttps://onelink.shein.com/...'}
               className={`${inp} mt-2 resize-y`}
             />
