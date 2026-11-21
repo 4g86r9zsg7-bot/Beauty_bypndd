@@ -304,7 +304,7 @@ export default function ProductBuy({p}:{p:any}) {
     )}`;
 
   const shareProduct=async()=>{
-    const productUrl=`https://beautybypndd.com/produit/${p.slug}`;
+    const productUrl=`https://beautybypnd.com/produit/${p.slug}`;
     const shareText=[
       `Découvrez ${p.name} chez BeautyByPND !`,
       `Prix : ${eur(price)}`,
