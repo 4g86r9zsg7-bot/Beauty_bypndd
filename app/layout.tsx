@@ -29,16 +29,16 @@ const sans=Inter({
 export const metadata:Metadata={
   metadataBase:new URL('https://beautybypnd.com'),
   title:{
-    default:'Beauty_bypndd | Beauté, Maquillage, Parfums et Soins',
-    template:'%s | Beauty_bypndd'
+    default:'BeautyByPND | Beauté, Maquillage, Parfums et Soins',
+    template:'%s | BeautyByPND'
   },
-  description:'Découvrez Beauty_bypndd : maquillage, parfums, brumes parfumées, soins et produits de beauté de grandes marques. Découvrez nos nouveautés et offres exclusives.',
-  applicationName:'Beauty_bypndd',
+  description:'Découvrez BeautyByPND, votre boutique beauté au Maroc : maquillage, parfums, soins du visage et du corps, brumes parfumées et grandes marques. Livraison partout au Maroc et paiement à la livraison.',
+  applicationName:'BeautyByPND',
   verification:{
     google:'VvULh4JxJ0Kn_J4o-AlyXTQxHC5MYaGg1SEW4u0EmXc'
   },
   keywords:[
-    'Beauty_bypndd',
+    'BeautyByPND',
     'boutique beauté',
     'maquillage',
     'parfums',
@@ -54,23 +54,26 @@ export const metadata:Metadata={
     'NYX'
   ],
   openGraph:{
-    title:'Beauty_bypndd | L’élégance au féminin',
-    description:'Maquillage, soins, parfums et produits de beauté de grandes marques. Découvrez les nouveautés et offres exclusives Beauty_bypndd.',
-    siteName:'Beauty_bypndd',
-    locale:'fr_FR',
+    title:'BeautyByPND | L’élégance au féminin',
+    description:'Maquillage, soins, parfums et produits de beauté de grandes marques. Découvrez les nouveautés et offres exclusives BeautyByPND.',
+    siteName:'BeautyByPND',
+    locale:'fr_MA',
     type:'website'
   },
   twitter:{
-    card:'summary',
-    title:'Beauty_bypndd | L’élégance au féminin',
-    description:'Maquillage, soins, parfums et produits de beauté. Découvrez Beauty_bypndd.'
+    card:'summary_large_image',
+    title:'BeautyByPND | L’élégance au féminin',
+    description:'Maquillage, soins, parfums et produits de beauté. Découvrez BeautyByPND.'
   },
   robots:{
     index:true,
     follow:true,
     googleBot:{
       index:true,
-      follow:true
+      follow:true,
+      'max-image-preview':'large',
+      'max-snippet':-1,
+      'max-video-preview':-1
     }
   }
 };
@@ -122,7 +125,7 @@ export default function L({children}:{children:React.ReactNode}){
           </main>
 
           <footer className="bg-deep text-white px-4 py-10 text-xs tracking-[0.15em] uppercase text-center">
-            <p>Beauty_bypndd · L’élégance au féminin</p>
+            <p>BeautyByPND · L’élégance au féminin</p>
             <nav className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2">
               <Link href="/livraison" aria-label="Livraison" className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
