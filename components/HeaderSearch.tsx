@@ -22,7 +22,7 @@ export default function HeaderSearch(){
         )}
       </button>
       {open&&(
-        <div className="absolute right-0 top-full z-[200] mt-3 w-[min(92vw,420px)]">
+        <div className="fixed left-3 right-3 top-40 z-[200] mx-auto w-auto max-w-[420px] md:absolute md:left-auto md:right-0 md:top-full md:mt-3 md:w-[min(92vw,420px)]">
           <SearchBox compact/>
         </div>
       )}
