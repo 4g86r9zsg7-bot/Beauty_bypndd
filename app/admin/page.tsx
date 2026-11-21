@@ -844,6 +844,7 @@ export default function Admin(){
       commercial_range:fd.get('commercial_range')||null,
       category_id:fd.get('cat')||null,
       description:fd.get('desc'),
+      ingredients:String(fd.get('ingredients')||'').trim()||null,
       price:Number(fd.get('price')),
       old_price:fd.get('old')?Number(fd.get('old')):null,
       stock,
@@ -1996,6 +1997,18 @@ export default function Admin(){
               + Ajouter une variante simple
             </button>
           </div>
+
+          <textarea
+            name="ingredients"
+            placeholder="Ingrédients / liste INCI (facultatif — copier depuis une source fiable)"
+            defaultValue={importedProduct?.ingredients??edit?.ingredients??''}
+            rows={4}
+            className="border p-2"
+          />
+
+          <p className="text-xs text-ink/60">
+            Renseigne uniquement les ingrédients confirmés sur l’emballage ou la fiche officielle du fabricant.
+          </p>
 
           <textarea
             name="desc"
