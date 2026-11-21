@@ -12,7 +12,7 @@ import RecentlyViewed from '@/components/RecentlyViewed';
 
 export const dynamic='force-dynamic';
 
-const SITE='https://beautybypndd.com';
+const SITE='https://beautybypnd.com';
 
 function getBrand(value:any){
   return Array.isArray(value)?value[0]?.name:value?.name;
