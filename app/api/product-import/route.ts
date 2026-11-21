@@ -692,6 +692,108 @@ function getCurrencyPrice(value: any): string {
   return clean(value);
 }
 
+
+/* SECOURS SHOPIFY : API publique produit, uniquement sur le même domaine */
+async function fetchShopifyProductJson(inputUrl: string): Promise<any | null> {
+  const sourceUrl = await validateUrl(inputUrl);
+  const match = sourceUrl.pathname.match(/^(.*\/products\/[^/]+)\/?$/i);
+  if (!match) return null;
+
+  const endpoint = new URL(`${match[1]}.js`, sourceUrl.origin);
+  const safeEndpoint = await validateUrl(endpoint.href);
+  if (safeEndpoint.hostname.toLowerCase() !== sourceUrl.hostname.toLowerCase()) {
+    return null;
+  }
+
+  const response = await fetch(safeEndpoint.href, {
+    method: 'GET',
+    redirect: 'manual',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; BeautyByPNDProductImporter/1.0)'
+    }
+  });
+
+  if (!response.ok || response.status >= 300) return null;
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('json')) return null;
+
+  const text = await response.text();
+  if (!text || text.length > MAX_HTML) return null;
+
+  try {
+    const data = JSON.parse(text);
+    if (!data || typeof data !== 'object' || !data.title) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeShopifyProduct(data: any, sourceUrl: string) {
+  const images = (Array.isArray(data.images) ? data.images : [])
+    .map((image: any) => getImageUrl(image, sourceUrl))
+    .filter(Boolean)
+    .slice(0, MAX_IMAGES);
+
+  const variants = (Array.isArray(data.variants) ? data.variants : [])
+    .slice(0, MAX_VARIANTS)
+    .map((variant: any) => {
+      const options: Record<string, string> = {};
+      const optionNames = Array.isArray(data.options) ? data.options : [];
+      const optionValues = [variant.option1, variant.option2, variant.option3];
+      optionNames.forEach((option: any, index: number) => {
+        const value = clean(optionValues[index]);
+        const name = clean(option?.name || option);
+        if (name && value && value.toLowerCase() !== 'default title') options[name] = value;
+      });
+      const entries = Object.entries(options);
+      const variantImages = variant.featured_image?.src
+        ? [getImageUrl(variant.featured_image.src, sourceUrl)].filter(Boolean)
+        : [];
+      return {
+        name: entries.map(([key]) => key).join(' / ') || 'Variante',
+        value: entries.map(([key, value]) => `${key}: ${value}`).join(' · ') || clean(variant.title) || 'Option',
+        options,
+        sku: clean(variant.sku),
+        price: variant.price != null && !Number.isNaN(Number(variant.price))
+          ? Number(variant.price) / 100
+          : null,
+        currency: clean(data.currency),
+        stock: variant.inventory_quantity != null ? Number(variant.inventory_quantity) : null,
+        images: variantImages
+      };
+    });
+
+  const price = data.price != null && !Number.isNaN(Number(data.price))
+    ? Number(data.price) / 100
+    : null;
+
+  return {
+    success: true,
+    product: {
+      name: clean(data.title),
+      description: clean(data.body_html),
+      brand: clean(data.vendor),
+      sku: clean(data.variants?.[0]?.sku),
+      mpn: '',
+      price,
+      currency: clean(data.currency),
+      images,
+      variants,
+      url: sourceUrl
+    },
+    missing: [
+      ...(!clean(data.title) ? ['name'] : []),
+      ...(!clean(data.body_html) ? ['description'] : []),
+      ...(!images.length ? ['images'] : []),
+      ...(!variants.length ? ['variants'] : [])
+    ],
+    source: 'shopify_json'
+  };
+}
+
 /* ROUTE API */
 
 export async function POST(request: NextRequest) {
@@ -706,7 +808,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const page = await fetchHtmlPage(input);
+    let page: { html: string; url: URL };
+    try {
+      page = await fetchHtmlPage(input);
+    } catch (primaryError) {
+      const shopifyData = await fetchShopifyProductJson(input).catch(() => null);
+      if (shopifyData) {
+        return NextResponse.json(normalizeShopifyProduct(shopifyData, input));
+      }
+      throw primaryError;
+    }
     const html = page.html;
     const currentUrl = page.url;
     const { product, documents } = getStructuredProduct(html);
