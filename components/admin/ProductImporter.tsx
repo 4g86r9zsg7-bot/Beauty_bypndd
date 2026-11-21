@@ -110,6 +110,12 @@ export default function ProductImporter({ onImport }: Props) {
   const [variants, setVariants] = useState<ImportedVariant[]>([]);
   const [selectedVariants, setSelectedVariants] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
+  const [manualFallback, setManualFallback] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualBrand, setManualBrand] = useState('');
+  const [manualPrice, setManualPrice] = useState('');
+  const [manualDescription, setManualDescription] = useState('');
+  const [manualImages, setManualImages] = useState('');
 
   async function analyze() {
     if (!url.trim()) {
@@ -120,6 +126,7 @@ export default function ProductImporter({ onImport }: Props) {
     try {
       setLoading(true);
       setMessage('');
+      setManualFallback(false);
       setMissing([]);
       setDetected(null);
       setImages([]);
@@ -178,6 +185,7 @@ export default function ProductImporter({ onImport }: Props) {
           ? error.message
           : 'Une erreur est survenue pendant l’analyse.'
       );
+      setManualFallback(true);
     } finally {
       setLoading(false);
     }
@@ -384,6 +392,43 @@ export default function ProductImporter({ onImport }: Props) {
         <p className="mt-3 text-sm text-gray-700" role="status">
           {message}
         </p>
+      )}
+
+      {manualFallback && !detected && (
+        <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-white p-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Import manuel de secours</p>
+            <p className="mt-1 text-xs leading-5 text-gray-600">
+              Ce site bloque la lecture automatique. Ouvre la page produit, puis complète les informations ci-dessous. Rien ne sera enregistré sans ta validation finale.
+            </p>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-sm font-semibold text-rose-700 underline">
+              Ouvrir la page du produit
+            </a>
+          </div>
+          <input value={manualName} onChange={e => setManualName(e.target.value)} placeholder="Nom du produit (obligatoire)" className="w-full rounded-lg border px-3 py-2 text-sm text-gray-900" />
+          <input value={manualBrand} onChange={e => setManualBrand(e.target.value)} placeholder="Marque (facultatif)" className="w-full rounded-lg border px-3 py-2 text-sm text-gray-900" />
+          <input type="number" min="0" step="0.01" value={manualPrice} onChange={e => setManualPrice(e.target.value)} placeholder="Prix (facultatif)" className="w-full rounded-lg border px-3 py-2 text-sm text-gray-900" />
+          <textarea value={manualDescription} onChange={e => setManualDescription(e.target.value)} placeholder="Description (facultatif)" rows={4} className="w-full rounded-lg border px-3 py-2 text-sm text-gray-900" />
+          <textarea value={manualImages} onChange={e => setManualImages(e.target.value)} placeholder="Liens des photos (un lien par ligne, facultatif)" rows={3} className="w-full rounded-lg border px-3 py-2 text-sm text-gray-900" />
+          <button type="button" onClick={() => {
+            if (!manualName.trim()) { setMessage('Ajoute au moins le nom du produit.'); return; }
+            const imageList = [...new Set(manualImages.split(/\\s+/).map(value => value.trim()).filter(value => /^https?:\\/\\//i.test(value)))];
+            onImport({
+              name: manualName.trim(),
+              brand: manualBrand.trim(),
+              price: manualPrice.trim() ? Number(manualPrice) : null,
+              currency: 'MAD',
+              description: manualDescription.trim(),
+              images: imageList,
+              variants: [],
+            });
+            setManualFallback(false);
+            setMessage('Informations transférées au formulaire. Vérifie-les puis clique toi-même sur Enregistrer.');
+          }} className={primaryButton}>
+            Transférer au formulaire
+          </button>
+          <p className="text-xs text-gray-500">Ce transfert ne crée ni ne publie le produit. Tu gardes le contrôle de l’enregistrement.</p>
+        </div>
       )}
 
       {detected && (
