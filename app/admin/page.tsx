@@ -6,6 +6,7 @@ import {useEffect,useState} from 'react';
 import {supabase,eur} from '@/lib/supabase';
 import AdminHome from '@/components/AdminHome';
 import ProductImporter from '@/components/admin/ProductImporter';
+import OptimizeProductImages from '@/components/admin/OptimizeProductImages';
 import {prepareProductImage} from '@/lib/prepareProductImage';
 
 const ST=['pending','confirmed','preparing','shipped','delivered','cancelled'];
@@ -1565,6 +1566,7 @@ export default function Admin(){
 
       {tab==='products'&&(
         <div className="space-y-2">
+          <OptimizeProductImages />
           <div className="text-sm flex gap-4">
             <button onClick={()=>quick('brands')} className="underline">+ Marque</button>
             <button onClick={()=>quick('categories')} className="underline">+ Catégorie</button>
