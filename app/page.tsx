@@ -95,6 +95,12 @@ export default async function Home(){
   // Vitrines classées par priorité : nouveautés, bonnes affaires et disponibilité immédiate d'abord.
   const defs:{tone:string;title:string;href:string;f:(q:any)=>any}[]=[
     {
+      tone:'ventes',
+      title:'Meilleures ventes',
+      href:'/categorie/meilleures-ventes',
+      f:q=>q.eq('is_bestseller',true).in('availability',['available','last']).gt('stock',0)
+    },
+    {
       tone:'nouveautes',
       title:'Nouveautés',
       href:'/categorie/nouveautes',
@@ -111,12 +117,6 @@ export default async function Home(){
       title:'Disponibles immédiatement',
       href:'/categorie/tous',
       f:q=>q.in('availability',['available','last']).gt('stock',0)
-    },
-    {
-      tone:'ventes',
-      title:'Meilleures ventes',
-      href:'/categorie/meilleures-ventes',
-      f:q=>q.eq('is_bestseller',true).not('availability','in','(arrival,preorder)')
     },
     {
       tone:'coeur',
@@ -177,6 +177,9 @@ export default async function Home(){
     <>
       <Shortcuts/>
       <Hero/>
+
+      {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
+      <HomeShelves groups={groups} olderItems={olderItems}/>
 
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
@@ -290,11 +293,6 @@ export default async function Home(){
         </section>
 
       </main>
-
-      {/* VITRINES PRODUITS */}
-      <div className="mt-8 space-y-2">
-        <HomeShelves groups={groups} olderItems={olderItems}/>
-      </div>
 
       {/* MARQUES */}
       {brands.length>0&&(
