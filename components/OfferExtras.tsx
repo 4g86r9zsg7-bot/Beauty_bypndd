@@ -132,7 +132,7 @@ export function OfferDetails({
                 <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-[#f0dce4] bg-white p-3">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#fdf3f7]">
                     {item.image&&(
-                      <img src={item.image} alt={item.name} className="h-full w-full object-cover"/>
+                      <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-cover"/>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
