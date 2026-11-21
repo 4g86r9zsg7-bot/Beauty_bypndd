@@ -516,6 +516,8 @@ export default function Panier(){
                       <img
                         src={l.image}
                         alt={l.name}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     )}
