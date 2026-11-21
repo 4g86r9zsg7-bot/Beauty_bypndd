@@ -245,6 +245,9 @@ export default function Admin(){
   const [fb,setFb]=useState('');
   const [fc,setFc]=useState('');
   const [sortProducts,setSortProducts]=useState('recent');
+  const [bulkSelected,setBulkSelected]=useState<string[]>([]);
+  const [bulkDrafts,setBulkDrafts]=useState<any>({});
+  const [bulkBusy,setBulkBusy]=useState(false);
 
   async function check(){
     const {data:{user}}=await supabase.auth.getUser();
@@ -990,6 +993,79 @@ export default function Admin(){
     load();
   };
 
+  const toggleBulkProduct=(p:any)=>{
+    setBulkSelected(current=>{
+      if(current.includes(p.id))return current.filter(id=>id!==p.id);
+      setBulkDrafts((drafts:any)=>({
+        ...drafts,
+        [p.id]:{
+          stock:String(p.stock??0),
+          variants:(p.variants||[]).map((v:any)=>typeof v==='object'?{...v,stock:String(v.stock??0)}:v)
+        }
+      }));
+      return [...current,p.id];
+    });
+  };
+
+  const updateBulkDraft=(id:string,patch:any)=>{
+    setBulkDrafts((drafts:any)=>({
+      ...drafts,
+      [id]:{...(drafts[id]||{}),...patch}
+    }));
+  };
+
+  const saveBulkStocks=async()=>{
+    if(!bulkSelected.length||bulkBusy)return;
+    setBulkBusy(true);
+    let saved=0;
+    let failed=0;
+
+    for(const id of bulkSelected){
+      const p=prods.find(x=>x.id===id);
+      const draft=bulkDrafts[id];
+      if(!p||!draft){failed++;continue;}
+
+      let patch:any={};
+      if(hasObjVars(p)){
+        const variants=(draft.variants||[]).map((v:any)=>{
+          if(typeof v!=='object')return v;
+          const quantity=Math.max(0,Math.floor(Number(v.stock)||0));
+          const status=['available','last','soldout'].includes(v.status||'available')
+            ?(quantity<=0?'soldout':quantity<=3?'last':'available')
+            :(v.status||'available');
+          return {...v,stock:quantity,status};
+        });
+        const stock=variants
+          .filter((v:any)=>typeof v==='object'&&['available','last'].includes(v.status))
+          .reduce((sum:number,v:any)=>sum+Number(v.stock||0),0);
+        const availability=stock>0
+          ?(stock<=3?'last':'available')
+          :variants.some((v:any)=>v.status==='arrival')
+          ?'arrival'
+          :variants.some((v:any)=>v.status==='preorder')
+          ?'preorder'
+          :'soldout';
+        patch={variants,stock,availability};
+      }else{
+        const stock=Math.max(0,Math.floor(Number(draft.stock)||0));
+        patch={stock,availability:autoAv(p.availability,stock)};
+      }
+
+      const {error}=await supabase.from('products').update(patch).eq('id',id);
+      if(error){failed++;continue;}
+      await logActivity('Mise à jour groupée du stock','produit',id,p.name||'Produit',patch);
+      saved++;
+    }
+
+    setBulkBusy(false);
+    setBulkSelected([]);
+    setBulkDrafts({});
+    setMsg(failed
+      ?`Stocks enregistrés pour ${saved} produit(s). ${failed} échec(s).`
+      :`Stocks mis à jour pour ${saved} produit(s).`);
+    await load();
+  };
+
   const del=async(id:string)=>{
     if(confirm('Supprimer ce produit ?')){
       await supabase.from('products').delete().eq('id',id);
@@ -1559,10 +1635,65 @@ export default function Admin(){
             </select>
           </div>
 
-          <p className="text-xs">{shown.length} produit(s)</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs">{shown.length} produit(s)</p>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={()=>{
+                  const eligible=shown.filter((p:any)=>p.availability==='soldout');
+                  setBulkSelected(eligible.map((p:any)=>p.id));
+                  setBulkDrafts((drafts:any)=>{
+                    const next={...drafts};
+                    eligible.forEach((p:any)=>{
+                      next[p.id]={
+                        stock:String(p.stock??0),
+                        variants:(p.variants||[]).map((v:any)=>typeof v==='object'?{...v,stock:String(v.stock??0)}:v)
+                      };
+                    });
+                    return next;
+                  });
+                }}
+                className="underline"
+              >
+                Sélectionner les épuisés affichés
+              </button>
+              <button type="button" onClick={()=>{setBulkSelected([]);setBulkDrafts({});}} className="underline">
+                Tout désélectionner
+              </button>
+            </div>
+          </div>
+
+          {bulkSelected.length>0&&(
+            <div className="sticky top-2 z-10 rounded-xl border border-plum/30 bg-white p-3 shadow-sm space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <b>{bulkSelected.length} produit(s) sélectionné(s)</b>
+                <button
+                  type="button"
+                  disabled={bulkBusy}
+                  onClick={saveBulkStocks}
+                  className="rounded-full bg-plum px-4 py-2 text-white disabled:opacity-50"
+                >
+                  {bulkBusy?'Enregistrement…':'Enregistrer les stocks sélectionnés'}
+                </button>
+              </div>
+              <p className="text-xs text-ink/65">
+                Saisis la nouvelle quantité pour chaque produit. Pour les produits avec variantes, règle chaque variante séparément.
+              </p>
+            </div>
+          )}
 
           {shown.map(p=>(
             <div key={p.id} className="bg-white p-3 border border-sand text-sm flex flex-wrap gap-2 items-center">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={bulkSelected.includes(p.id)}
+                  onChange={()=>toggleBulkProduct(p)}
+                  aria-label={`Sélectionner ${p.name}`}
+                />
+                <span className="text-xs">Sélectionner</span>
+              </label>
               <b className="flex-1 min-w-[10rem]">
                 {p.name}
                 {p.availability==='soldout'
@@ -1631,6 +1762,47 @@ export default function Admin(){
               <button onClick={()=>del(p.id)} className="underline text-red-700">
                 Supprimer
               </button>
+
+              {bulkSelected.includes(p.id)&&(
+                <div className="w-full border-t border-sand pt-2 space-y-2">
+                  {hasObjVars(p)?(
+                    <>
+                      <p className="text-xs font-semibold">Stock par variante — {p.name}</p>
+                      {(bulkDrafts[p.id]?.variants||[]).map((v:any,index:number)=>(
+                        typeof v==='object'?(
+                          <label key={index} className="flex items-center justify-between gap-3 text-xs">
+                            <span className="min-w-0">{v.name||Object.values(v.options||{}).join(' · ')||`Variante ${index+1}`}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={v.stock??0}
+                              onChange={e=>{
+                                const variants=[...(bulkDrafts[p.id]?.variants||[])];
+                                variants[index]={...variants[index],stock:e.target.value};
+                                updateBulkDraft(p.id,{variants});
+                              }}
+                              className="w-20 rounded border p-2"
+                            />
+                          </label>
+                        ):null
+                      ))}
+                    </>
+                  ):(
+                    <label className="flex items-center gap-2 text-xs">
+                      Nouvelle quantité en stock
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={bulkDrafts[p.id]?.stock??0}
+                        onChange={e=>updateBulkDraft(p.id,{stock:e.target.value})}
+                        className="w-24 rounded border p-2"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
