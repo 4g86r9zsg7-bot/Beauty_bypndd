@@ -6,6 +6,7 @@ import {useEffect,useState} from 'react';
 import {supabase,eur} from '@/lib/supabase';
 import AdminHome from '@/components/AdminHome';
 import ProductImporter from '@/components/admin/ProductImporter';
+import {prepareProductImage} from '@/lib/prepareProductImage';
 
 const ST=['pending','confirmed','preparing','shipped','delivered','cancelled'];
 const SL:any={pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',shipped:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
@@ -742,33 +743,32 @@ export default function Admin(){
       return;
     }
 
-    for(const file of Array.from((form.images as HTMLInputElement).files||[]) as File[]){
-      const path=`${Date.now()}-${file.name.replace(/[^\w.]/g,'_')}`;
-
-      const {error}=await supabase.storage
-        .from('product-images')
-        .upload(path,file);
-
-      if(!error){
-        urls.push(
-          supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl
-        );
-      }
-    }
-
-    const name=String(fd.get('name'));
-
     const upload=async(file:File)=>{
-      const path=`${Date.now()}-${Math.random().toString(36).slice(2,6)}-${file.name.replace(/[^\w.]/g,'_')}`;
+      const prepared=await prepareProductImage(file);
+      const safeName=file.name
+        .replace(/\.[^.]+$/,'')
+        .replace(/[^\w-]/g,'_')
+        .slice(0,60)||'photo';
+      const path=`products/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeName}.${prepared.extension}`;
 
       const {error}=await supabase.storage
         .from('product-images')
-        .upload(path,file);
+        .upload(path,prepared.blob,{
+          contentType:prepared.contentType,
+          cacheControl:'31536000'
+        });
 
       return error
         ?null
         :supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
     };
+
+    for(const file of Array.from((form.images as HTMLInputElement).files||[]) as File[]){
+      const url=await upload(file);
+      if(url)urls.push(url);
+    }
+
+    const name=String(fd.get('name'));
 
     const vars:any[]=[];
 
