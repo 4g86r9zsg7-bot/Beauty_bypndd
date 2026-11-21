@@ -794,6 +794,102 @@ function normalizeShopifyProduct(data: any, sourceUrl: string) {
   };
 }
 
+
+/* SECOURS WOOCOMMERCE : Store API publique sur le même domaine */
+async function fetchWooCommerceProductJson(inputUrl: string): Promise<any | null> {
+  const sourceUrl = await validateUrl(inputUrl);
+  const slug = sourceUrl.pathname.split('/').filter(Boolean).pop();
+  if (!slug || slug.length > 180) return null;
+
+  const endpoint = new URL('/wp-json/wc/store/v1/products', sourceUrl.origin);
+  endpoint.searchParams.set('slug', slug);
+  const safeEndpoint = await validateUrl(endpoint.href);
+  if (safeEndpoint.hostname.toLowerCase() !== sourceUrl.hostname.toLowerCase()) return null;
+
+  const response = await fetch(safeEndpoint.href, {
+    method: 'GET',
+    redirect: 'manual',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; BeautyByPNDProductImporter/1.0)'
+    }
+  });
+  if (!response.ok || response.status >= 300) return null;
+  if (!(response.headers.get('content-type') || '').toLowerCase().includes('json')) return null;
+
+  const body = await response.text();
+  if (!body || body.length > MAX_HTML) return null;
+  try {
+    const data = JSON.parse(body);
+    return Array.isArray(data) && data.length ? data[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeWooCommerceProduct(data: any, sourceUrl: string) {
+  if (!data || typeof data !== 'object' || !data.name) return null;
+  const minorUnit = Number(data.prices?.currency_minor_unit ?? 2);
+  const divisor = Math.pow(10, Math.min(4, Math.max(0, minorUnit)));
+  const priceRaw = data.prices?.price;
+  const price = priceRaw != null && priceRaw !== ''
+    ? Number(priceRaw) / divisor
+    : null;
+  const images = (Array.isArray(data.images) ? data.images : [])
+    .map((image: any) => getImageUrl(image?.src || image?.thumbnail, sourceUrl))
+    .filter(Boolean)
+    .slice(0, MAX_IMAGES);
+  const variants = (Array.isArray(data.variations) ? data.variations : [])
+    .slice(0, MAX_VARIANTS)
+    .map((variant: any) => {
+      const options: Record<string, string> = {};
+      for (const attribute of Array.isArray(variant.attributes) ? variant.attributes : []) {
+        const name = clean(attribute.name);
+        const value = clean(attribute.value);
+        if (name && value) options[name] = value;
+      }
+      const values = Object.entries(options);
+      const rawVariantPrice = variant.prices?.price;
+      return {
+        name: values.map(([key]) => key).join(' / ') || 'Variante',
+        value: values.map(([key, value]) => `${key}: ${value}`).join(' · ') || clean(variant.name) || 'Option',
+        options,
+        sku: clean(variant.sku),
+        price: rawVariantPrice != null && rawVariantPrice !== ''
+          ? Number(rawVariantPrice) / divisor
+          : null,
+        currency: clean(variant.prices?.currency_code || data.prices?.currency_code),
+        images: (Array.isArray(variant.images) ? variant.images : [])
+          .map((image: any) => getImageUrl(image?.src || image?.thumbnail, sourceUrl))
+          .filter(Boolean)
+          .slice(0, 8)
+      };
+    });
+
+  return {
+    success: true,
+    product: {
+      name: clean(data.name),
+      description: clean(data.description || data.short_description),
+      brand: clean(data.brands?.[0]?.name || ''),
+      sku: clean(data.sku),
+      price,
+      currency: clean(data.prices?.currency_code),
+      images,
+      variants,
+      url: sourceUrl
+    },
+    missing: [
+      ...(!clean(data.name) ? ['name'] : []),
+      ...(!clean(data.description || data.short_description) ? ['description'] : []),
+      ...(!images.length ? ['images'] : []),
+      ...(!variants.length ? ['variants'] : [])
+    ],
+    source: 'woocommerce_store_api'
+  };
+}
+
 /* ROUTE API */
 
 export async function POST(request: NextRequest) {
@@ -816,6 +912,9 @@ export async function POST(request: NextRequest) {
       if (shopifyData) {
         return NextResponse.json(normalizeShopifyProduct(shopifyData, input));
       }
+      const wooData = await fetchWooCommerceProductJson(input).catch(() => null);
+      const wooProduct = wooData ? normalizeWooCommerceProduct(wooData, input) : null;
+      if (wooProduct) return NextResponse.json(wooProduct);
       throw primaryError;
     }
     const html = page.html;
