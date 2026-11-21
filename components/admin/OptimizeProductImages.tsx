@@ -35,6 +35,11 @@ const getFileName=(url:string)=>{
   catch{return '';}
 };
 
+const isTargetFile=(url:string)=>{
+  const fileName=getFileName(url).toLowerCase();
+  return [...TARGET_FILES].some(target=>fileName.endsWith(target.toLowerCase()));
+};
+
 function replaceUrl(value:any,replacements:Map<string,string>):any{
   if(typeof value==='string')return replacements.get(value)||value;
   if(Array.isArray(value))return value.map(item=>replaceUrl(item,replacements));
@@ -67,7 +72,7 @@ export default function OptimizeProductImages(){
       const refs=new Map<string,Set<string>>();
       for(const product of products||[]){
         const visit=(value:any)=>{
-          if(typeof value==='string'&&TARGET_FILES.has(getFileName(value))){
+          if(typeof value==='string'&&isTargetFile(value)){
             if(!refs.has(value))refs.set(value,new Set());
             refs.get(value)!.add(String(product.name||'Produit sans nom'));
           }else if(Array.isArray(value)){
