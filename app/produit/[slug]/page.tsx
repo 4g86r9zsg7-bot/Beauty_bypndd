@@ -38,7 +38,7 @@ export async function generateMetadata({params}:{params:{slug:string}}):Promise<
 
   if(!data){
     return {
-      title:'Produit | Beauty_bypndd',
+      title:'Produit | BeautyByPND',
       robots:{index:false,follow:true}
     };
   }
@@ -48,9 +48,9 @@ export async function generateMetadata({params}:{params:{slug:string}}):Promise<
   const name=cleanText(d.name);
   const clean=cleanText(d.description);
 
-  const title=`${name}${brand&&!name.toLowerCase().includes(String(brand).toLowerCase())?` – ${brand}`:''} | Beauty_bypndd`;
+  const title=`${name}${brand&&!name.toLowerCase().includes(String(brand).toLowerCase())?` – ${brand}`:''} | BeautyByPND`;
 
-  const fallback=`Découvrez ${name}${brand?` de ${brand}`:''} chez Beauty_bypndd. Beauté, maquillage et soins au Maroc, livraison à domicile et paiement à la livraison.`;
+  const fallback=`Découvrez ${name}${brand?` de ${brand}`:''} chez BeautyByPND. Beauté, maquillage et soins au Maroc, livraison à domicile et paiement à la livraison.`;
 
   const description=(clean||fallback).slice(0,155);
   const images=getImages(d.images);
@@ -65,7 +65,7 @@ export async function generateMetadata({params}:{params:{slug:string}}):Promise<
       'cosmétiques Maroc',
       'maquillage Maroc',
       'produits beauté',
-      'Beauty_bypndd'
+      'BeautyByPND'
     ].filter(Boolean),
     alternates:{
       canonical
@@ -85,7 +85,7 @@ export async function generateMetadata({params}:{params:{slug:string}}):Promise<
       title,
       description,
       url:canonical,
-      siteName:'Beauty_bypndd',
+      siteName:'BeautyByPND',
       locale:'fr_FR',
       type:'website',
       images:images.length?images.map((url:string)=>({
