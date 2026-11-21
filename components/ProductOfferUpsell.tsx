@@ -132,7 +132,7 @@ export default function ProductOfferUpsell({
       <div key={it.id} className={`group flex gap-3 rounded-2xl border border-[#eee2df] bg-white p-3 transition hover:border-[#d8b5bb] ${compact?'sm:flex-col':''}`}>
         <div className={`relative shrink-0 overflow-hidden rounded-xl bg-[#f8f1ed] ${compact?'h-28 w-24 sm:h-36 sm:w-full':'h-24 w-20 sm:h-28 sm:w-24'}`}>
           {image?(
-            <img src={image} alt={p.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>
+            <img src={image} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>
           ):(
             <div className="flex h-full items-center justify-center text-[#c4a5a5]">
               <span className="text-2xl">✧</span>
