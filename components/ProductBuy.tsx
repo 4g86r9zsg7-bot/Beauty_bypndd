@@ -156,6 +156,7 @@ export default function ProductBuy({p}:{p:any}) {
   const [descriptionExpanded,setDescriptionExpanded]=useState(false);
   const productDescription=String(p.description??'').trim();
   const productIngredients=String(p.ingredients??'').trim();
+  const productBenefits=String(p.benefits??'').trim();
   const [expandedOptionGroups,setExpandedOptionGroups]=useState<Record<string,boolean>>({});
   const [legacyExpanded,setLegacyExpanded]=useState(false);
 
@@ -843,6 +844,20 @@ export default function ProductBuy({p}:{p:any}) {
             </>
           )}
         </div>
+
+        {productBenefits&&(
+          <section className="mt-6 rounded-2xl border border-rose/20 bg-blush/20 p-5 sm:p-6">
+            <h2 className="font-serif text-xl text-plum">
+              Bénéfices
+            </h2>
+            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/75">
+              {productBenefits}
+            </p>
+            <p className="mt-3 text-[11px] leading-relaxed text-ink/50">
+              Bénéfices communiqués par le fabricant. Consultez l’emballage pour les informations et précautions les plus récentes.
+            </p>
+          </section>
+        )}
 
         {productIngredients&&(
           <section className="mt-6 rounded-2xl border border-sand bg-white p-5 sm:p-6">
