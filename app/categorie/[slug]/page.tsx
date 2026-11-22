@@ -385,7 +385,7 @@ export default async function Cat({
       )}
 
       {/* Barre filtres + tri */}
-      <div className="relative mt-6 flex items-center justify-between gap-3 border-y border-sand py-3">
+      <div className="relative z-20 mt-6 flex items-center justify-between gap-3 border-y border-sand py-3">
         <details className="group">
           <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-plum px-5 py-2 text-sm text-plum [&::-webkit-details-marker]:hidden">
             <svg
@@ -519,7 +519,7 @@ export default async function Cat({
       )}
 
       {/* Produits */}
-      <div className="mt-6">
+      <div className="relative z-0 mt-6">
         {list.length ? (
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
             {list.map((p: any) => (
