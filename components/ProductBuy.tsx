@@ -594,7 +594,7 @@ export default function ProductBuy({p}:{p:any}) {
                   </p>
 
                   {colorGroup?(
-                    <div className="flex flex-wrap gap-x-4 gap-y-3">
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
                       {visibleValues.map(value=>{
                         const on=selectedOptions[group.name]===value;
                         const matching=vs.filter(x=>
@@ -619,8 +619,8 @@ export default function ProductBuy({p}:{p:any}) {
                             aria-pressed={on}
                             disabled={!exists}
                             onClick={()=>chooseOption(group.name,value)}
-                            className="group flex w-[68px] flex-col items-center gap-1.5 text-center disabled:cursor-not-allowed disabled:opacity-30">
-                            <span className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 bg-white p-[3px] transition ${
+                            className={`group flex min-w-0 flex-col items-center gap-2 rounded-xl border px-1.5 py-3 text-center transition disabled:cursor-not-allowed disabled:opacity-35 ${on?'border-rose bg-blush/35 shadow-sm':'border-plum/10 bg-white hover:border-plum/35 hover:shadow-sm'}`}>
+                            <span className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 bg-white p-[3px] transition ${
                               on?'border-rose ring-2 ring-rose/20 ring-offset-2'
                               :unavailable?'border-sand'
                               :'border-transparent group-hover:border-plum/40'
@@ -649,7 +649,7 @@ export default function ProductBuy({p}:{p:any}) {
                       })}
                     </div>
                     ):( 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
                         const matching=vs.filter(x=>
@@ -667,7 +667,7 @@ export default function ProductBuy({p}:{p:any}) {
                             onClick={()=>chooseOption(group.name,value)}
                             disabled={!exists}
                             aria-pressed={on}
-                            className={`relative min-w-12 rounded-xl border px-4 py-3 text-xs transition disabled:cursor-not-allowed disabled:opacity-30 ${
+                            className={`relative min-h-12 min-w-0 rounded-xl border px-3 py-3 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-30 sm:min-w-12 sm:px-4 ${
                               on?'border-plum bg-plum text-white shadow-sm'
                               :unavailable?'border-sand bg-sand/20 text-ink/45'
                               :'border-plum/25 bg-white text-plum hover:border-rose'
