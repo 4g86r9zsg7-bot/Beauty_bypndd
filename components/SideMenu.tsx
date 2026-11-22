@@ -150,10 +150,10 @@ export default function SideMenu(){
     </button>
 
     {mounted&&createPortal(
-      <div className={`fixed inset-0 z-50 transition-all duration-300 ${open?'':'invisible'}`}>
+      <div className={`fixed inset-0 z-[1000] transition-all duration-300 ${open?'':'invisible'}`}>
         <div
           onClick={hide}
-          className={`absolute inset-0 bg-[#180C13]/55 backdrop-blur-[2px] transition-opacity duration-300 ${open?'opacity-100':'opacity-0'}`}
+          className={`absolute inset-0 bg-[#180C13] transition-opacity duration-300 ${open?'opacity-100':'opacity-0'}`}
         />
 
         <aside className={`absolute inset-y-0 left-0 flex w-[90%] max-w-[390px] flex-col bg-[#FFFCFD] shadow-2xl transition-transform duration-300 ease-out ${open?'translate-x-0':'-translate-x-full'}`}>
