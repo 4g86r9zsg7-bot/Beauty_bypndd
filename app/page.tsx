@@ -41,7 +41,7 @@ const uniq=(a:any[]|null)=>{
 
 export default async function Home(){
 
-  const [{data:c},{data:b},{data:promoData},{data:promoProducts}]=await Promise.all([
+  const [{data:c},{data:b},{data:promoData}]=await Promise.all([
     supabase.from('categories')
       .select('id,name,slug,parent_id,image_url,position')
       .order('position',{nullsFirst:false})
@@ -52,9 +52,17 @@ export default async function Home(){
     supabase.from('promo_codes')
       .select('id,code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,max_uses,uses,created_at')
       .eq('active',true)
-      .order('created_at',{ascending:false}),
-    supabase.from('products').select('id,name')
+      .order('created_at',{ascending:false})
   ]);
+
+  const promoProductIds=[...new Set((promoData||[])
+    .filter((p:any)=>p.target_type==='product'||p.target_type==='variant')
+    .map((p:any)=>p.target_id)
+    .filter(Boolean))];
+
+  const {data:promoProducts}=promoProductIds.length
+    ?await supabase.from('products').select('id,name').in('id',promoProductIds)
+    :{data:[]};
 
   const cats=uniq(c);
   const brands=uniq(b);
