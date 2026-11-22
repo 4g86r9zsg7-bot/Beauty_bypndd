@@ -164,7 +164,7 @@ export default async function Offres(){
                 >
                   {/* PHOTO ENTIÈRE */}
                   <div className="relative aspect-square overflow-hidden bg-[#fdf3f7]">
-                    {packPhotos.length>1&&!o.image_url?(
+                    {packPhotos.length>1?(
                       <div className={`grid h-full w-full grid-cols-2 grid-rows-2 gap-1 p-2 sm:gap-1.5 sm:p-3 ${available?'':'opacity-50 grayscale'}`}>
                         {packPhotos.slice(0,4).map((item:any,index:number)=>(
                           <div key={item.variant+'-'+index} className="flex min-h-0 items-center justify-center overflow-hidden rounded-lg bg-white">
