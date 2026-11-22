@@ -38,7 +38,8 @@ export default function Offres(){
     setQ('');setOpen(true);setMsg('');window.scrollTo({top:0,behavior:'smooth'});
   };
 
-  const addItem=(p:any)=>{if(items.some(i=>i.product_id===p.id))return;setItems([...items,{product_id:p.id,variant:vnames(p)[0]||null,qty:1}]);setQ('')};
+  const addItem=(p:any)=>{const names=vnames(p);const next=names.find(v=>!items.some(i=>i.product_id===p.id&&i.variant===v));if(names.length&&!next)return;if(!names.length&&items.some(i=>i.product_id===p.id))return;setItems([...items,{product_id:p.id,variant:next||null,qty:1}]);setQ('')};
+  const addAllVariants=(p:any)=>{const names=vnames(p);if(!names.length)return addItem(p);const missing=names.filter(v=>!items.some(i=>i.product_id===p.id&&i.variant===v));if(!missing.length)return;setItems([...items,...missing.map(variant=>({product_id:p.id,variant,qty:1}))]);setQ('')};
   const upItem=(i:number,patch:any)=>setItems(items.map((x,j)=>j===i?{...x,...patch}:x));
 
   const isPack=f.kind==='pack';const isVariantDiscount=f.kind==='variant_discount';
@@ -96,7 +97,7 @@ export default function Offres(){
   async function toggle(o:any){const {error}=await supabase.from('offers').update({active:!o.active}).eq('id',o.id);setMsg(error?error.message:o.active?'Offre désactivée':'Offre activée');load()}
 
   const inp="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm";
-  const hits=q.trim().length>=2?prods.filter((p:any)=>p.name.toLowerCase().includes(q.trim().toLowerCase())&&!items.some(i=>i.product_id===p.id)).slice(0,8):[];
+  const hits=q.trim().length>=2?prods.filter((p:any)=>p.name.toLowerCase().includes(q.trim().toLowerCase())&&(vnames(p).length?vnames(p).some(v=>!items.some(i=>i.product_id===p.id&&i.variant===v)):!items.some(i=>i.product_id===p.id))).slice(0,8):[];
 
   return <div className="mx-auto max-w-2xl space-y-4">
     <h1 className="font-serif text-3xl">Packs &amp; Offres exclusives</h1>
@@ -108,7 +109,7 @@ export default function Offres(){
     {open&&<section className="space-y-3 border border-sand bg-white p-4">
       <h2 className="font-serif text-2xl text-plum">{f.id?'Modifier l’offre':'Nouvelle offre'}</h2>
       <label className="block text-xs">Type d’offre
-        <select value={f.kind} onChange={set('kind')} className={`${inp} mt-1`}><option value="pack">Pack à prix fixe (plusieurs produits)</option><option value="buy_x_get_1">X achetés = 1 offert (le moins cher est offert)</option><option value="variant_discount">Variante supplémentaire à prix réduit</option></select></label>
+        <select value={f.kind} onChange={set('kind')} className={`${inp} mt-1`}><option value="pack">Pack à prix fixe (plusieurs produits ou toutes les variantes)</option><option value="buy_x_get_1">X achetés = 1 offert (le moins cher est offert)</option><option value="variant_discount">Variante supplémentaire à prix réduit</option></select></label>
       <label className="block text-xs">Titre<input value={f.title} onChange={set('title')} placeholder={isPack?'Routine éclat visage':'3 achetés = 1 offert'} className={`${inp} mt-1`}/></label>
       <label className="block text-xs">Description (facultatif)<textarea rows={2} value={f.description} onChange={set('description')} className={`${inp} mt-1`}/></label>
       <label className="block text-xs">Catégorie de l’offre<select value={f.tag} onChange={set('tag')} className={`${inp} mt-1`}>{TAGS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
@@ -126,10 +127,10 @@ export default function Offres(){
           <label className={`cursor-pointer rounded-full border border-plum px-4 py-2 text-plum ${busy?'opacity-50':''}`}>{f.image_url?'Changer l’image':'Ajouter une image'}<input type="file" accept="image/*" disabled={busy} className="hidden" onChange={e=>{upImg(e.target.files?.[0]);e.target.value=''}}/></label>
           {f.image_url&&<button type="button" onClick={()=>setF({...f,image_url:''})} className="underline">Retirer</button>}</div></div>
 
-      <div className="text-xs"><p>Produits {isPack?'du pack':'concernés par l’offre'}</p>
+      <div className="text-xs"><p>{isPack?'Produits et variantes du pack':'Produits concernés par l’offre'}</p>
         <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un produit à ajouter" className={`${inp} mt-1`}/>
-        {hits.length>0&&<ul className="mt-1 divide-y divide-sand rounded-xl border border-sand">{hits.map((p:any)=><li key={p.id}><button type="button" onClick={()=>addItem(p)} className="flex w-full justify-between gap-2 px-3 py-2 text-left text-sm"><span className="truncate">{p.name}</span><span className="shrink-0 text-plum">+ Ajouter</span></button></li>)}</ul>}
-        <div className="mt-2 space-y-2">{items.map((it,i)=>{const p:any=pm.get(it.product_id);const vs=vnames(p);return <div key={it.product_id} className="rounded-xl border border-sand p-3 text-sm">
+        {hits.length>0&&<ul className="mt-1 divide-y divide-sand rounded-xl border border-sand">{hits.map((p:any)=><li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"><span className="min-w-0 flex-1 truncate text-sm">{p.name}</span><div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={()=>addItem(p)} className="text-xs text-plum underline">{vnames(p).length?'Ajouter une couleur':'Ajouter'}</button>{isPack&&vnames(p).length>1&&<button type="button" onClick={()=>addAllVariants(p)} className="rounded-full bg-blush px-3 py-1.5 text-xs font-medium text-plum">Ajouter les {vnames(p).length} variantes</button>}</div></li>)}</ul>}
+        <div className="mt-2 space-y-2">{items.map((it,i)=>{const p:any=pm.get(it.product_id);const vs=vnames(p);return <div key={`${it.product_id}-${it.variant||'default'}`} className="rounded-xl border border-sand p-3 text-sm">
           <div className="flex items-start justify-between gap-2"><span className="font-medium">{p?.name||'Produit introuvable'}</span><button type="button" onClick={()=>setItems(items.filter((_,j)=>j!==i))} className="shrink-0 text-xs text-red-700 underline">Retirer</button></div>
           {(isPack||isVariantDiscount)&&<div className="mt-2 flex flex-wrap items-center gap-2">
             {vs.length>0&&<select value={it.variant||''} onChange={e=>upItem(i,{variant:e.target.value||null})} className="rounded-lg border border-sand px-2 py-1.5">{vs.map(v=><option key={v} value={v}>{v}</option>)}</select>}
