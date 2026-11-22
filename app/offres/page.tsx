@@ -94,6 +94,15 @@ export default async function Offres(){
     day
   );
 
+  const variantDiscounts=dailyRotate(
+    offers.filter((o:any)=>
+      o.kind==='variant_discount'&&
+      o.discount_value>0&&
+      !(o.stock!=null&&o.stock-o.sold<=0)
+    ),
+    day
+  );
+
   const packSection=(
     <>
       {packs.length>0&&(
@@ -263,6 +272,51 @@ export default async function Offres(){
     </>
   );
 
+  const variantDiscountSection=(
+    <>
+      {variantDiscounts.length>0&&(
+        <section id="variantes-reduites" className="mx-auto max-w-7xl scroll-mt-24 px-3 py-5 sm:px-6 lg:px-8">
+          <div className="mb-5 border-b border-[#f0dce4] pb-3">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#a17b39]">Avantage supplémentaire</p>
+            <h2 className="mt-1 font-serif text-2xl text-plum sm:text-3xl">Vos variantes à prix réduit</h2>
+            <p className="mt-1 text-xs text-ink/60">La première unité reste au tarif normal, les suivantes profitent de la réduction.</p>
+          </div>
+          <div className="grid grid-cols-2 items-start gap-3 sm:gap-5 lg:grid-cols-3">
+            {variantDiscounts.map((o:any)=>{
+              const its:any[]=(o.offer_items||[]).filter((it:any)=>it.products&&it.products.active);
+              const rest=o.stock!=null?o.stock-o.sold:null;
+              const discountLabel=o.discount_type==='amount'?eur(o.discount_value):String(o.discount_value)+'%';
+              return its.map((it:any)=>{
+                const p=it.products;
+                const variants=vlist(p);
+                const variant=it.variant?variants.find((v:any)=>v.name===it.variant):null;
+                const price=Number(variant?.price??p.price??0);
+                const discounted=o.discount_type==='amount'?Math.max(0,price-Number(o.discount_value)):price*(1-Number(o.discount_value)/100);
+                return (
+                  <article key={o.id+'-'+it.id} className="overflow-hidden rounded-2xl border border-[#f0dce4] bg-white shadow-[0_4px_16px_rgba(122,31,74,.06)]">
+                    <div className="aspect-square bg-[#fdf3f7]">
+                      {p.images?.[0]?<img src={p.images[0]} alt={p.name} loading="lazy" className="h-full w-full object-contain p-3"/>:<div className="flex h-full items-center justify-center font-serif text-5xl text-[#C6A15B]/60">✧</div>}
+                    </div>
+                    <div className="p-3 sm:p-4">
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-[#8a6a22]">{o.title}</p>
+                      <h3 className="mt-1 line-clamp-2 font-serif text-base text-plum sm:text-lg">{p.name}</h3>
+                      {it.variant&&<p className="mt-1 text-[10px] text-ink/60">Variante : {it.variant}</p>}
+                      <p className="mt-2 text-[9px] text-ink/60">1re unité : {eur(price)}</p>
+                      <p className="mt-0.5 font-serif text-xl text-rose">{eur(discounted)} <span className="font-sans text-[9px] text-ink/60">dès la 2e unité</span></p>
+                      <p className="mt-1 text-[10px] font-semibold text-[#8a6a22]">{discountLabel} de réduction sur chaque unité supplémentaire</p>
+                      {o.description&&<p className="mt-2 line-clamp-2 text-[10px] text-ink/60">{o.description}</p>}
+                      {rest!=null&&<p className="mt-2 text-[9px] text-ink/60">{Math.max(rest,0)} réduction(s) restante(s)</p>}
+                      <Link href={'/produit/'+(p.slug||p.id)} className="mt-3 block rounded-full bg-plum px-3 py-2.5 text-center text-[9px] uppercase tracking-wider text-white">Choisir ce produit</Link>
+                    </div>
+                  </article>
+                );
+              });
+            })}
+          </div>
+        </section>
+      )}
+    </>
+  );
   const specialSection=(
     <>
       {free.length>0&&(
@@ -365,7 +419,7 @@ export default async function Offres(){
           Offres & bons plans
         </h1>
         <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-ink/65 sm:text-sm">
-          Retrouvez nos packs beauté et nos offres exclusives à prix doux.
+          Retrouvez nos packs beauté, variantes à prix réduit et offres exclusives à prix doux.
         </p>
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-[9px] uppercase tracking-wider text-plum/70">
           <span className="rounded-full border border-[#ead9df] bg-white/80 px-3 py-1.5">
@@ -394,7 +448,7 @@ export default async function Offres(){
         </div>
       ):(
         <div className="mx-auto max-w-7xl px-3 pt-5 sm:px-6 lg:px-8">
-          <OfferTypeFilter packs={packSection} specials={specialSection}/>
+          <OfferTypeFilter packs={packSection} specials={<>{variantDiscountSection}{specialSection}</>}/>
         </div>
       )}
 
