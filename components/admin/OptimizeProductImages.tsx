@@ -15,16 +15,9 @@ type Candidate = {
   newSize:number;
 };
 
-const TARGET_FILES = new Set([
-  'IMG_9556.jpeg',
-  'IMG_9555.jpeg',
-  'IMG_8913.png',
-  'IMG_8876.png',
-  'IMG_9094.png',
-  'IMG_8766.jpeg',
-  'IMG_8765.jpeg',
-  'IMG_8762.jpeg'
-]);
+// Seules les photos plus lourdes que ce seuil sont retraitées.
+const MIN_SIZE = 300 * 1024;
+const BUCKET_PATH = '/storage/v1/object/public/product-images/';
 
 const bytes=(n:number)=>n>=1024*1024
   ?`${(n/1024/1024).toFixed(2)} Mo`
@@ -35,9 +28,12 @@ const getFileName=(url:string)=>{
   catch{return '';}
 };
 
-const isTargetFile=(url:string)=>{
+// Toute photo du bucket product-images, au format raster, pas déjà optimisée par cet outil.
+const isCandidateFile=(url:string)=>{
+  if(!url.includes(BUCKET_PATH))return false;
   const fileName=getFileName(url).toLowerCase();
-  return [...TARGET_FILES].some(target=>fileName.endsWith(target.toLowerCase()));
+  if(fileName.startsWith('optimized-'))return false;
+  return /\.(png|jpe?g|webp)$/i.test(fileName);
 };
 
 function replaceUrl(value:any,replacements:Map<string,string>):any{
@@ -58,7 +54,7 @@ export default function OptimizeProductImages(){
   const prepare=async()=>{
     if(busy)return;
     setBusy(true);
-    setMessage('Recherche des anciennes photos concernées…');
+    setMessage('Recherche des photos lourdes utilisées par vos produits…');
     setCandidates([]);
     setPhase('idle');
 
@@ -72,7 +68,7 @@ export default function OptimizeProductImages(){
       const refs=new Map<string,Set<string>>();
       for(const product of products||[]){
         const visit=(value:any)=>{
-          if(typeof value==='string'&&isTargetFile(value)){
+          if(typeof value==='string'&&isCandidateFile(value)){
             if(!refs.has(value))refs.set(value,new Set());
             refs.get(value)!.add(String(product.name||'Produit sans nom'));
           }else if(Array.isArray(value)){
@@ -86,25 +82,38 @@ export default function OptimizeProductImages(){
       }
 
       if(!refs.size){
-        setMessage('Aucune des anciennes photos ciblées n’a été retrouvée dans les fiches produits. Aucune modification effectuée.');
+        setMessage('Aucune photo à analyser dans les fiches produits. Aucune modification effectuée.');
         setPhase('preview');
         return;
       }
 
       const prepared:Candidate[]=[];
       const failures:string[]=[];
+      let light=0;
+      let index=0;
 
       for(const [url,names] of refs){
+        index++;
+        setMessage(`Analyse des photos : ${index}/${refs.size}…`);
         try{
+          // Test rapide de la taille sans télécharger l'image entière.
+          try{
+            const head=await fetch(url,{method:'HEAD',cache:'no-store'});
+            const length=Number(head.headers.get('content-length')||0);
+            if(head.ok&&length>0&&length<MIN_SIZE){light++;continue;}
+          }catch{/* on poursuit avec le téléchargement complet */}
+
           const response=await fetch(url,{mode:'cors',cache:'no-store'});
           if(!response.ok)throw new Error(`Téléchargement impossible (${response.status})`);
           const original=await response.blob();
+          if(original.size<MIN_SIZE){light++;continue;}
+
           const fileName=getFileName(url)||'photo.jpg';
           const file=new File([original],fileName,{type:original.type||'image/jpeg'});
-          const optimized=await prepareProductImage(file,{maxDimension:1200,quality:0.72});
+          const optimized=await prepareProductImage(file,{maxDimension:1200,quality:0.75});
 
           if(optimized.blob.size>=original.size){
-            failures.push(`${fileName} : déjà optimisée ou aucune réduction possible`);
+            failures.push(`${fileName} : aucune réduction possible`);
             continue;
           }
 
@@ -128,8 +137,8 @@ export default function OptimizeProductImages(){
       const saved=prepared.reduce((sum,item)=>sum+item.originalSize-item.newSize,0);
       setMessage(
         prepared.length
-          ?`Aperçu prêt : ${prepared.length} photo(s) peuvent être allégées. Économie estimée : ${bytes(saved)} sur ces fichiers. Les originaux seront conservés.${failures.length?` ${failures.length} photo(s) ignorée(s).`:''}`
-          :`Aucune photo n’a pu être allégée.${failures.length?' '+failures.join(' · '):''}`
+          ?`Aperçu prêt : ${prepared.length} photo(s) lourde(s) peuvent être allégées (${light} déjà légère(s)). Économie estimée : ${bytes(saved)}. Les originaux seront conservés.${failures.length?` ${failures.length} photo(s) ignorée(s).`:''}`
+          :`Aucune photo lourde à alléger (${light} déjà légère(s)).${failures.length?' '+failures.join(' · '):''}`
       );
     }catch(error:any){
       setMessage(error?.message||'Impossible d’analyser les photos.');
@@ -152,6 +161,7 @@ export default function OptimizeProductImages(){
       let uploaded=0;
 
       for(const item of candidates){
+        setMessage(`Enregistrement des nouvelles photos : ${uploaded+1}/${candidates.length}…`);
         const safeName=item.fileName.replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,50)||'photo';
         const path=`products/optimized-${Date.now()}-${Math.random().toString(36).slice(2,9)}-${safeName}.${item.extension}`;
         const {error}=await supabase.storage.from('product-images').upload(path,item.blob,{
@@ -206,9 +216,9 @@ export default function OptimizeProductImages(){
   return (
     <section className="rounded-2xl border border-plum/20 bg-blush/20 p-4 space-y-3">
       <div>
-        <h3 className="font-semibold text-plum">Alléger les anciennes photos produits</h3>
+        <h3 className="font-semibold text-plum">Alléger les photos produits lourdes</h3>
         <p className="mt-1 text-sm text-ink/70">
-          Analyse uniquement les anciennes photos identifiées dans les journaux. La bannière et les autres images ne sont pas concernées.
+          Analyse toutes les photos de vos produits qui pèsent plus de 300 Ko et propose de les alléger. La bannière et les autres images ne sont pas concernées.
         </p>
       </div>
 
@@ -238,7 +248,7 @@ export default function OptimizeProductImages(){
 
       <div className="flex flex-wrap gap-2">
         <button type="button" disabled={busy} onClick={prepare} className="rounded-full border border-plum px-4 py-2 text-sm text-plum disabled:opacity-50">
-          {busy?'Traitement…':phase==='preview'?'Recalculer l’aperçu':'Analyser les anciennes photos'}
+          {busy?'Traitement…':phase==='preview'?'Recalculer l’aperçu':'Analyser les photos'}
         </button>
         {phase==='preview'&&candidates.length>0&&(
           <button type="button" disabled={busy} onClick={()=>{setCandidates([]);setPhase('idle');setMessage('Aperçu annulé. Aucune photo n’a été modifiée.');}} className="rounded-full border border-sand px-4 py-2 text-sm">
