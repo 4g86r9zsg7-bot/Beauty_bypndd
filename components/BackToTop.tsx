@@ -9,9 +9,6 @@ export default function BackToTop(){
   const [visible,setVisible]=useState(false);
   const pathname=usePathname();
 
-  // Sur les fiches produits, les boutons fixes masquent les variantes et les actions d'achat.
-  if(pathname.startsWith('/produit/'))return null;
-
   useEffect(()=>{
     const update=()=>setVisible(window.scrollY>420);
     update();
@@ -19,6 +16,8 @@ export default function BackToTop(){
     return ()=>window.removeEventListener('scroll',update);
   },[]);
 
+  // Sur les fiches produits, les boutons fixes masquent les variantes et les actions d'achat.
+  if(pathname.startsWith('/produit/'))return null;
   if(!visible)return null;
 
   return (
