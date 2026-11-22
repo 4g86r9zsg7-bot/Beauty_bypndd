@@ -770,24 +770,21 @@ export default function Admin(){
         return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
       };
 
-      const urls:string[]=[];
-      for(const file of Array.from((form.elements.namedItem('images') as HTMLInputElement)?.files||[]) as File[]){
-        urls.push(await upload(file));
-      }
+      const imageFiles=Array.from(
+        (form.elements.namedItem('images') as HTMLInputElement)?.files||[]
+      ) as File[];
+
+      // Envoi simultané des photos générales pour réduire nettement l’attente.
+      const urls:string[]=await Promise.all(imageFiles.map(upload));
 
       const name=String(fd.get('name')||'').trim();
       if(!name)throw new Error('Le nom du produit est obligatoire.');
 
-      const vars:any[]=[];
+      const vars:any[]=await Promise.all(vrows.map(async(r:any)=>{
+        if(!String(r.name).trim())return null;
 
-      for(const r of vrows){
-        if(!String(r.name).trim())continue;
-
-        const ups:string[]=[];
-        for(const f of (r.files||[])){
-          ups.push(await upload(f));
-        }
-
+        // Les photos de chaque variante sont également envoyées ensemble.
+        const ups:string[]=await Promise.all((r.files||[]).map(upload));
         const vi=[...(r.images||[]),...ups];
         const o:any={
           name:String(r.name).trim(),
@@ -810,8 +807,8 @@ export default function Admin(){
           o.image=vi[0];
         }
 
-        vars.push(o);
-      }
+        return o;
+      })).then(rows=>rows.filter(Boolean));
 
       const general=[...imgs,...urls];
       let stock=Number(fd.get('stock')||0);
