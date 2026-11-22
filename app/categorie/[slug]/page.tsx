@@ -181,7 +181,7 @@ export default async function Cat({
   // ---------- Produits ----------
   let q: any = supabase
     .from('products')
-    .select('*,brands(name)')
+    .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,sold,created_at,brands(name)')
     .eq('active', true);
 
   if (fixed?.filter) q = fixed.filter(q);
@@ -243,7 +243,7 @@ export default async function Cat({
 
   const [{data}, {data: b}] = await Promise.all([
     q,
-    supabase.from('brands').select('*').order('name')
+    supabase.from('brands').select('id,name').order('name')
   ]);
 
   const rank = (p: any) => {
