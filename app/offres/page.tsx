@@ -167,13 +167,13 @@ export default async function Offres(){
                   className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#f0dce4] bg-white shadow-[0_4px_16px_rgba(122,31,74,.06)]"
                 >
                   {/* PHOTO ENTIÈRE */}
-                  <div className="relative aspect-square overflow-hidden bg-[#fdf3f7]">
+                  <div className={`relative ${photoCount===2?'aspect-[2/1]':'aspect-square'} overflow-hidden bg-white`}>
                     {photoCount>1?(
-                      <div className={`grid h-full w-full ${photoGridClass} gap-1 p-2 sm:gap-1.5 sm:p-3 ${available?'':'opacity-50 grayscale'}`}>
+                      <div className={`grid h-full w-full ${photoGridClass} gap-0 p-0 ${available?'':'opacity-50 grayscale'}`}>
                         {packPhotos.map((item:any,index:number)=>(
                           <div
                             key={item.variant+'-'+index}
-                            className={`flex min-h-0 items-center justify-center overflow-hidden rounded-lg bg-white ${photoCount===3&&index===0?'row-span-2':''}`}
+                            className={`flex min-h-0 items-center justify-center overflow-hidden bg-white ${photoCount===3&&index===0?'row-span-2':''}`}
                           >
                             <img src={item.url} alt={item.name+(item.variant?' - '+item.variant:'')} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
                           </div>
