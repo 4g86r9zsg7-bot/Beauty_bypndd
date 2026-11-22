@@ -750,24 +750,7 @@ export default function Admin(){
     setMsg('Enregistrement du produit…');
 
     try{
-      // Limite les traitements simultanés pour éviter de ralentir ou saturer
-      // le navigateur lorsque plusieurs photos/variantes sont sélectionnées.
-      let activeUploads=0;
-      const uploadQueue:Array<()=>void>=[];
-      const withUploadSlot=async<T,>(task:()=>Promise<T>):Promise<T>=>{
-        if(activeUploads>=3){
-          await new Promise<void>(resolve=>uploadQueue.push(resolve));
-        }
-        activeUploads++;
-        try{
-          return await task();
-        }finally{
-          activeUploads--;
-          uploadQueue.shift()?.();
-        }
-      };
-
-      const upload=async(file:File):Promise<string>=>withUploadSlot(async()=>{
+      const upload=async(file:File):Promise<string>=>{
         const prepared=await prepareProductImage(file);
         const safeName=file.name
           .replace(/\.[^.]+$/,'')
@@ -785,23 +768,30 @@ export default function Admin(){
         if(error)throw new Error(`Impossible d’enregistrer la photo « ${file.name} » : ${error.message}`);
 
         return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
-      });
+      };
 
       const imageFiles=Array.from(
         (form.elements.namedItem('images') as HTMLInputElement)?.files||[]
       ) as File[];
 
-      // Envoi simultané des photos générales pour réduire nettement l’attente.
-      const urls:string[]=await Promise.all(imageFiles.map(upload));
+      // Préparation et envoi une par une, comme dans la version précédente,
+      // pour éviter de faire travailler plusieurs conversions d’images en même temps.
+      const urls:string[]=[];
+      for(const file of imageFiles){
+        urls.push(await upload(file));
+      }
 
       const name=String(fd.get('name')||'').trim();
       if(!name)throw new Error('Le nom du produit est obligatoire.');
 
-      const vars:any[]=await Promise.all(vrows.map(async(r:any)=>{
-        if(!String(r.name).trim())return null;
+      const vars:any[]=[];
+      for(const r of vrows){
+        if(!String(r.name).trim())continue;
 
-        // Les photos de chaque variante sont également envoyées ensemble.
-        const ups:string[]=await Promise.all((r.files||[]).map(upload));
+        const ups:string[]=[];
+        for(const file of (r.files||[])){
+          ups.push(await upload(file));
+        }
         const vi=[...(r.images||[]),...ups];
         const o:any={
           name:String(r.name).trim(),
@@ -824,8 +814,8 @@ export default function Admin(){
           o.image=vi[0];
         }
 
-        return o;
-      })).then(rows=>rows.filter(Boolean));
+        vars.push(o);
+      }
 
       const general=[...imgs,...urls];
       let stock=Number(fd.get('stock')||0);
