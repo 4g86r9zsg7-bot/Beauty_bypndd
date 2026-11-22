@@ -43,14 +43,14 @@ export default async function Home(){
 
   const [{data:c},{data:b},{data:promoData},{data:promoProducts}]=await Promise.all([
     supabase.from('categories')
-      .select('*')
+      .select('id,name,slug,parent_id,image_url,position')
       .order('position',{nullsFirst:false})
       .order('name'),
     supabase.from('brands')
-      .select('*')
+      .select('id,name,logo_url')
       .order('name'),
     supabase.from('promo_codes')
-      .select('*')
+      .select('id,code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,max_uses,uses,created_at')
       .eq('active',true)
       .order('created_at',{ascending:false}),
     supabase.from('products').select('id,name')
