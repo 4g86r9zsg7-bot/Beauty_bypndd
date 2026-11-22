@@ -317,7 +317,7 @@ export default async function Cat({
   };
 
   const brandName = sp.brand
-    ? (b || []).find((x: any) => x.id === sp.brand)?.name
+    ? brands.find((x: any) => x.id === sp.brand)?.name || ''
     : '';
 
   const availabilityLabel =
