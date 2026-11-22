@@ -42,7 +42,7 @@ export default function ProductCard({
   ].filter(Boolean).join(' · ');
 
   return (
-    <div className="group relative min-w-0">
+    <div className="group relative isolate min-w-0">
       <div className="block">
         <div className={`relative overflow-hidden rounded-xl bg-white ring-1 ring-[#eadde2] shadow-sm transition duration-300 group-hover:shadow-md ${
           imageFit==='contain'?'aspect-square':'aspect-[4/5]'
