@@ -750,7 +750,24 @@ export default function Admin(){
     setMsg('Enregistrement du produit…');
 
     try{
-      const upload=async(file:File):Promise<string>=>{
+      // Limite les traitements simultanés pour éviter de ralentir ou saturer
+      // le navigateur lorsque plusieurs photos/variantes sont sélectionnées.
+      let activeUploads=0;
+      const uploadQueue:Array<()=>void>=[];
+      const withUploadSlot=async<T>(task:()=>Promise<T>):Promise<T>=>{
+        if(activeUploads>=3){
+          await new Promise<void>(resolve=>uploadQueue.push(resolve));
+        }
+        activeUploads++;
+        try{
+          return await task();
+        }finally{
+          activeUploads--;
+          uploadQueue.shift()?.();
+        }
+      };
+
+      const upload=async(file:File):Promise<string>=>withUploadSlot(async()=>{
         const prepared=await prepareProductImage(file);
         const safeName=file.name
           .replace(/\.[^.]+$/,'')
@@ -768,7 +785,7 @@ export default function Admin(){
         if(error)throw new Error(`Impossible d’enregistrer la photo « ${file.name} » : ${error.message}`);
 
         return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
-      };
+      });
 
       const imageFiles=Array.from(
         (form.elements.namedItem('images') as HTMLInputElement)?.files||[]
@@ -883,9 +900,19 @@ export default function Admin(){
       setTab('products');
       setMsg(edit?'Produit modifié avec succès.':'Produit ajouté avec succès.');
 
-      void load().catch(()=>{
-        setMsg('Produit enregistré avec succès. La liste n’a pas pu être actualisée ; actualise la page pour le retrouver.');
-      });
+      // Après l’enregistrement, ne recharge que les produits.
+      // load() recharge aussi commandes, avis, promos et historique inutilement ici.
+      void supabase
+        .from('products')
+        .select('*,brands(name)')
+        .order('created_at',{ascending:false})
+        .then(({data,error})=>{
+          if(error)throw error;
+          setP(data||[]);
+        })
+        .catch(()=>{
+          setMsg('Produit enregistré avec succès. La liste n’a pas pu être actualisée ; actualise la page pour le retrouver.');
+        });
     }catch(error:any){
       setMsg(error?.message||'Une erreur est survenue pendant l’enregistrement. Vérifie ta connexion puis réessaie.');
     }finally{
