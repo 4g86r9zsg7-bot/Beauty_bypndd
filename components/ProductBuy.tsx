@@ -712,14 +712,14 @@ export default function ProductBuy({p}:{p:any}) {
                     aria-pressed={on}
                     aria-label={`${x.name}${unavailable?' — épuisé':''}`}
                     className={colorVariant
-                      ?'flex min-w-[64px] flex-col items-center gap-1.5 rounded-xl px-1 py-2 text-center transition'
+                      ?'flex min-w-0 flex-col items-center gap-2 rounded-xl border border-plum/10 bg-white px-1.5 py-3 text-center transition hover:border-plum/35 hover:shadow-sm'
                       :`flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-2 text-center transition ${
                         on?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
                         :'border-plum/15 hover:border-rose'
                       }`}>
                     {colorVariant?(
                       <>
-                        <span className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 p-[3px] ${
+                        <span className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 bg-white p-[3px] transition ${
                           on?'border-rose ring-2 ring-rose/20 ring-offset-2'
                           :'border-transparent'
                         }`}>
