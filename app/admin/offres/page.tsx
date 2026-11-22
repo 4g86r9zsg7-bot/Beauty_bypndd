@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react';
 import {supabase,eur} from '@/lib/supabase';
 
 const TAGS:[string,string][]=[['','Aucune'],['visage','Routine visage'],['cheveux','Routine cheveux'],['maquillage','Routine maquillage'],['coffret','Coffret'],['special','Offre spéciale']];
-const EMPTY:any={id:'',kind:'pack',title:'',description:'',image_url:'',tag:'',pack_price:'',buy_qty:'3',starts_at:'',ends_at:'',stock:'',active:true};
+const EMPTY:any={id:'',kind:'pack',title:'',description:'',image_url:'',tag:'',pack_price:'',buy_qty:'3',discount_type:'percent',discount_value:'10',starts_at:'',ends_at:'',stock:'',active:true};
 const slug=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const pad=(n:number)=>String(n).padStart(2,'0');
 const loc=(iso?:string|null)=>{if(!iso)return '';const d=new Date(iso);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`};
@@ -33,7 +33,7 @@ export default function Offres(){
   const reset=()=>{setF(EMPTY);setItems([]);setQ('');setOpen(false)};
   const startNew=()=>{setF(EMPTY);setItems([]);setQ('');setOpen(true);setMsg('');window.scrollTo({top:0,behavior:'smooth'})};
   const startEdit=(o:any)=>{
-    setF({id:o.id,kind:o.kind,title:o.title,description:o.description||'',image_url:o.image_url||'',tag:o.tag||'',pack_price:o.pack_price??'',buy_qty:String(o.buy_qty??3),starts_at:loc(o.starts_at),ends_at:loc(o.ends_at),stock:o.stock??'',active:o.active});
+    setF({id:o.id,kind:o.kind,title:o.title,description:o.description||'',image_url:o.image_url||'',tag:o.tag||'',pack_price:o.pack_price??'',buy_qty:String(o.buy_qty??3),discount_type:o.discount_type||'percent',discount_value:o.discount_value??'10',starts_at:loc(o.starts_at),ends_at:loc(o.ends_at),stock:o.stock??'',active:o.active});
     setItems((o.offer_items||[]).map((x:any)=>({product_id:x.product_id,variant:x.variant,qty:x.qty})));
     setQ('');setOpen(true);setMsg('');window.scrollTo({top:0,behavior:'smooth'});
   };
@@ -41,7 +41,7 @@ export default function Offres(){
   const addItem=(p:any)=>{if(items.some(i=>i.product_id===p.id))return;setItems([...items,{product_id:p.id,variant:vnames(p)[0]||null,qty:1}]);setQ('')};
   const upItem=(i:number,patch:any)=>setItems(items.map((x,j)=>j===i?{...x,...patch}:x));
 
-  const isPack=f.kind==='pack';
+  const isPack=f.kind==='pack';const isVariantDiscount=f.kind==='variant_discount';
   const value=items.reduce((s,it)=>s+uprice(pm.get(it.product_id),it.variant)*(it.qty||1),0);
   const ppNum=Number(String(f.pack_price).replace(',','.'));
   const saving=isPack&&isFinite(ppNum)&&ppNum>0?value-ppNum:0;
@@ -63,19 +63,23 @@ export default function Offres(){
     setMsg('');const t=f.title.trim();
     if(!t)return setMsg('Donnez un titre à l’offre.');
     if(!items.length)return setMsg('Ajoutez au moins un produit.');
-    let pp:number|null=null,bq:number|null=null;
+    let pp:number|null=null,bq:number|null=null;let discountValue:number|null=null;
     if(isPack){
       pp=Number(String(f.pack_price).replace(',','.'));
       if(!isFinite(pp)||pp<=0)return setMsg('Indiquez le prix du pack.');
       if(items.reduce((s,i)=>s+(i.qty||1),0)<2)return setMsg('Un pack contient au moins 2 articles.');
       for(const it of items){const p=pm.get(it.product_id);if(vnames(p).length&&!it.variant)return setMsg(`Choisissez la variante de « ${p?.name} ».`)}
+    }else if(isVariantDiscount){
+      discountValue=Number(String(f.discount_value).replace(',','.'));
+      if(!isFinite(discountValue)||discountValue<=0)return setMsg('Indiquez une réduction supérieure à zéro.');
+      if(f.discount_type==='percent'&&discountValue>90)return setMsg('La réduction en pourcentage ne peut pas dépasser 90 %.');
     }else{
       bq=Number(f.buy_qty);if(!Number.isInteger(bq)||bq<1)return setMsg('Indiquez le nombre de produits achetés (par exemple 2 ou 3).');
     }
     if(f.starts_at&&f.ends_at&&new Date(f.ends_at)<=new Date(f.starts_at))return setMsg('La date de fin doit être après la date de début.');
     let st:number|null=null;if(f.stock!==''){st=Number(f.stock);if(!Number.isInteger(st)||st<0)return setMsg('La quantité disponible doit être un nombre entier.')}
     setBusy(true);
-    const row:any={kind:f.kind,title:t,description:f.description.trim()||null,image_url:f.image_url||null,tag:f.tag||null,pack_price:pp,buy_qty:bq,
+    const row:any={kind:f.kind,title:t,description:f.description.trim()||null,image_url:f.image_url||null,tag:f.tag||null,pack_price:pp,buy_qty:bq,discount_type:isVariantDiscount?f.discount_type:'percent',discount_value:discountValue,
       starts_at:f.starts_at?new Date(f.starts_at).toISOString():null,ends_at:f.ends_at?new Date(f.ends_at).toISOString():null,stock:st,active:!!f.active};
     let id=f.id;
     if(id){const {error}=await supabase.from('offers').update(row).eq('id',id);if(error){setBusy(false);return setMsg('Enregistrement impossible : '+error.message)}}
@@ -103,11 +107,11 @@ export default function Offres(){
     {open&&<section className="space-y-3 border border-sand bg-white p-4">
       <h2 className="font-serif text-2xl text-plum">{f.id?'Modifier l’offre':'Nouvelle offre'}</h2>
       <label className="block text-xs">Type d’offre
-        <select value={f.kind} onChange={set('kind')} className={`${inp} mt-1`}><option value="pack">Pack à prix fixe (plusieurs produits)</option><option value="buy_x_get_1">X achetés = 1 offert (le moins cher est offert)</option></select></label>
+        <select value={f.kind} onChange={set('kind')} className={`${inp} mt-1`}><option value="pack">Pack à prix fixe (plusieurs produits)</option><option value="buy_x_get_1">X achetés = 1 offert (le moins cher est offert)</option><option value="variant_discount">Variante supplémentaire à prix réduit</option></select></label>
       <label className="block text-xs">Titre<input value={f.title} onChange={set('title')} placeholder={isPack?'Routine éclat visage':'3 achetés = 1 offert'} className={`${inp} mt-1`}/></label>
       <label className="block text-xs">Description (facultatif)<textarea rows={2} value={f.description} onChange={set('description')} className={`${inp} mt-1`}/></label>
       <label className="block text-xs">Catégorie de l’offre<select value={f.tag} onChange={set('tag')} className={`${inp} mt-1`}>{TAGS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
-      {isPack
+      {isVariantDiscount?<div className="grid grid-cols-2 gap-3"><label className="block text-xs">Type de réduction<select value={f.discount_type} onChange={set('discount_type')} className={`${inp} mt-1`}><option value="percent">Pourcentage (%)</option><option value="amount">Montant fixe (DH)</option></select></label><label className="block text-xs">Réduction {f.discount_type==='percent'?'(%)':'(DH)'}<input inputMode="decimal" value={f.discount_value} onChange={set('discount_value')} className={`${inp} mt-1`}/></label><p className="col-span-2 rounded-xl bg-blush/40 p-3 text-xs">La première unité du produit reste au prix normal. Chaque unité supplémentaire du même produit bénéficie de cette réduction.</p></div>:isPack
         ?<label className="block text-xs">Prix du pack (DH)<input inputMode="decimal" value={f.pack_price} onChange={set('pack_price')} placeholder="Ex : 399" className={`${inp} mt-1`}/></label>
         :<label className="block text-xs">Nombre de produits achetés (le suivant, le moins cher, est offert)<select value={f.buy_qty} onChange={set('buy_qty')} className={`${inp} mt-1`}><option value="2">2 achetés = 1 offert (pour 3 produits)</option><option value="3">3 achetés = 1 offert (pour 4 produits)</option><option value="1">1 acheté = 1 offert (pour 2 produits)</option></select></label>}
       <div className="grid grid-cols-2 gap-3">
@@ -144,7 +148,7 @@ export default function Offres(){
     <section className="border border-sand bg-white p-4"><h2 className="mb-3 font-serif text-2xl text-plum">Mes offres</h2>
       {!offers.length&&<p className="text-sm text-ink/60">Aucune offre pour le moment.</p>}
       {offers.map((o:any)=>{const s=status(o);const rest=o.stock!=null?o.stock-o.sold:null;return <div key={o.id} className="border-t border-sand py-3 text-sm first:border-0">
-        <div className="flex items-start justify-between gap-2"><span><b>{o.title}</b><span className="block text-xs text-ink/60">{o.kind==='pack'?`Pack · ${eur(o.pack_price)}`:`${o.buy_qty} achetés = 1 offert`} · {(o.offer_items||[]).length} produit(s)</span></span>
+        <div className="flex items-start justify-between gap-2"><span><b>{o.title}</b><span className="block text-xs text-ink/60">{o.kind==='pack'?`Pack · ${eur(o.pack_price)}`:o.kind==='variant_discount'?`Variante supplémentaire · ${o.discount_type==='amount'?eur(o.discount_value):`${o.discount_value}%`} de réduction`:`${o.buy_qty} achetés = 1 offert`} · ${(o.offer_items||[]).length} produit(s)</span></span>
           <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${s==='En ligne'?'bg-green-100 text-green-800':'bg-sand text-ink/70'}`}>{s}</span></div>
         <p className="mt-1 text-xs text-ink/60">{o.starts_at?`Du ${new Date(o.starts_at).toLocaleString('fr-FR')} `:''}{o.ends_at?`au ${new Date(o.ends_at).toLocaleString('fr-FR')}`:'Sans date de fin'}{rest!=null?` · Reste : ${Math.max(rest,0)}`:''}</p>
         <div className="mt-2 flex flex-wrap gap-4 text-xs"><button type="button" onClick={()=>startEdit(o)} className="underline">Modifier</button><button type="button" onClick={()=>toggle(o)} className="underline">{o.active?'Désactiver':'Activer'}</button><button type="button" onClick={()=>del(o)} className="text-red-700 underline">Supprimer</button></div></div>})}
