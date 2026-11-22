@@ -73,6 +73,7 @@ export default function Offres(){
       discountValue=Number(String(f.discount_value).replace(',','.'));
       if(!isFinite(discountValue)||discountValue<=0)return setMsg('Indiquez une réduction supérieure à zéro.');
       if(f.discount_type==='percent'&&discountValue>90)return setMsg('La réduction en pourcentage ne peut pas dépasser 90 %.');
+      for(const it of items){const p=pm.get(it.product_id);if(vnames(p).length&&!it.variant)return setMsg('Choisissez la variante concernée pour « '+p?.name+' ».');}
     }else{
       bq=Number(f.buy_qty);if(!Number.isInteger(bq)||bq<1)return setMsg('Indiquez le nombre de produits achetés (par exemple 2 ou 3).');
     }
@@ -86,7 +87,7 @@ export default function Offres(){
     else{const {data,error}=await supabase.from('offers').insert({...row,slug:slug(t)+'-'+Math.random().toString(36).slice(2,6)}).select('id').single();if(error||!data){setBusy(false);return setMsg('Enregistrement impossible : '+(error?.message||'erreur'))}id=data.id}
     const d=await supabase.from('offer_items').delete().eq('offer_id',id);
     if(d.error){setBusy(false);return setMsg('Produits non enregistrés : '+d.error.message)}
-    const ins=await supabase.from('offer_items').insert(items.map(it=>({offer_id:id,product_id:it.product_id,variant:isPack?(it.variant||null):null,qty:isPack?Math.max(1,Number(it.qty)||1):1})));
+    const ins=await supabase.from('offer_items').insert(items.map(it=>({offer_id:id,product_id:it.product_id,variant:(isPack||isVariantDiscount)?(it.variant||null):null,qty:isPack?Math.max(1,Number(it.qty)||1):1})));
     setBusy(false);
     if(ins.error)return setMsg('Produits non enregistrés : '+ins.error.message);
     setMsg('Offre enregistrée.');reset();load();
@@ -130,9 +131,9 @@ export default function Offres(){
         {hits.length>0&&<ul className="mt-1 divide-y divide-sand rounded-xl border border-sand">{hits.map((p:any)=><li key={p.id}><button type="button" onClick={()=>addItem(p)} className="flex w-full justify-between gap-2 px-3 py-2 text-left text-sm"><span className="truncate">{p.name}</span><span className="shrink-0 text-plum">+ Ajouter</span></button></li>)}</ul>}
         <div className="mt-2 space-y-2">{items.map((it,i)=>{const p:any=pm.get(it.product_id);const vs=vnames(p);return <div key={it.product_id} className="rounded-xl border border-sand p-3 text-sm">
           <div className="flex items-start justify-between gap-2"><span className="font-medium">{p?.name||'Produit introuvable'}</span><button type="button" onClick={()=>setItems(items.filter((_,j)=>j!==i))} className="shrink-0 text-xs text-red-700 underline">Retirer</button></div>
-          {isPack&&<div className="mt-2 flex flex-wrap items-center gap-2">
+          {(isPack||isVariantDiscount)&&<div className="mt-2 flex flex-wrap items-center gap-2">
             {vs.length>0&&<select value={it.variant||''} onChange={e=>upItem(i,{variant:e.target.value||null})} className="rounded-lg border border-sand px-2 py-1.5">{vs.map(v=><option key={v} value={v}>{v}</option>)}</select>}
-            <label className="flex items-center gap-1">Quantité<input type="number" min={1} value={it.qty} onChange={e=>upItem(i,{qty:Math.max(1,Number(e.target.value)||1)})} className="w-16 rounded-lg border border-sand px-2 py-1.5"/></label>
+            {isPack&&<label className="flex items-center gap-1">Quantité<input type="number" min={1} value={it.qty} onChange={e=>upItem(i,{qty:Math.max(1,Number(e.target.value)||1)})} className="w-16 rounded-lg border border-sand px-2 py-1.5"/></label>}
             <span className="text-ink/60">{eur(uprice(p,it.variant))} l’unité</span></div>}
         </div>})}</div>
       </div>
