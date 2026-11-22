@@ -738,7 +738,7 @@ export default function ProductBuy({p}:{p:any}) {
                           on?'ring-2 ring-rose ring-offset-1':''
                         }`}>
                           {image?(
-                            <img src={image} alt={x.name} loading="lazy" decoding="async" className="h-full w-full object-contain bg-white"/>
+                            <img src={image} alt={x.name} loading="lazy" decoding="async" className="h-full w-full scale-[1.18] object-contain bg-white"/>
                           ):(
                             <span className="block h-full w-full" style={{background:getSwatch(x,x.name||'')}}/>
                           )}
