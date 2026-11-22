@@ -746,8 +746,14 @@ export default function Admin(){
       return;
     }
 
+    const name=String(fd.get('name')||'').trim();
+    if(!name){
+      setMsg('Le nom du produit est obligatoire.');
+      return;
+    }
+
     setSavingProduct(true);
-    setMsg('Enregistrement du produit…');
+    setMsg('Préparation de l’enregistrement…');
 
     try{
       const upload=async(file:File):Promise<string>=>{
@@ -757,32 +763,42 @@ export default function Admin(){
           .replace(/[^\w-]/g,'_')
           .slice(0,60)||'photo';
         const path=`products/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeName}.${prepared.extension}`;
+        let lastError:any=null;
 
-        const {error}=await supabase.storage
-          .from('product-images')
-          .upload(path,prepared.blob,{
-            contentType:prepared.contentType,
-            cacheControl:'31536000'
-          });
+        // Une seule reprise en cas de coupure réseau temporaire (notamment « Load failed » sur mobile).
+        for(let attempt=0;attempt<2;attempt++){
+          const {error}=await supabase.storage
+            .from('product-images')
+            .upload(path,prepared.blob,{
+              contentType:prepared.contentType,
+              cacheControl:'31536000'
+            });
 
-        if(error)throw new Error(`Impossible d’enregistrer la photo « ${file.name} » : ${error.message}`);
+          if(!error){
+            return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+          }
 
-        return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+          lastError=error;
+          const message=String(error.message||'').toLowerCase();
+          const transient=/load failed|failed to fetch|network|timeout|temporar|connection/.test(message);
+          if(!transient||attempt===1)break;
+          await new Promise(resolve=>setTimeout(resolve,650));
+        }
+
+        throw new Error(`Impossible d’enregistrer la photo « ${file.name} » : ${lastError?.message||'erreur réseau. Vérifiez la connexion et réessayez.'}`);
       };
 
       const imageFiles=Array.from(
         (form.elements.namedItem('images') as HTMLInputElement)?.files||[]
       ) as File[];
 
-      // Préparation et envoi une par une, comme dans la version précédente,
-      // pour éviter de faire travailler plusieurs conversions d’images en même temps.
+      // Traitement séquentiel conservé pour ne pas saturer le navigateur mobile.
       const urls:string[]=[];
-      for(const file of imageFiles){
-        urls.push(await upload(file));
+      for(let i=0;i<imageFiles.length;i++){
+        setMsg(`Préparation des photos : ${i+1}/${imageFiles.length}…`);
+        urls.push(await upload(imageFiles[i]));
       }
 
-      const name=String(fd.get('name')||'').trim();
-      if(!name)throw new Error('Le nom du produit est obligatoire.');
 
       const vars:any[]=[];
       for(const r of vrows){
