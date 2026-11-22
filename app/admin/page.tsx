@@ -143,7 +143,7 @@ const normalizeBrand=(value:any)=>
   String(value||'')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\\u0300-\\u036f]/g,'')
+    .replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-z0-9]+/g,' ')
     .trim();
 
@@ -753,8 +753,8 @@ export default function Admin(){
       const upload=async(file:File):Promise<string>=>{
         const prepared=await prepareProductImage(file);
         const safeName=file.name
-          .replace(/\\.[^.]+$/,'')
-          .replace(/[^\\w-]/g,'_')
+          .replace(/\.[^.]+$/,'')
+          .replace(/[^\w-]/g,'_')
           .slice(0,60)||'photo';
         const path=`products/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeName}.${prepared.extension}`;
 
