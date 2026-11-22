@@ -43,7 +43,7 @@ export default function Suggestions({
 
       let query=supabase
         .from('products')
-        .select('*,brands(name)')
+        .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,brand_id,sold,created_at,brands(name)')
         .eq('active',true)
         .order('created_at',{ascending:false})
         .limit(100);
