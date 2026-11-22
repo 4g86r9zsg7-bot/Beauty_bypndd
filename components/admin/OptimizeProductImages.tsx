@@ -101,7 +101,7 @@ export default function OptimizeProductImages(){
           const original=await response.blob();
           const fileName=getFileName(url)||'photo.jpg';
           const file=new File([original],fileName,{type:original.type||'image/jpeg'});
-          const optimized=await prepareProductImage(file);
+          const optimized=await prepareProductImage(file,{maxDimension:1200,quality:0.72});
 
           if(optimized.blob.size>=original.size){
             failures.push(`${fileName} : déjà optimisée ou aucune réduction possible`);
