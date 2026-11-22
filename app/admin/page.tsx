@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import {useEffect,useState} from 'react';
@@ -317,13 +315,15 @@ export default function Admin(){
     }catch{}
   },[]);
 
+  // Le rechargement automatique est suspendu pendant l'enregistrement d'un produit
+  // pour ne pas concurrencer l'envoi des photos.
   useEffect(()=>{
-    if(!ok)return;
+    if(!ok||savingProduct)return;
 
     const t=setInterval(()=>{load()},30000);
 
     return()=>clearInterval(t);
-  },[ok]);
+  },[ok,savingProduct]);
 
   async function changeAdminPassword(e:any){
     e.preventDefault();
