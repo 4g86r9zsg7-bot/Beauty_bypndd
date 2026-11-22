@@ -145,8 +145,12 @@ export default async function Offres(){
                 url:itemPhoto(it),
                 name:it.products.name,
                 variant:it.variant||''
-              })).filter((x:any)=>x.url);
+              })).filter((x:any)=>x.url).slice(0,4);
               const photo=o.image_url||packPhotos[0]?.url||null;
+              const photoCount=packPhotos.length;
+              const photoGridClass=photoCount===2
+                ?'grid-cols-2 grid-rows-1'
+                :'grid-cols-2 grid-rows-2';
 
               const detailItems=its.map((it:any)=>({
                 id:String(it.id),
@@ -164,10 +168,13 @@ export default async function Offres(){
                 >
                   {/* PHOTO ENTIÈRE */}
                   <div className="relative aspect-square overflow-hidden bg-[#fdf3f7]">
-                    {packPhotos.length>1?(
-                      <div className={`grid h-full w-full grid-cols-2 grid-rows-2 gap-1 p-2 sm:gap-1.5 sm:p-3 ${available?'':'opacity-50 grayscale'}`}>
-                        {packPhotos.slice(0,4).map((item:any,index:number)=>(
-                          <div key={item.variant+'-'+index} className="flex min-h-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+                    {photoCount>1?(
+                      <div className={`grid h-full w-full ${photoGridClass} gap-1 p-2 sm:gap-1.5 sm:p-3 ${available?'':'opacity-50 grayscale'}`}>
+                        {packPhotos.map((item:any,index:number)=>(
+                          <div
+                            key={item.variant+'-'+index}
+                            className={`flex min-h-0 items-center justify-center overflow-hidden rounded-lg bg-white ${photoCount===3&&index===0?'row-span-2':''}`}
+                          >
                             <img src={item.url} alt={item.name+(item.variant?' - '+item.variant:'')} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
                           </div>
                         ))}
