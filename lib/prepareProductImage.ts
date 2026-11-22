@@ -9,7 +9,10 @@ export type PreparedImage = {
  * Les GIF, SVG et WebP existants sont conservés tels quels pour éviter
  * de casser les animations ou de réencoder inutilement un format déjà optimisé.
  */
-export async function prepareProductImage(file: File): Promise<PreparedImage> {
+export async function prepareProductImage(
+  file: File,
+  options: { maxDimension?: number; quality?: number } = {}
+): Promise<PreparedImage> {
   if (!file.type.startsWith('image/')) {
     throw new Error('Le fichier sélectionné n’est pas une image.');
   }
@@ -32,7 +35,7 @@ export async function prepareProductImage(file: File): Promise<PreparedImage> {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxDimension = 1400;
+    const maxDimension = Math.max(640, Math.min(2400, options.maxDimension ?? 1400));
     const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
@@ -50,7 +53,7 @@ export async function prepareProductImage(file: File): Promise<PreparedImage> {
     bitmap.close();
 
     const converted = await new Promise<Blob | null>(resolve => {
-      canvas.toBlob(resolve, 'image/webp', 0.86);
+      canvas.toBlob(resolve, 'image/webp', Math.max(0.55, Math.min(0.95, options.quality ?? 0.86)));
     });
 
     if (!converted) return unchanged();
