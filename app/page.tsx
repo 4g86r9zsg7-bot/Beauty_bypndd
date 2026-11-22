@@ -154,10 +154,10 @@ export default async function Home(){
     defs.map(d=>
       d.f(
         supabase.from('products')
-          .select('*,brands(name)')
+          .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,created_at,brands(name)')
           .eq('active',true)
           .order('created_at',{ascending:false})
-          .limit(100)
+          .limit(40)
       )
     )
   );
@@ -172,10 +172,10 @@ export default async function Home(){
 
   // Réserve de produits plus anciens pour compléter la découverte sans doublons.
   const {data:olderData}=await supabase.from('products')
-    .select('*,brands(name)')
+    .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,created_at,brands(name)')
     .eq('active',true)
     .order('created_at',{ascending:true})
-    .limit(100);
+    .limit(40);
   const olderItems=(olderData||[])
     .filter((p:any)=>p.availability!=='soldout');
 
