@@ -754,7 +754,7 @@ export default function Admin(){
       // le navigateur lorsque plusieurs photos/variantes sont sélectionnées.
       let activeUploads=0;
       const uploadQueue:Array<()=>void>=[];
-      const withUploadSlot=async<T>(task:()=>Promise<T>):Promise<T>=>{
+      const withUploadSlot=async<T,>(task:()=>Promise<T>):Promise<T>=>{
         if(activeUploads>=3){
           await new Promise<void>(resolve=>uploadQueue.push(resolve));
         }
