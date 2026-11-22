@@ -902,17 +902,18 @@ export default function Admin(){
 
       // Après l’enregistrement, ne recharge que les produits.
       // load() recharge aussi commandes, avis, promos et historique inutilement ici.
-      void supabase
-        .from('products')
-        .select('*,brands(name)')
-        .order('created_at',{ascending:false})
-        .then(({data,error})=>{
-          if(error)throw error;
-          setP(data||[]);
-        })
-        .catch(()=>{
-          setMsg('Produit enregistré avec succès. La liste n’a pas pu être actualisée ; actualise la page pour le retrouver.');
-        });
+      void Promise.resolve(
+        supabase
+          .from('products')
+          .select('*,brands(name)')
+          .order('created_at',{ascending:false})
+          .then(({data,error})=>{
+            if(error)throw error;
+            setP(data||[]);
+          })
+      ).catch(()=>{
+        setMsg('Produit enregistré avec succès. La liste n’a pas pu être actualisée ; actualise la page pour le retrouver.');
+      });
     }catch(error:any){
       setMsg(error?.message||'Une erreur est survenue pendant l’enregistrement. Vérifie ta connexion puis réessaie.');
     }finally{
