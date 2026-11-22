@@ -237,6 +237,7 @@ export default function Admin(){
   const [vrows,setVrows]=useState<any[]>([]);
   const [optionGroups,setOptionGroups]=useState<any[]>([]);
   const [busyId,setBusyId]=useState('');
+  const [savingProduct,setSavingProduct]=useState(false);
 
   const [revs,setRevs]=useState<any[]>([]);
   const [promos,setPromos]=useState<any[]>([]);
@@ -725,9 +726,10 @@ export default function Admin(){
   async function saveProduct(e:any){
     e.preventDefault();
 
-    const form=e.target;
+    if(savingProduct)return;
+
+    const form=e.currentTarget as HTMLFormElement;
     const fd=new FormData(form);
-    const urls:string[]=[];
 
     const configuredGroups=optionGroups
       .map(g=>({
@@ -744,143 +746,153 @@ export default function Admin(){
       return;
     }
 
-    const upload=async(file:File)=>{
-      const prepared=await prepareProductImage(file);
-      const safeName=file.name
-        .replace(/\.[^.]+$/,'')
-        .replace(/[^\w-]/g,'_')
-        .slice(0,60)||'photo';
-      const path=`products/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeName}.${prepared.extension}`;
+    setSavingProduct(true);
+    setMsg('Enregistrement du produit…');
 
-      const {error}=await supabase.storage
-        .from('product-images')
-        .upload(path,prepared.blob,{
-          contentType:prepared.contentType,
-          cacheControl:'31536000'
-        });
+    try{
+      const upload=async(file:File):Promise<string>=>{
+        const prepared=await prepareProductImage(file);
+        const safeName=file.name
+          .replace(/\\.[^.]+$/,'')
+          .replace(/[^\\w-]/g,'_')
+          .slice(0,60)||'photo';
+        const path=`products/${Date.now()}-${Math.random().toString(36).slice(2,10)}-${safeName}.${prepared.extension}`;
 
-      return error
-        ?null
-        :supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
-    };
+        const {error}=await supabase.storage
+          .from('product-images')
+          .upload(path,prepared.blob,{
+            contentType:prepared.contentType,
+            cacheControl:'31536000'
+          });
 
-    for(const file of Array.from((form.images as HTMLInputElement).files||[]) as File[]){
-      const url=await upload(file);
-      if(url)urls.push(url);
-    }
+        if(error)throw new Error(`Impossible d’enregistrer la photo « ${file.name} » : ${error.message}`);
 
-    const name=String(fd.get('name'));
-
-    const vars:any[]=[];
-
-    for(const r of vrows){
-      if(!String(r.name).trim())continue;
-
-      const ups:string[]=[];
-
-      for(const f of (r.files||[])){
-        const u=await upload(f);
-        if(u)ups.push(u);
-      }
-
-      const vi=[...(r.images||[]),...ups];
-
-      const o:any={
-        name:String(r.name).trim(),
-        stock:Math.max(0,parseInt(String(r.stock))||0),
-        status:r.status||'available'
+        return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
       };
 
-      if(r.options&&typeof r.options==='object'){
-        o.options=r.options;
+      const urls:string[]=[];
+      for(const file of Array.from((form.elements.namedItem('images') as HTMLInputElement)?.files||[]) as File[]){
+        urls.push(await upload(file));
       }
 
-      if(r.sku)o.sku=String(r.sku);
-      if(r.mpn)o.mpn=String(r.mpn);
+      const name=String(fd.get('name')||'').trim();
+      if(!name)throw new Error('Le nom du produit est obligatoire.');
 
-      // Enregistrement du code couleur avec la variante.
-      const swatch=cleanSwatch(r.swatch);
-      if(swatch)o.swatch=swatch;
+      const vars:any[]=[];
 
-      const pr=parseFloat(String(r.price).replace(',','.'));
+      for(const r of vrows){
+        if(!String(r.name).trim())continue;
 
-      if(String(r.price).trim()!==''&&isFinite(pr)){
-        o.price=pr;
+        const ups:string[]=[];
+        for(const f of (r.files||[])){
+          ups.push(await upload(f));
+        }
+
+        const vi=[...(r.images||[]),...ups];
+        const o:any={
+          name:String(r.name).trim(),
+          stock:Math.max(0,parseInt(String(r.stock))||0),
+          status:r.status||'available'
+        };
+
+        if(r.options&&typeof r.options==='object')o.options=r.options;
+        if(r.sku)o.sku=String(r.sku);
+        if(r.mpn)o.mpn=String(r.mpn);
+
+        const swatch=cleanSwatch(r.swatch);
+        if(swatch)o.swatch=swatch;
+
+        const pr=parseFloat(String(r.price).replace(',','.'));
+        if(String(r.price).trim()!==''&&isFinite(pr))o.price=pr;
+
+        if(vi.length){
+          o.images=vi;
+          o.image=vi[0];
+        }
+
+        vars.push(o);
       }
 
-      if(vi.length){
-        o.images=vi;
-        o.image=vi[0];
+      const general=[...imgs,...urls];
+      let stock=Number(fd.get('stock')||0);
+
+      if(vars.length){
+        stock=vars
+          .filter((x:any)=>['available','last'].includes(x.status))
+          .reduce((s:number,x:any)=>s+x.stock,0);
       }
 
-      vars.push(o);
-    }
+      let av=autoAv(String(fd.get('av')),stock);
 
-    const general=[...imgs,...urls];
+      if(vars.length){
+        av=stock>0
+          ?(stock<=3?'last':'available')
+          :vars.some((x:any)=>x.status==='arrival')
+          ?'arrival'
+          :vars.some((x:any)=>
+            x.status==='preorder'||
+            (['available','last'].includes(x.status)&&x.stock<=0)
+          )
+          ?'preorder'
+          :'soldout';
+      }
 
-    let stock=Number(fd.get('stock')||0);
+      const row:any={
+        name,
+        brand_id:fd.get('brand')||null,
+        source_name:String(fd.get('source_name')||'').trim()||null,
+        commercial_range:fd.get('commercial_range')||null,
+        category_id:fd.get('cat')||null,
+        description:fd.get('desc'),
+        ingredients:String(fd.get('ingredients')||'').trim()||null,
+        benefits:String(fd.get('benefits')||'').trim()||null,
+        price:Number(fd.get('price')),
+        old_price:fd.get('old')?Number(fd.get('old')):null,
+        stock,
+        availability:av,
+        variants:vars,
+        is_new:fd.get('new')==='on',
+        is_bestseller:fd.get('best')==='on',
+        featured:fd.get('feat')==='on',
+        images:general.length
+          ?general
+          :(vars.find((x:any)=>x.image)?[vars.find((x:any)=>x.image).image]:[])
+      };
 
-    if(vars.length){
-      stock=vars
-        .filter((x:any)=>['available','last'].includes(x.status))
-        .reduce((s:number,x:any)=>s+x.stock,0);
-    }
+      const slug=name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\\u0300-\\u036f]/g,'')
+        .replace(/[^a-z0-9]+/g,'-')+
+        '-'+Date.now().toString(36);
 
-    let av=autoAv(String(fd.get('av')),stock);
+      const {error}=edit
+        ?await supabase.from('products').update(row).eq('id',edit.id)
+        :await supabase.from('products').insert({...row,slug});
 
-    if(vars.length){
-      av=stock>0
-        ?(stock<=3?'last':'available')
-        :vars.some((x:any)=>x.status==='arrival')
-        ?'arrival'
-        :vars.some((x:any)=>
-          x.status==='preorder'||
-          (['available','last'].includes(x.status)&&x.stock<=0)
-        )
-        ?'preorder'
-        :'soldout';
-    }
+      if(error)throw error;
 
-    const row:any={
-      name,
-      brand_id:fd.get('brand')||null,
-      source_name:String(fd.get('source_name')||'').trim()||null,
-      commercial_range:fd.get('commercial_range')||null,
-      category_id:fd.get('cat')||null,
-      description:fd.get('desc'),
-      ingredients:String(fd.get('ingredients')||'').trim()||null,
-      benefits:String(fd.get('benefits')||'').trim()||null,
-      price:Number(fd.get('price')),
-      old_price:fd.get('old')?Number(fd.get('old')):null,
-      stock,
-      availability:av,
-      variants:vars,
-      is_new:fd.get('new')==='on',
-      is_bestseller:fd.get('best')==='on',
-      featured:fd.get('feat')==='on',
-      images:general.length
-        ?general
-        :(vars.find((x:any)=>x.image)?[vars.find((x:any)=>x.image).image]:[])
-    };
+      // L’historique est secondaire : son indisponibilité ne doit jamais
+      // bloquer la confirmation ni laisser le formulaire en attente.
+      void logActivity(
+        edit?'Modification produit':'Création produit',
+        'produit',
+        edit?.id||null,
+        name,
+        {availability:av,stock}
+      ).catch(()=>{});
 
-    const slug=name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g,'')
-      .replace(/[^a-z0-9]+/g,'-')+
-      '-'+Date.now().toString(36);
-
-    const {error}=edit
-      ?await supabase.from('products').update(row).eq('id',edit.id)
-      :await supabase.from('products').insert({...row,slug});
-
-    setMsg(error?error.message:(edit?'Produit modifié':'Produit ajouté'));
-
-    if(!error){
-      await logActivity(edit?'Modification produit':'Création produit','produit',edit?.id||null,name,{availability:av,stock});
       resetNew();
-      load();
       setTab('products');
+      setMsg(edit?'Produit modifié avec succès.':'Produit ajouté avec succès.');
+
+      void load().catch(()=>{
+        setMsg('Produit enregistré avec succès. La liste n’a pas pu être actualisée ; actualise la page pour le retrouver.');
+      });
+    }catch(error:any){
+      setMsg(error?.message||'Une erreur est survenue pendant l’enregistrement. Vérifie ta connexion puis réessaie.');
+    }finally{
+      setSavingProduct(false);
     }
   }
 
@@ -2241,8 +2253,12 @@ export default function Admin(){
             {' '}Mettre en avant (accueil)
           </label>
 
-          <button className="bg-ink text-white py-3">
-            {edit?'Enregistrer les modifications':'Enregistrer'}
+          <button
+            type="submit"
+            disabled={savingProduct}
+            className="bg-ink text-white py-3 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {savingProduct?'Enregistrement en cours…':edit?'Enregistrer les modifications':'Enregistrer'}
           </button>
         </form>
       )}
