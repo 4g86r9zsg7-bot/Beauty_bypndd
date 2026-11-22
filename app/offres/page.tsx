@@ -199,7 +199,7 @@ export default async function Offres(){
 
                     <div className="mt-2 flex items-center justify-between gap-1 border-t border-[#f0dce4] pt-2">
                       <span className="text-[9px] text-plum/60">
-                        {its.length} produit{its.length>1?'s':''} inclus
+                        {its.reduce((sum:number,it:any)=>sum+Number(it.qty||1),0)} article{its.reduce((sum:number,it:any)=>sum+Number(it.qty||1),0)>1?'s':''} inclus
                       </span>
                       <OfferDetails
                         title={o.title}
