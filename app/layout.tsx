@@ -148,9 +148,6 @@ export default function L({children}:{children:React.ReactNode}){
           </footer>
 
           <BackToTop/>
-          <a href={`https://wa.me/${WA}`} aria-label="WhatsApp" className="fixed bottom-4 right-4 z-30 rounded-full shadow-lg">
-            <WhatsAppIcon size={56}/>
-          </a>
         </CartProvider>
       </ClientProvider>
     </body>
