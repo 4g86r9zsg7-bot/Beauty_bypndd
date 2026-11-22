@@ -400,6 +400,7 @@ export default async function Cat({
 
           <form className="absolute inset-x-0 top-full z-10 mt-2 grid gap-3 rounded-2xl border border-sand bg-white p-4 text-sm shadow-lg md:grid-cols-2">
             <input type="hidden" name="sort" value={o || ''}/>
+            <input type="hidden" name="range" value={sp.range || ''}/>
 
             <input
               name="q"
