@@ -1,9 +1,16 @@
 'use client';
 
 import {useEffect,useState} from 'react';
+import {usePathname} from 'next/navigation';
+import {WA} from '@/lib/supabase';
+import {WhatsAppIcon} from '@/components/SocialIcons';
 
 export default function BackToTop(){
   const [visible,setVisible]=useState(false);
+  const pathname=usePathname();
+
+  // Sur les fiches produits, les boutons fixes masquent les variantes et les actions d'achat.
+  if(pathname.startsWith('/produit/'))return null;
 
   useEffect(()=>{
     const update=()=>setVisible(window.scrollY>420);
@@ -15,6 +22,10 @@ export default function BackToTop(){
   if(!visible)return null;
 
   return (
+    <>
+    <a href={`https://wa.me/${WA}`} aria-label="WhatsApp" className="fixed bottom-4 right-4 z-30 rounded-full shadow-lg">
+      <WhatsAppIcon size={56}/>
+    </a>
     <button
       type="button"
       aria-label="Retour en haut de la page"
@@ -30,5 +41,6 @@ export default function BackToTop(){
         <path d="M12 9v11"/>
       </svg>
     </button>
+    </>
   );
 }
