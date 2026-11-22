@@ -241,9 +241,19 @@ export default async function Cat({
     ? q.order('sold', {ascending: false})
     : q.order('created_at', {ascending: o === 'old'});
 
-  const [{data}, {data: b}] = await Promise.all([
+  // Marques réellement présentes dans cette catégorie (et ses sous-catégories).
+  // Cette requête reste indépendante des filtres actifs pour garder la liste complète.
+  let brandProductsQuery: any = supabase
+    .from('products')
+    .select('brand_id,brands(id,name)')
+    .eq('active', true);
+
+  if (fixed?.filter) brandProductsQuery = fixed.filter(brandProductsQuery);
+  if (cat) brandProductsQuery = brandProductsQuery.in('category_id', subtree(all, cat.id));
+
+  const [{data}, {data: brandProducts}] = await Promise.all([
     q,
-    supabase.from('brands').select('id,name').order('name')
+    brandProductsQuery
   ]);
 
   const rank = (p: any) => {
@@ -276,17 +286,19 @@ export default async function Cat({
 
   const seen = new Set<string>();
 
-  const brands = (b || []).filter((x: any) => {
-    const k = x.name.trim().toLowerCase();
-
-    if (seen.has(k)) return false;
-
-    seen.add(k);
-    return true;
-  });
+  const brands = (brandProducts || [])
+    .map((p: any) => p.brands)
+    .filter((x: any) => x?.id && x?.name)
+    .filter((x: any) => {
+      const k = x.name.trim().toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr'));
 
   if (s === 'tous' && sp.brand && !sp.q) {
-    const bn = (b || []).find((x: any) => x.id === sp.brand)?.name;
+    const bn = brands.find((x: any) => x.id === sp.brand)?.name;
     if (bn) title = bn;
   }
 
@@ -362,10 +374,10 @@ export default async function Cat({
             return (
               <Link key={value} href={url({range:sp.range===value?'':value})}
                 aria-pressed={sp.range===value}
-                className={`rounded-xl border p-3 text-center transition ${sp.range===value?'border-plum bg-blush/50':'border-sand bg-white hover:border-plum/50'}`}>
-                <span className="block font-serif text-sm text-plum sm:text-base">{label}</span>
-                <span className="mt-1 block text-[10px] leading-snug text-ink/60">{desc}</span>
-                <span className="mt-1 block text-[10px] text-ink/50">{count} produit{count>1?'s':''}</span>
+                className={`flex min-h-[116px] flex-col items-center justify-center rounded-2xl border px-2.5 py-3 text-center shadow-sm transition duration-200 ${sp.range===value?'border-plum bg-gradient-to-b from-[#FBEFF3] to-[#F7E9EE] shadow-md ring-1 ring-plum/10':'border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] hover:border-plum/50 hover:shadow-md'}`}>
+                <span className="block font-serif text-[14px] leading-tight text-plum sm:text-base">{label}</span>
+                <span className="mt-2 block min-h-[2.4em] text-[10px] leading-snug text-ink/65">{desc}</span>
+                <span className="mt-1.5 block text-[10px] font-medium text-plum/65">{count} produit{count>1?'s':''}</span>
               </Link>
             );
           })}
@@ -398,7 +410,7 @@ export default async function Cat({
             )}
           </summary>
 
-          <form className="absolute inset-x-0 top-full z-10 mt-2 grid gap-3 rounded-2xl border border-sand bg-white p-4 text-sm shadow-lg md:grid-cols-2">
+          <form className="absolute inset-x-0 top-full z-30 mt-2 grid gap-3 rounded-2xl border border-sand bg-white p-4 text-sm shadow-xl md:grid-cols-2">
             <input type="hidden" name="sort" value={o || ''}/>
             <input type="hidden" name="range" value={sp.range || ''}/>
 
