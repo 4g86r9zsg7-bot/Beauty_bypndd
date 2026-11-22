@@ -49,36 +49,38 @@ export async function prepareProductImage(
       return unchanged();
     }
 
+    // Fond blanc : évite un fond noir sur les PNG transparents lors de l'export JPEG.
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
     context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
 
-    const converted = await new Promise<Blob | null>(resolve => {
-      canvas.toBlob(resolve, 'image/webp', Math.max(0.55, Math.min(0.95, options.quality ?? 0.86)));
-    });
+    const quality = Math.max(0.55, Math.min(0.95, options.quality ?? 0.86));
+    const toBlob = (type: string) =>
+      new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, quality));
 
-    if (!converted) return unchanged();
-
-    // Certains navigateurs ne prennent pas en charge l'export WebP.
-    if (converted.type !== 'image/webp') {
-      return {
-        blob: converted,
-        extension: converted.type === 'image/png' ? 'png' : 'jpg',
-        contentType: converted.type || 'image/jpeg'
-      };
+    // Safari ne sait pas exporter en WebP : il renverrait un PNG très lourd.
+    // On passe alors en JPEG.
+    let converted = await toBlob('image/webp');
+    if (!converted || converted.type !== 'image/webp') {
+      converted = await toBlob('image/jpeg');
     }
+
+    // Libère la mémoire (important sur iPhone).
+    canvas.width = 0;
+    canvas.height = 0;
 
     // Ne jamais remplacer un original par un fichier plus lourd.
-    if (converted.size >= file.size) {
-      return unchanged();
-    }
+    if (!converted || converted.size >= file.size) return unchanged();
 
+    const isWebp = converted.type === 'image/webp';
     return {
       blob: converted,
-      extension: 'webp',
-      contentType: 'image/webp'
+      extension: isWebp ? 'webp' : 'jpg',
+      contentType: isWebp ? 'image/webp' : 'image/jpeg'
     };
   } catch {
-    // Ne jamais bloquer l'ajout d'une photo compatible si le navigateur
+    // Ne jamais bloquer l'ajout d'une photo si le navigateur
     // ne sait pas la décoder pour la compresser.
     return unchanged();
   }
