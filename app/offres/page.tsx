@@ -32,8 +32,17 @@ const TAGS:Record<string,string>={
 const vlist=(p:any):any[] =>
   (Array.isArray(p?.variants)?p.variants:[]).filter((x:any)=>x&&typeof x==='object');
 
+const variantFor=(it:any)=>
+  vlist(it.products).find((x:any)=>x.name===it.variant);
+
+const itemPhoto=(it:any)=>
+  variantFor(it)?.image||
+  variantFor(it)?.images?.[0]||
+  it.products?.images?.[0]||
+  null;
+
 const unitPrice=(it:any)=>
-  Number(vlist(it.products).find((x:any)=>x.name===it.variant)?.price??it.products?.price??0);
+  Number(variantFor(it)?.price??it.products?.price??0);
 
 const itemOk=(it:any)=>{
   const p=it.products;
@@ -132,12 +141,17 @@ export default async function Offres(){
               const rest=o.stock!=null?o.stock-o.sold:null;
               const available=its.length>0&&its.every(itemOk)&&(rest==null||rest>0);
 
-              const photo=o.image_url||its.find((it:any)=>it.products?.images?.[0])?.products?.images?.[0];
+              const packPhotos=its.map((it:any)=>({
+                url:itemPhoto(it),
+                name:it.products.name,
+                variant:it.variant||''
+              })).filter((x:any)=>x.url);
+              const photo=o.image_url||packPhotos[0]?.url||null;
 
               const detailItems=its.map((it:any)=>({
                 id:String(it.id),
                 name:it.products.name,
-                image:it.products.images?.[0]||null,
+                image:itemPhoto(it),
                 qty:Number(it.qty)||1,
                 variant:it.variant||null,
                 priceLabel:eur(unitPrice(it)*it.qty)
@@ -150,7 +164,15 @@ export default async function Offres(){
                 >
                   {/* PHOTO ENTIÈRE */}
                   <div className="relative aspect-square overflow-hidden bg-[#fdf3f7]">
-                    {photo?(
+                    {packPhotos.length>1&&!o.image_url?(
+                      <div className={`grid h-full w-full grid-cols-2 grid-rows-2 gap-1 p-2 sm:gap-1.5 sm:p-3 ${available?'':'opacity-50 grayscale'}`}>
+                        {packPhotos.slice(0,4).map((item:any,index:number)=>(
+                          <div key={item.variant+'-'+index} className="flex min-h-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+                            <img src={item.url} alt={item.name+(item.variant?' - '+item.variant:'')} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
+                          </div>
+                        ))}
+                      </div>
+                    ):photo?(
                       <img
                         src={photo}
                         alt={o.title}
