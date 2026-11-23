@@ -101,10 +101,23 @@ export function ClientProvider({children}:{children:React.ReactNode}){
     return result;
   };
 
+  const useSyncKey=async(value:string)=>{
+    const key=value.trim();
+    if(!UUID.test(key))return {error:new Error('Code de synchronisation invalide.')};
+    try{
+      localStorage.setItem('clientAccessKey',key);
+      setClientKey(key);
+      await load(key);
+      return {error:null};
+    }catch(error:any){
+      return {error:error||new Error('Impossible d’enregistrer ce code sur cet appareil.')};
+    }
+  };
+
   const unread=notifs.filter(n=>!n.read).length;
 
   return <C.Provider value={{
-    clientKey,phone,favs,notifs,unread,toggleFav,markRead,claimOrderNotifications,
+    clientKey,phone,favs,notifs,unread,toggleFav,markRead,claimOrderNotifications,useSyncKey,
     subscribeRestock,restockStatus,restockErrors,
     askPhone:()=>setGate({fn:()=>{}})
   }}>
