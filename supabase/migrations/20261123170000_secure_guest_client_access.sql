@@ -7,14 +7,13 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.favorites) THEN
     RAISE EXCEPTION 'Legacy favorites exist; migrate them with an owner-verified flow before applying this migration.';
   END IF;
+  IF EXISTS (SELECT 1 FROM private.restock_alerts) THEN
+    RAISE EXCEPTION 'Legacy restock alerts exist; associate them with verified client keys before applying this migration.';
+  END IF;
 END;
 $migration_guard$;
 
-ALTER TABLE private.order_access
-  ADD COLUMN IF NOT EXISTS client_key_hash bytea;
 ALTER TABLE private.restock_alerts
-  ADD COLUMN IF NOT EXISTS client_key_hash bytea;
-ALTER TABLE public.notifications
   ADD COLUMN IF NOT EXISTS client_key_hash bytea;
 
 CREATE TABLE IF NOT EXISTS private.client_favorites (
@@ -23,52 +22,63 @@ CREATE TABLE IF NOT EXISTS private.client_favorites (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (client_key_hash, product_id)
 );
+CREATE TABLE IF NOT EXISTS private.order_notification_clients (
+  order_id uuid NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  client_key_hash bytea NOT NULL CHECK (octet_length(client_key_hash) = 32),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (order_id, client_key_hash)
+);
+CREATE TABLE IF NOT EXISTS private.notification_clients (
+  notification_id uuid NOT NULL REFERENCES public.notifications(id) ON DELETE CASCADE,
+  client_key_hash bytea NOT NULL CHECK (octet_length(client_key_hash) = 32),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (notification_id, client_key_hash)
+);
 ALTER TABLE private.client_favorites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE private.order_notification_clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE private.notification_clients ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE private.client_favorites FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE private.order_notification_clients FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE private.notification_clients FROM PUBLIC, anon, authenticated;
 
-CREATE INDEX IF NOT EXISTS notifications_client_key_created_idx
-  ON public.notifications (client_key_hash, created_at DESC)
-  WHERE client_key_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS notification_clients_client_key_idx
+  ON private.notification_clients (client_key_hash, notification_id);
 CREATE UNIQUE INDEX IF NOT EXISTS restock_alerts_client_key_product_variant_uidx
   ON private.restock_alerts
-    (phone_key, product_id, (coalesce(variant_name, '')))
+    (client_key_hash, product_id, (coalesce(variant_name, '')))
   WHERE client_key_hash IS NOT NULL;
 
-CREATE OR REPLACE FUNCTION private.bind_notification_client_key()
+CREATE OR REPLACE FUNCTION private.map_notification_clients()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $function$
 BEGIN
-  IF NEW.client_key_hash IS NOT NULL THEN
-    RETURN NEW;
-  END IF;
-
   IF NEW.order_id IS NOT NULL THEN
-    SELECT oa.client_key_hash
-      INTO NEW.client_key_hash
-      FROM private.order_access AS oa
-     WHERE oa.order_id = NEW.order_id;
+    INSERT INTO private.notification_clients (notification_id, client_key_hash)
+    SELECT NEW.id, c.client_key_hash
+      FROM private.order_notification_clients AS c
+     WHERE c.order_id = NEW.order_id
+    ON CONFLICT DO NOTHING;
   ELSIF NEW.notification_type = 'restock' AND NEW.product_id IS NOT NULL THEN
-    SELECT ra.client_key_hash
-      INTO NEW.client_key_hash
+    INSERT INTO private.notification_clients (notification_id, client_key_hash)
+    SELECT NEW.id, ra.client_key_hash
       FROM private.restock_alerts AS ra
      WHERE ra.phone_key = NEW.phone_key
        AND ra.product_id = NEW.product_id
        AND ra.client_key_hash IS NOT NULL
-     ORDER BY ra.created_at DESC
-     LIMIT 1;
+    ON CONFLICT DO NOTHING;
   END IF;
 
   RETURN NEW;
 END;
 $function$;
 
-DROP TRIGGER IF EXISTS bind_notification_client_key ON public.notifications;
-CREATE TRIGGER bind_notification_client_key
-  BEFORE INSERT ON public.notifications
-  FOR EACH ROW EXECUTE FUNCTION private.bind_notification_client_key();
+DROP TRIGGER IF EXISTS map_notification_clients ON public.notifications;
+CREATE TRIGGER map_notification_clients
+  AFTER INSERT ON public.notifications
+  FOR EACH ROW EXECUTE FUNCTION private.map_notification_clients();
 
 CREATE OR REPLACE FUNCTION private.validate_guest_cart(p_items jsonb, p_allow_empty boolean)
 RETURNS void
@@ -211,7 +221,8 @@ AS $function$
       SELECT n.id, n.order_number, n.title, n.body, n.read, n.created_at,
              n.notification_type, n.product_id, n.product_slug
         FROM public.notifications AS n
-       WHERE n.client_key_hash = extensions.digest(
+       JOIN private.notification_clients AS nc ON nc.notification_id = n.id
+       WHERE nc.client_key_hash = extensions.digest(
          pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'
        )
        ORDER BY n.created_at DESC
@@ -230,9 +241,13 @@ SET search_path = ''
 AS $function$
   UPDATE public.notifications AS n
      SET read = true
-   WHERE n.client_key_hash = extensions.digest(
-           pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'
-         )
+   WHERE EXISTS (
+     SELECT 1 FROM private.notification_clients AS nc
+      WHERE nc.notification_id = n.id
+        AND nc.client_key_hash = extensions.digest(
+          pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'
+        )
+   )
      AND (p_id IS NULL OR n.id = p_id);
 $function$;
 
@@ -283,16 +298,14 @@ BEGIN
 
   -- Possession of the existing order code allows the customer to bind or move
   -- that order's guest notifications to this browser without exposing them by phone.
-  UPDATE private.order_access AS oa
-     SET client_key_hash = v_key_hash
-   WHERE oa.order_id = v_order_id;
-  UPDATE public.notifications AS n
-     SET client_key_hash = v_key_hash
-   WHERE n.order_id = v_order_id;
-  UPDATE private.restock_alerts AS ra
-     SET client_key_hash = v_key_hash
-   WHERE ra.phone_key = pg_catalog.right(v_digits, 9);
-
+  INSERT INTO private.order_notification_clients (order_id, client_key_hash)
+  VALUES (v_order_id, v_key_hash)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO private.notification_clients (notification_id, client_key_hash)
+  SELECT n.id, v_key_hash
+    FROM public.notifications AS n
+   WHERE n.order_id = v_order_id
+  ON CONFLICT DO NOTHING;
   GET DIAGNOSTICS v_count = ROW_COUNT;
   RETURN v_count;
 END;
@@ -363,6 +376,7 @@ AS $function$
 DECLARE
   v_order json;
   v_code text;
+  v_order_id uuid;
 BEGIN
   IF p_client_key IS NULL THEN
     RAISE EXCEPTION 'Session client invalide';
@@ -370,17 +384,23 @@ BEGIN
   PERFORM private.validate_guest_cart(p_items, false);
   v_order := public.place_order_secure(p_c, p_items, p_promo);
   v_code := v_order->>'access_code';
-  UPDATE private.order_access AS oa
-     SET client_key_hash = extensions.digest(
-       pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'
-     )
+  SELECT oa.order_id INTO v_order_id
+    FROM private.order_access AS oa
    WHERE oa.code_hash = extensions.digest(
      pg_catalog.convert_to(pg_catalog.upper(pg_catalog.trim(v_code)), 'UTF8'),
      'sha256'
    );
-  IF NOT FOUND THEN
+  IF v_order_id IS NULL THEN
     RAISE EXCEPTION 'Impossible de lier les notifications à cette session';
   END IF;
+  INSERT INTO private.order_notification_clients (order_id, client_key_hash)
+  VALUES (v_order_id, extensions.digest(pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'))
+  ON CONFLICT DO NOTHING;
+  INSERT INTO private.notification_clients (notification_id, client_key_hash)
+  SELECT n.id, extensions.digest(pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256')
+    FROM public.notifications AS n
+   WHERE n.order_id = v_order_id
+  ON CONFLICT DO NOTHING;
   RETURN v_order;
 END;
 $function$;
@@ -399,6 +419,7 @@ AS $function$
 DECLARE
   v_order json;
   v_code text;
+  v_order_id uuid;
 BEGIN
   IF p_client_key IS NULL THEN
     RAISE EXCEPTION 'Session client invalide';
@@ -406,32 +427,26 @@ BEGIN
   PERFORM private.validate_guest_cart(p_items, false);
   v_order := public.place_order2_secure(p_c, p_items, p_promo);
   v_code := v_order->>'access_code';
-  UPDATE private.order_access AS oa
-     SET client_key_hash = extensions.digest(
-       pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'
-     )
+  SELECT oa.order_id INTO v_order_id
+    FROM private.order_access AS oa
    WHERE oa.code_hash = extensions.digest(
      pg_catalog.convert_to(pg_catalog.upper(pg_catalog.trim(v_code)), 'UTF8'),
      'sha256'
    );
-  IF NOT FOUND THEN
+  IF v_order_id IS NULL THEN
     RAISE EXCEPTION 'Impossible de lier les notifications à cette session';
   END IF;
+  INSERT INTO private.order_notification_clients (order_id, client_key_hash)
+  VALUES (v_order_id, extensions.digest(pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256'))
+  ON CONFLICT DO NOTHING;
+  INSERT INTO private.notification_clients (notification_id, client_key_hash)
+  SELECT n.id, extensions.digest(pg_catalog.convert_to(p_client_key::text, 'UTF8'), 'sha256')
+    FROM public.notifications AS n
+   WHERE n.order_id = v_order_id
+  ON CONFLICT DO NOTHING;
   RETURN v_order;
 END;
 $function$;
-
--- Remove phone-only RPC entry points while keeping them in place for rollback.
-REVOKE ALL ON FUNCTION public.get_favorites(text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.toggle_favorite(text, uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.get_notifications(text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.mark_notifications_read(text, uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.subscribe_restock_alert(text, uuid, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.place_order_secure(jsonb, jsonb, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.place_order2_secure(jsonb, jsonb, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.promo_calc_target(text, numeric, text, jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.check_promo(text, numeric, text, jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.quote_cart(jsonb) FROM PUBLIC, anon, authenticated;
 
 -- Keep public storefront RPCs available only to the API roles that need them.
 REVOKE ALL ON FUNCTION public.get_favorites(uuid) FROM PUBLIC;
@@ -455,32 +470,4 @@ GRANT EXECUTE ON FUNCTION public.quote_cart_secure(jsonb) TO anon, authenticated
 REVOKE ALL ON FUNCTION public.check_promo_secure(text, numeric, text, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.check_promo_secure(text, numeric, text, jsonb) TO anon, authenticated;
 
--- Preserve required guest/user flows with narrow role grants.
-REVOKE ALL ON FUNCTION public.cancel_my_order(text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.cancel_my_order(text, text) TO anon, authenticated;
-REVOKE ALL ON FUNCTION public.track_my_order(text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.track_my_order(text, text) TO anon, authenticated;
-REVOKE ALL ON FUNCTION public.review_my_order(text, text, uuid, integer, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.review_my_order(text, text, uuid, integer, text) TO anon, authenticated;
-REVOKE ALL ON FUNCTION public.get_my_account_orders() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.get_my_account_orders() TO authenticated;
-REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
-REVOKE ALL ON FUNCTION public.set_order_status(uuid, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.set_order_status(uuid, text) TO authenticated;
 
--- Internal SECURITY DEFINER helpers are callable only by their owners/triggers.
-REVOKE ALL ON FUNCTION public.apply_delivery_rules_to_order() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.apply_stock(jsonb, integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.cancel_order(integer, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.notify_order_status() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.offers_discount(uuid[], numeric[], boolean) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.offers_release() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.place_order(jsonb, jsonb, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.place_order2(jsonb, jsonb, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.promo_calc(text, numeric, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.submit_review(integer, text, uuid, integer, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.track_order(integer, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.track_orders(text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION private.bind_notification_client_key() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION private.validate_guest_cart(jsonb, boolean) FROM PUBLIC, anon, authenticated;
