@@ -1,3 +1,16 @@
+DO $legacy_notification_guard$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+      FROM public.notifications AS n
+      LEFT JOIN private.order_access AS oa ON oa.order_id = n.order_id
+     WHERE n.order_id IS NOT NULL
+       AND oa.order_id IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Legacy order notifications without an access code require a verified recovery path before legacy RPC revocation.';
+  END IF;
+END;
+$legacy_notification_guard$;
 -- Phase 2: apply after the new frontend is deployed and smoke-tested.
 -- This closes legacy phone-only RPCs and restricts internal SECURITY DEFINER helpers.
 
