@@ -8,8 +8,11 @@ import {useClient} from '@/components/ClientProvider';
 import ProductCard from '@/components/ProductCard';
 
 export default function Favoris(){
-  const {clientKey,favs}=useClient();
+  const {clientKey,favs,useSyncKey}=useClient();
   const [items,setItems]=useState<any[]|null>(null);
+  const [syncOpen,setSyncOpen]=useState(false);
+  const [syncInput,setSyncInput]=useState('');
+  const [syncMessage,setSyncMessage]=useState('');
 
   useEffect(()=>{
     let active=true;
@@ -80,6 +83,26 @@ export default function Favoris(){
           </span>
         )}
       </div>
+
+      <section className="mt-5 rounded-2xl border border-sand bg-white p-4 sm:p-5">
+        <button type="button" onClick={()=>setSyncOpen(v=>!v)} aria-expanded={syncOpen} className="text-sm font-semibold text-plum underline">
+          Synchroniser mes favoris sur un autre appareil
+        </button>
+        {syncOpen&&<div className="mt-3 space-y-3">
+          <p className="text-xs leading-5 text-ink/60">Le code donne accès à cette sélection. Copiez-le uniquement sur un appareil de confiance. Les notifications de commande se récupèrent avec le téléphone et le code secret de la commande.</p>
+          <label className="block text-xs font-medium">Votre code de synchronisation
+            <input readOnly value={clientKey} className="mt-1 w-full rounded-xl border border-sand bg-blush/20 px-3 py-3 font-mono text-sm"/>
+          </label>
+          <button type="button" disabled={!clientKey} onClick={async()=>{try{await navigator.clipboard.writeText(clientKey);setSyncMessage('Code copié.');}catch{setSyncMessage('Copiez le code affiché manuellement.');}}} className="rounded-full bg-plum px-5 py-2.5 text-xs font-semibold text-white disabled:opacity-50">Copier le code</button>
+          <div className="border-t border-sand pt-3">
+            <label className="block text-xs font-medium">Utiliser un code d’un autre appareil
+              <input value={syncInput} onChange={e=>setSyncInput(e.target.value)} autoComplete="off" className="mt-1 w-full rounded-xl border border-sand px-3 py-3 font-mono text-sm" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"/>
+            </label>
+            <button type="button" onClick={async()=>{const result=await useSyncKey(syncInput);setSyncMessage(result.error?.message||'Favoris synchronisés.');if(!result.error)setSyncInput('');}} className="mt-2 rounded-full border border-plum px-5 py-2.5 text-xs font-semibold text-plum">Associer cet appareil</button>
+          </div>
+          {syncMessage&&<p role="status" className="text-xs text-plum">{syncMessage}</p>}
+        </div>}
+      </section>
 
       {!clientKey?(
         <p className="py-16 text-center text-sm text-ink/60" role="status">Chargement de votre sélection…</p>
