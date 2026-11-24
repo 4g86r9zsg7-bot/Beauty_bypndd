@@ -95,7 +95,7 @@ export default function HomeOffers({offers}:{offers:any[]}){
       </div>
       <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {offers.map((offer:any)=>(
-          <div key={offer.id} className="min-w-0 shrink-0 basis-[calc((100%-10px)/2)]">
+          <div key={offer.id} className="w-[calc((100%-0.625rem)/2)] min-w-[calc((100%-0.625rem)/2)]">
             <OfferCard offer={offer}/>
           </div>
         ))}
