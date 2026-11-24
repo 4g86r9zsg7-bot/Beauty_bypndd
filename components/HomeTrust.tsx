@@ -2,32 +2,31 @@ import Link from 'next/link';
 import {DELIVERY,PREORDER} from '@/lib/shop';
 
 const items=[
-  {icon:'✧',title:'Produits authentiques',text:'Sélectionnés avec soin'},
-  {icon:'⌖',title:'Livraison au Maroc',text:'À domicile partout au Maroc'},
-  {icon:'▤',title:'Paiement à la réception',text:'Réglez à la livraison'},
-  {icon:'♡',title:'Délais transparents',text:`En stock : ${DELIVERY} · Précommande : ${PREORDER}`}
+  {icon:'✧',title:'Authenticité'},
+  {icon:'⌖',title:'Livraison Maroc'},
+  {icon:'▤',title:'Paiement réception'},
+  {icon:'♡',title:'Délais clairs',text:`En stock : ${DELIVERY}\nPrécommande : ${PREORDER}`}
 ];
 
 export default function HomeTrust(){
   return (
-    <section aria-labelledby="home-trust-title" className="mx-auto mt-12 w-full max-w-6xl px-4 pb-8 sm:px-6 lg:px-8">
+    <section aria-labelledby="home-trust-title" className="mx-auto mt-12 w-full max-w-6xl px-3 pb-8 sm:px-6 lg:px-8">
       <div className="overflow-hidden rounded-2xl border border-[#ead9df] bg-gradient-to-r from-[#fffdfd] via-[#FCF6F8] to-[#fffdfd] shadow-sm">
-        <div className="px-4 pt-5 text-center sm:pt-6">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-[#98783b]">Votre confiance, notre priorité</p>
-          <h2 id="home-trust-title" className="mt-1 font-serif text-xl text-plum sm:text-2xl">Achetez en toute sérénité</h2>
+        <div className="px-3 pt-4 text-center sm:pt-6">
+          <p className="text-[9px] uppercase tracking-[0.24em] text-[#98783b]">Votre confiance, notre priorité</p>
+          <h2 id="home-trust-title" className="mt-1 font-serif text-lg text-plum sm:text-2xl">Achetez en toute sérénité</h2>
         </div>
-        <div className="mt-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-4 [scrollbar-width:thin] sm:grid sm:grid-cols-4 sm:gap-px sm:overflow-visible sm:bg-[#ead9df] sm:px-0 sm:pb-0">
+        <div className="mt-3 grid grid-cols-4 gap-1 px-2 pb-3 sm:mt-4 sm:gap-px sm:bg-[#ead9df] sm:px-0 sm:pb-0">
           {items.map(item=>(
-            <div key={item.title} className="flex min-w-[150px] snap-start flex-1 flex-col items-center justify-center rounded-xl border border-[#ead9df] bg-white/95 px-3 py-4 text-center sm:min-w-0 sm:rounded-none sm:border-0 sm:px-3 sm:py-5">
-              <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full border border-[#C6A15B]/45 bg-[#FCF8F8] font-serif text-xl text-[#98783b]">{item.icon}</span>
-              <h3 className="mt-2 text-[10px] font-semibold uppercase leading-tight tracking-[0.08em] text-plum">{item.title}</h3>
-              <p className="mt-1 max-w-[170px] text-[10px] leading-snug text-ink/65">{item.text}</p>
+            <div key={item.title} className="flex min-w-0 flex-col items-center justify-start rounded-lg bg-white/80 px-1 py-3 text-center sm:rounded-none sm:px-3 sm:py-5">
+              <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#C6A15B]/45 bg-[#FCF8F8] font-serif text-lg text-[#98783b] sm:h-10 sm:w-10 sm:text-xl">{item.icon}</span>
+              <h3 className="mt-2 text-[8px] font-semibold uppercase leading-tight tracking-[0.01em] text-plum min-[380px]:text-[9px] sm:text-[11px] sm:tracking-[0.08em]">{item.title}</h3>
+              {item.text && <p className="mt-1 whitespace-pre-line text-[7px] leading-tight text-ink/65 sm:text-[10px]">{item.text}</p>}
             </div>
           ))}
         </div>
-        <div className="flex flex-col items-center gap-1 border-t border-[#ead9df] px-3 py-2 text-center sm:flex-row sm:justify-center sm:gap-3">
-          <span className="text-[9px] text-ink/45 sm:hidden">Glissez pour voir les 4 engagements</span>
-          <Link href="/livraison" className="inline-flex min-h-9 items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-plum underline decoration-[#C6A15B] underline-offset-4 transition hover:text-[#98783b]">
+        <div className="border-t border-[#ead9df] px-3 py-2 text-center">
+          <Link href="/livraison" className="inline-flex min-h-8 items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-plum underline decoration-[#C6A15B] underline-offset-4 transition hover:text-[#98783b] sm:text-[10px]">
             Frais et conditions de livraison <span aria-hidden="true">→</span>
           </Link>
         </div>
