@@ -41,6 +41,14 @@ export default function SideMenu(){
 
   const hide=()=>setOpen(false);
 
+  const wasOpenRef=useRef(false);
+  useEffect(()=>{
+    if(!open&&wasOpenRef.current){
+      triggerRef.current?.focus();
+    }
+    wasOpenRef.current=open;
+  },[open]);
+
   useEffect(()=>{
     if(!mounted)return;
 
