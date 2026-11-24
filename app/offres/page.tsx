@@ -148,9 +148,14 @@ export default async function Offres(){
               })).filter((x:any)=>x.url).slice(0,4);
               const photo=o.image_url||packPhotos[0]?.url||null;
               const photoCount=packPhotos.length;
+              // Composition adaptative : 2 photos côte à côte, 3 en mosaïque équilibrée,
+              // 4 en grille 2×2. Les images restent entièrement visibles.
               const photoGridClass=photoCount===2
                 ?'grid-cols-2 grid-rows-1'
-                :'grid-cols-2 grid-rows-2';
+                :photoCount===3
+                  ?'grid-cols-[1.15fr_1fr] grid-rows-2'
+                  :'grid-cols-2 grid-rows-2';
+              const photoFrameClass=photoCount===2?'aspect-[2/1]':'aspect-square';
 
               const detailItems=its.map((it:any)=>({
                 id:String(it.id),
@@ -167,13 +172,13 @@ export default async function Offres(){
                   className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#f0dce4] bg-white shadow-[0_4px_16px_rgba(122,31,74,.06)]"
                 >
                   {/* PHOTO ENTIÈRE */}
-                  <div className={`relative ${photoCount===2?'aspect-[2/1]':'aspect-square'} overflow-hidden bg-white`}>
+                  <div className={`relative ${photoFrameClass} overflow-hidden bg-[#fffafb] p-1.5 sm:p-2`}>
                     {photoCount>1?(
-                      <div className={`grid h-full w-full ${photoGridClass} gap-0 p-0 ${available?'':'opacity-50 grayscale'}`}>
+                      <div className={`grid h-full w-full ${photoGridClass} gap-1.5 sm:gap-2 ${available?'':'opacity-50 grayscale'}`}>
                         {packPhotos.map((item:any,index:number)=>(
                           <div
                             key={item.variant+'-'+index}
-                            className={`flex min-h-0 items-center justify-center overflow-hidden bg-white ${photoCount===3&&index===0?'row-span-2':''}`}
+                            className={`flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 sm:p-2 ${photoCount===3&&index===0?'row-span-2':''}`}
                           >
                             <img src={item.url} alt={item.name+(item.variant?' - '+item.variant:'')} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
                           </div>
@@ -238,25 +243,33 @@ export default async function Offres(){
                     </div>
 
                     {/* PRIX */}
-                    <div className="mt-2 rounded-xl bg-[#fdf3f7] px-2.5 py-2.5 sm:px-3">
-                      <p className="text-[8px] font-semibold uppercase tracking-wider text-plum/60">
-                        Prix du pack
-                      </p>
+                    <div className="mt-2 rounded-xl border border-[#f1dce5] bg-gradient-to-br from-[#fff4f8] to-[#fcf7f0] px-3 py-3 sm:px-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-plum/65">
+                          Prix du pack
+                        </p>
+                        {saving>0&&pct>0&&(
+                          <span className="rounded-full bg-[#963e66] px-2 py-1 text-[9px] font-bold text-white">
+                            -{pct}%
+                          </span>
+                        )}
+                      </div>
 
-                      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-serif text-xl text-rose sm:text-2xl">
+                      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <span className="font-serif text-2xl font-semibold leading-none text-rose sm:text-3xl">
                           {eur(price)}
                         </span>
                         {saving>0&&(
-                          <s className="text-[10px] text-ink/45">
+                          <s className="text-xs text-ink/45">
                             {eur(value)}
                           </s>
                         )}
                       </div>
 
                       {saving>0&&(
-                        <p className="mt-0.5 text-[9px] font-semibold text-[#8a6a22]">
-                          Économisez {eur(saving)}
+                        <p className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[#80611f]">
+                          <span aria-hidden="true">✦</span>
+                          Vous économisez {eur(saving)}
                         </p>
                       )}
                     </div>
