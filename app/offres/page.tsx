@@ -12,7 +12,7 @@ import {OfferCountdown,OfferDetails} from '@/components/OfferExtras';
 export const dynamic='force-dynamic';
 
 const title='Packs & Offres exclusives | Beauty_bypndd';
-const description='Découvrez les packs beauté et offres exclusives Beauty_bypndd à prix avantageux.';
+const description='Découvrez nos packs beauté, coffrets et offres exclusives. Comparez les prix, voyez vos économies et profitez de nos sélections beauté.';
 
 export const metadata={
   title,
@@ -200,6 +200,11 @@ export default async function Offres(){
                         </span>
                       )}
 
+                      {available&&rest!=null&&rest>0&&rest<=5&&(
+                        <span className="rounded-full bg-[#8a6a22] px-2 py-1 text-[9px] font-bold text-white shadow-sm">
+                          Dernières pièces
+                        </span>
+                      )}
                       {!available&&(
                         <span className="rounded-full bg-white/95 px-2 py-1 text-[9px] font-semibold text-ink shadow-sm">
                           Indisponible
@@ -240,7 +245,7 @@ export default async function Offres(){
                     {/* PRIX */}
                     <div className="mt-2 rounded-xl bg-[#fdf3f7] px-2.5 py-2.5 sm:px-3">
                       <p className="text-[8px] font-semibold uppercase tracking-wider text-plum/60">
-                        Prix du pack
+                        Votre prix avantageux
                       </p>
 
                       <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
@@ -248,16 +253,25 @@ export default async function Offres(){
                           {eur(price)}
                         </span>
                         {saving>0&&(
-                          <s className="text-[10px] text-ink/45">
-                            {eur(value)}
-                          </s>
+                          <span className="flex flex-col">
+                            <s className="text-[10px] text-ink/45">
+                              Valeur séparée : {eur(value)}
+                            </s>
+                          </span>
                         )}
                       </div>
 
                       {saving>0&&(
-                        <p className="mt-0.5 text-[9px] font-semibold text-[#8a6a22]">
-                          Économisez {eur(saving)}
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
+                          <p className="text-[10px] font-bold text-[#8a6a22]">
+                            Vous économisez {eur(saving)}
+                          </p>
+                          {pct>0&&(
+                            <span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold text-[#963e66]">
+                              -{pct} %
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -384,7 +398,10 @@ export default async function Offres(){
                         {o.title}
                       </h3>
                       <p className="mt-1 text-[10px] leading-4 text-ink/70 sm:text-xs">
-                        {o.buy_qty} achetés = 1 offert. Le moins cher est offert automatiquement pour {o.buy_qty+1} produits de cette sélection.
+                        Ajoutez {o.buy_qty+1} produits parmi la sélection ci-dessous : le moins cher est offert automatiquement.
+                      </p>
+                      <p className="mt-1 text-[9px] leading-4 text-ink/55 sm:text-[10px]">
+                        Produits éligibles : uniquement ceux affichés dans cette offre. La réduction s’applique au panier lorsque les conditions sont réunies.
                       </p>
                       {o.description&&(
                         <p className="mt-1 line-clamp-2 text-[10px] text-ink/60">
@@ -448,7 +465,7 @@ export default async function Offres(){
           Offres & bons plans
         </h1>
         <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-ink/65 sm:text-sm">
-          Retrouvez nos packs beauté, variantes à prix réduit et offres exclusives à prix doux.
+          Découvrez nos associations beauté à prix avantageux, comparez les économies et trouvez votre prochaine routine coup de cœur.
         </p>
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-[9px] uppercase tracking-wider text-plum/70">
           <span className="rounded-full border border-[#ead9df] bg-white/80 px-3 py-1.5">
