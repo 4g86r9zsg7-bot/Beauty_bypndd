@@ -8,6 +8,7 @@ import HomeShelves from '@/components/HomeShelves';
 import Suggestions from '@/components/Suggestions';
 import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomePicks from '@/components/HomePicks';
+import HomeTrust from '@/components/HomeTrust';
 
 export const revalidate=30;
 
@@ -250,6 +251,7 @@ export default async function Home(){
       {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
       <HomeShelves groups={groups} olderItems={olderItems}/>
       <HomePicks items={homePicks}/>
+      <HomeTrust/>
 
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
