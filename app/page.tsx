@@ -7,6 +7,7 @@ import Hero from '@/components/Hero';
 import HomeShelves from '@/components/HomeShelves';
 import Suggestions from '@/components/Suggestions';
 import PersonalizedPromo from '@/components/PersonalizedPromo';
+import HomePicks from '@/components/HomePicks';
 
 export const revalidate=30;
 
@@ -187,6 +188,25 @@ export default async function Home(){
   const olderItems=(olderData||[])
     .filter((p:any)=>p.availability!=='soldout');
 
+  // Sélection éditoriale fondée sur les vitrines déjà chargées, sans doublons.
+  const pickDefs=[
+    {tone:'ventes',reason:'Les produits les plus appréciés'},
+    {tone:'nouveautes',reason:'Les dernières nouveautés'},
+    {tone:'promo',reason:'Une bonne affaire à saisir'},
+    {tone:'coeur',reason:'Un coup de cœur de la boutique'}
+  ];
+  const pickUsed=new Set<string>();
+  const homePicks=pickDefs.flatMap(def=>{
+    const group=groups.find(g=>g.tone===def.tone);
+    const product=group?.items.find((p:any)=>
+      p&&p.id&&!pickUsed.has(p.id)&&p.availability!=='soldout'
+      &&(def.tone!=='promo'||(Number(p.old_price)>Number(p.price)&&Number(p.price)>0))
+    );
+    if(!product)return [];
+    pickUsed.add(product.id);
+    return [{product,reason:def.reason}];
+  });
+
   return (
     <>
       <Shortcuts/>
@@ -194,6 +214,7 @@ export default async function Home(){
 
       {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
       <HomeShelves groups={groups} olderItems={olderItems}/>
+      <HomePicks items={homePicks}/>
 
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
