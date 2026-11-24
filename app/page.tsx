@@ -6,7 +6,6 @@ import Shortcuts from '@/components/Shortcuts';
 import Hero from '@/components/Hero';
 import HomeShelves from '@/components/HomeShelves';
 import Suggestions from '@/components/Suggestions';
-import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomePicks from '@/components/HomePicks';
 import HomeOffers from '@/components/HomeOffers';
 import HomeTrust from '@/components/HomeTrust';
@@ -307,8 +306,6 @@ export default async function Home(){
         </div>
 
         <HomeOffers offers={homeOffers}/>
-
-        <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
 
         {/* CATEGORIES */}
         <section aria-labelledby="home-categories-title" className="mt-16 rounded-3xl bg-[#FCF8F8] px-4 py-10 sm:px-6 md:py-12">
