@@ -8,6 +8,7 @@ import HomeShelves from '@/components/HomeShelves';
 import Suggestions from '@/components/Suggestions';
 import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomePicks from '@/components/HomePicks';
+import HomeOffers from '@/components/HomeOffers';
 import HomeTrust from '@/components/HomeTrust';
 
 export const revalidate=30;
@@ -97,12 +98,32 @@ export default async function Home(){
 
   const nowIso=now.toISOString();
 
-  const {count:offerCount}=await supabase
+  const {data:homeOffersData}=await supabase
     .from('offers')
-    .select('id',{count:'exact',head:true})
+    .select('id,title,description,kind,pack_price,buy_qty,discount_type,discount_value,stock,sold,ends_at,image_url,offer_items(id,variant,qty,products(id,name,price,images,variants,active,availability,stock))')
     .eq('active',true)
     .or(`starts_at.is.null,starts_at.lte.${nowIso}`)
-    .or(`ends_at.is.null,ends_at.gt.${nowIso}`);
+    .or(`ends_at.is.null,ends_at.gt.${nowIso}`)
+    .order('position',{ascending:true})
+    .limit(8);
+
+  const homeOffers=(homeOffersData||[]).filter((offer:any)=>{
+    if(offer.stock!=null&&Number(offer.stock)-Number(offer.sold||0)<=0)return false;
+    const items=(offer.offer_items||[]).filter((item:any)=>item.products);
+    if(!items.length)return false;
+    const available=(item:any)=>{
+      const product=item.products;
+      if(!product?.active||['soldout','arrival','preorder'].includes(product.availability))return false;
+      const variants=Array.isArray(product.variants)?product.variants:[];
+      if(item.variant){
+        const variant=variants.find((v:any)=>v&&typeof v==='object'&&v.name===item.variant);
+        return !!variant&&Number(variant.stock??0)>=Math.max(1,Number(item.qty||1));
+      }
+      if(variants.length)return variants.some((v:any)=>v&&typeof v==='object'&&Number(v.stock??0)>0);
+      return Number(product.stock||0)>=Math.max(1,Number(item.qty||1));
+    };
+    return offer.kind==='pack'?items.every(available):items.some(available);
+  }).slice(0,3);
 
   const coffretsId=
     cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id
@@ -255,35 +276,7 @@ export default async function Home(){
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
         {/* OFFRES ET PRECOMMANDES */}
-        <div className="mt-7 grid gap-4 md:grid-cols-2">
-
-          {(offerCount||0)>0&&(
-            <Link
-              href="/offres"
-              className="group relative flex min-h-[150px] items-center justify-between overflow-hidden rounded-2xl border border-[#C6A15B]/50 bg-gradient-to-br from-[#fff8fa] via-white to-[#f8e8ee] p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="relative z-10 max-w-[85%]">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-[#98783b]">
-                  Offres exclusives
-                </span>
-                <span className="mt-2 block font-serif text-2xl text-plum sm:text-3xl">
-                  Packs &amp; Offres exclusives
-                </span>
-                <span className="mt-2 block text-xs leading-relaxed text-ink/70">
-                  Des sélections à prix avantageux, pour une durée limitée
-                </span>
-                <span className="mt-4 inline-block border-b border-[#C6A15B] pb-1 text-[10px] uppercase tracking-[0.18em] text-plum">
-                  Découvrir les offres
-                </span>
-              </div>
-              <span className="absolute -right-5 -bottom-8 font-serif text-8xl text-[#C6A15B]/15 transition duration-500 group-hover:scale-110">
-                ✧
-              </span>
-              <span className="relative z-10 text-3xl text-[#C6A15B] transition group-hover:translate-x-1">
-                →
-              </span>
-            </Link>
-          )}
+        <div className="mt-7">
 
           <Link
             href="/precommande-shein"
@@ -312,6 +305,8 @@ export default async function Home(){
           </Link>
 
         </div>
+
+        <HomeOffers offers={homeOffers}/>
 
         <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
 
