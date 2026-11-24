@@ -49,7 +49,7 @@ export default async function Home(){
       .order('position',{nullsFirst:false})
       .order('name'),
     supabase.from('brands')
-      .select('id,name,logo_url')
+      .select('id,name')
       .order('name'),
     supabase.from('promo_codes')
       .select('id,code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,max_uses,uses,created_at')
