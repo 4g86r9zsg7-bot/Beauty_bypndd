@@ -163,7 +163,7 @@ export default async function Home(){
     defs.map(d=>
       d.f(
         supabase.from('products')
-          .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,created_at,brands(name)')
+          .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,featured,source_name,commercial_range,created_at,brands(name)')
           .eq('active',true)
           .order('created_at',{ascending:false})
           .limit(40)
@@ -181,31 +181,66 @@ export default async function Home(){
 
   // Réserve de produits plus anciens pour compléter la découverte sans doublons.
   const {data:olderData}=await supabase.from('products')
-    .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,created_at,brands(name)')
+    .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,featured,source_name,commercial_range,created_at,brands(name)')
     .eq('active',true)
     .order('created_at',{ascending:true})
     .limit(40);
   const olderItems=(olderData||[])
     .filter((p:any)=>p.availability!=='soldout');
 
-  // Sélection éditoriale fondée sur les vitrines déjà chargées, sans doublons.
-  const pickDefs=[
-    {tone:'ventes',reason:'Les produits les plus appréciés'},
-    {tone:'nouveautes',reason:'Les dernières nouveautés'},
-    {tone:'promo',reason:'Une bonne affaire à saisir'},
-    {tone:'coeur',reason:'Un coup de cœur de la boutique'}
-  ];
-  const pickUsed=new Set<string>();
-  const homePicks=pickDefs.flatMap(def=>{
-    const group=groups.find(g=>g.tone===def.tone);
-    const product=group?.items.find((p:any)=>
-      p&&p.id&&!pickUsed.has(p.id)&&p.availability!=='soldout'
-      &&(def.tone!=='promo'||(Number(p.old_price)>Number(p.price)&&Number(p.price)>0))
-    );
-    if(!product)return [];
-    pickUsed.add(product.id);
-    return [{product,reason:def.reason}];
+  // Sélection automatique fondée sur les signaux fiables du catalogue.
+  // Le champ products.sold n'étant pas alimenté de manière fiable par les commandes,
+  // les ventes réelles ne sont pas présentées comme un classement statistique.
+  const pickPool=new Map<string,any>();
+  [...groups.flatMap(g=>g.items||[]),...olderItems].forEach((p:any)=>{
+    if(!p?.id||!['available','last'].includes(p.availability))return;
+    if(Number(p.stock||0)<=0)return;
+    if(!pickPool.has(p.id))pickPool.set(p.id,p);
   });
+  const discountRate=(p:any)=>{
+    const price=Number(p.price);
+    const old=Number(p.old_price);
+    return old>price&&price>0?(old-price)/old:0;
+  };
+  const rankedPicks=[...pickPool.values()].sort((a:any,b:any)=>{
+    const score=(p:any)=>
+      (p.is_bestseller?120:0)
+      +(p.featured?75:0)
+      +(p.is_new?55:0)
+      +discountRate(p)*60
+      +(p.availability==='available'?20:10)
+      +Math.min(Number(p.stock||0),10);
+    return score(b)-score(a)
+      ||new Date(b.created_at||0).getTime()-new Date(a.created_at||0).getTime();
+  });
+  const pickUsed=new Set<string>();
+  const homePicks:{product:any;reason:string}[]=[];
+  const pickRules=[
+    {match:(p:any)=>!!p.is_bestseller,reason:'Best-seller sélectionné par la boutique'},
+    {match:(p:any)=>discountRate(p)>=0.05,reason:'Une réduction intéressante'},
+    {match:(p:any)=>!!p.is_new,reason:'Une nouveauté à découvrir'},
+    {match:(p:any)=>!!p.featured,reason:'Un coup de cœur de la boutique'}
+  ];
+  for(const rule of pickRules){
+    if(homePicks.length>=4)break;
+    const product=rankedPicks.find((p:any)=>!pickUsed.has(p.id)&&rule.match(p));
+    if(!product)continue;
+    pickUsed.add(product.id);
+    homePicks.push({product,reason:rule.reason});
+  }
+  for(const product of rankedPicks){
+    if(homePicks.length>=4)break;
+    if(pickUsed.has(product.id))continue;
+    pickUsed.add(product.id);
+    homePicks.push({
+      product,
+      reason:product.is_bestseller?'Best-seller sélectionné par la boutique'
+        :discountRate(product)>=0.05?'Une réduction intéressante'
+        :product.is_new?'Une nouveauté à découvrir'
+        :product.featured?'Un coup de cœur de la boutique'
+        :'Une belle découverte disponible en stock'
+    });
+  }
 
   return (
     <>
