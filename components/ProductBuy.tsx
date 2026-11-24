@@ -262,7 +262,7 @@ export default function ProductBuy({p}:{p:any}) {
   }
 
   const left=cur?.stock??p.stock;
-  const max=pre?null:(left??null);
+  const max=(pre||mode==='pre')?null:(left??null);
 
   const inCart=(lines||[]).find(
     (l:any)=>l.id===p.id&&l.variant===v
@@ -271,7 +271,7 @@ export default function ProductBuy({p}:{p:any}) {
   const full=max!=null&&inCart>=max;
   const needV=hasV&&!cur;
   const restockKey=`${p.id}:${v||''}`;
-  const needAck=pre&&mode==='cart';
+  const needAck=mode==='pre'||(pre&&mode==='cart');
 
   const status=mode==='pre'||needAck
     ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
@@ -776,10 +776,6 @@ export default function ProductBuy({p}:{p:any}) {
                 ?'Choisissez toutes les options pour voir les photos, le prix et la disponibilité de cette combinaison.'
                 :'Choisissez une variante pour voir ses photos, son prix et sa disponibilité.'}
             </p>
-          ):mode==='pre'?(
-            <a href={wa('je souhaite précommander')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-              Précommander sur WhatsApp
-            </a>
           ):mode==='reserve'?(
             <a href={wa('je souhaite réserver')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
               Réserver sur WhatsApp
@@ -816,7 +812,7 @@ export default function ProductBuy({p}:{p:any}) {
                 onClick={()=>{
                   add({
                     id:p.id,name:p.name,price,qty:1,
-                    image:vph[0]||base,variant:v,max,pre
+                    image:vph[0]||base,variant:v,max,pre:needAck
                   });
                   setDone(true);
                 }}
@@ -838,10 +834,12 @@ export default function ProductBuy({p}:{p:any}) {
                 </p>
               )}
 
-              <a href={wa(needAck?'je souhaite précommander':'je souhaite commander')}
-                className={`${btn} border border-plum/30 bg-white text-plum hover:border-plum hover:bg-blush/30`}>
-                {needAck?'Précommander sur WhatsApp':'Commander sur WhatsApp'}
-              </a>
+              {!needAck&&(
+                <a href={wa('je souhaite commander')}
+                  className={`${btn} border border-plum/30 bg-white text-plum hover:border-plum hover:bg-blush/30`}>
+                  Commander sur WhatsApp
+                </a>
+              )}
             </>
           )}
         </div>
