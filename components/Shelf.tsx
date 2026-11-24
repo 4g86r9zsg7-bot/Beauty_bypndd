@@ -60,7 +60,9 @@ export default function Shelf({tone,title,href,items}:{tone:string;title:string;
         >
           {items.map((p:any)=><div data-shelf-card key={p.id} className="w-[46%] shrink-0 snap-start sm:w-[42%] md:w-[calc(25%-15px)]"><ProductCard p={p}/></div>)}
         </div>
-        <p className="mt-1 text-center text-[10px] text-ink/55">Faites glisser les produits ou utilisez les flèches pour parcourir la sélection.</p>
+        <p className="mx-auto mt-1 max-w-md px-3 text-center text-[10px] leading-relaxed text-ink/55">
+          Faites glisser les produits ou utilisez les flèches pour parcourir la sélection.
+        </p>
       </div>
     </section>
   );
