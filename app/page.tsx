@@ -6,8 +6,9 @@ import Shortcuts from '@/components/Shortcuts';
 import Hero from '@/components/Hero';
 import HomeShelves from '@/components/HomeShelves';
 import Suggestions from '@/components/Suggestions';
-import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomePicks from '@/components/HomePicks';
+import HomeOffers from '@/components/HomeOffers';
+import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomeTrust from '@/components/HomeTrust';
 
 export const revalidate=30;
@@ -97,12 +98,32 @@ export default async function Home(){
 
   const nowIso=now.toISOString();
 
-  const {count:offerCount}=await supabase
+  const {data:homeOffersData}=await supabase
     .from('offers')
-    .select('id',{count:'exact',head:true})
+    .select('id,title,description,kind,pack_price,buy_qty,discount_type,discount_value,stock,sold,ends_at,image_url,offer_items(id,variant,qty,products(id,name,price,images,variants,active,availability,stock))')
     .eq('active',true)
     .or(`starts_at.is.null,starts_at.lte.${nowIso}`)
-    .or(`ends_at.is.null,ends_at.gt.${nowIso}`);
+    .or(`ends_at.is.null,ends_at.gt.${nowIso}`)
+    .order('position',{ascending:true})
+    .limit(8);
+
+  const homeOffers=(homeOffersData||[]).filter((offer:any)=>{
+    if(offer.stock!=null&&Number(offer.stock)-Number(offer.sold||0)<=0)return false;
+    const items=(offer.offer_items||[]).filter((item:any)=>item.products);
+    if(!items.length)return false;
+    const available=(item:any)=>{
+      const product=item.products;
+      if(!product?.active||['soldout','arrival','preorder'].includes(product.availability))return false;
+      const variants=Array.isArray(product.variants)?product.variants:[];
+      if(item.variant){
+        const variant=variants.find((v:any)=>v&&typeof v==='object'&&v.name===item.variant);
+        return !!variant&&Number(variant.stock??0)>=Math.max(1,Number(item.qty||1));
+      }
+      if(variants.length)return variants.some((v:any)=>v&&typeof v==='object'&&Number(v.stock??0)>0);
+      return Number(product.stock||0)>=Math.max(1,Number(item.qty||1));
+    };
+    return offer.kind==='pack'?items.every(available):items.some(available);
+  }).slice(0,3);
 
   const coffretsId=
     cats.find((x:any)=>x.slug==='coffrets-cadeaux')?.id
@@ -255,35 +276,7 @@ export default async function Home(){
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
         {/* OFFRES ET PRECOMMANDES */}
-        <div className="mt-7 grid gap-4 md:grid-cols-2">
-
-          {(offerCount||0)>0&&(
-            <Link
-              href="/offres"
-              className="group relative flex min-h-[150px] items-center justify-between overflow-hidden rounded-2xl border border-[#C6A15B]/50 bg-gradient-to-br from-[#fff8fa] via-white to-[#f8e8ee] p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="relative z-10 max-w-[85%]">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-[#98783b]">
-                  Offres exclusives
-                </span>
-                <span className="mt-2 block font-serif text-2xl text-plum sm:text-3xl">
-                  Packs &amp; Offres exclusives
-                </span>
-                <span className="mt-2 block text-xs leading-relaxed text-ink/70">
-                  Des sélections à prix avantageux, pour une durée limitée
-                </span>
-                <span className="mt-4 inline-block border-b border-[#C6A15B] pb-1 text-[10px] uppercase tracking-[0.18em] text-plum">
-                  Découvrir les offres
-                </span>
-              </div>
-              <span className="absolute -right-5 -bottom-8 font-serif text-8xl text-[#C6A15B]/15 transition duration-500 group-hover:scale-110">
-                ✧
-              </span>
-              <span className="relative z-10 text-3xl text-[#C6A15B] transition group-hover:translate-x-1">
-                →
-              </span>
-            </Link>
-          )}
+        <div className="mt-7">
 
           <Link
             href="/precommande-shein"
@@ -313,6 +306,7 @@ export default async function Home(){
 
         </div>
 
+        <HomeOffers offers={homeOffers}/>
         <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
 
         {/* CATEGORIES */}
@@ -365,32 +359,25 @@ export default async function Home(){
 
       {/* MARQUES */}
       {brands.length>0&&(
-        <section className="relative left-1/2 mt-16 w-screen -translate-x-1/2 overflow-hidden border-y border-[#f0e4e8] bg-gradient-to-b from-white to-[#FCF8F8] py-14 text-center">
-
+        <section aria-labelledby="home-brands-title" className="relative left-1/2 mt-14 w-screen -translate-x-1/2 overflow-hidden border-y border-[#f0e4e8] bg-[#FCF8F8] py-10 text-center sm:mt-16 sm:py-12">
           <div className="mx-auto max-w-6xl px-4">
-
             <p className="text-[10px] uppercase tracking-[0.35em] text-rose">
-              Nos partenaires
+              L'univers BeautyByPND
             </p>
-
-            <h2 className="mt-3 font-serif text-3xl text-plum md:text-4xl">
-              Marques populaires
+            <h2 id="home-brands-title" className="mt-2 font-serif text-2xl text-plum sm:text-3xl">
+              Nos marques
             </h2>
-
-            <p className="mt-3 text-xs text-ink/60">
+            <p className="mt-2 text-xs text-ink/60">
               Retrouvez vos marques préférées au même endroit.
             </p>
-
-            <div className="mx-auto mt-4 h-px w-16 bg-[#C6A15B]"/>
-
-            <div className="mt-9 -mx-4 flex items-center gap-6 overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:flex-wrap md:justify-center md:gap-x-12 md:gap-y-7 md:overflow-visible md:px-0">
-
+            <div className="mx-auto mt-4 h-px w-14 bg-[#C6A15B]"/>
+            <div className="mt-7 -mx-4 flex snap-x snap-mandatory items-center gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4 md:mt-8">
               {brands.map((x:any)=>(
                 <Link
                   key={x.id}
                   href={`/categorie/tous?brand=${x.id}`}
-                  aria-label={x.name}
-                  className="flex h-16 w-[132px] shrink-0 items-center justify-center rounded-xl bg-white px-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md md:w-[148px]"
+                  aria-label={`Découvrir les produits ${x.name}`}
+                  className="flex h-[68px] w-[126px] shrink-0 snap-start items-center justify-center rounded-xl border border-[#f0e4e8] bg-white px-3 transition duration-300 hover:-translate-y-0.5 hover:border-[#C6A15B]/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2 sm:h-[76px] sm:w-[146px]"
                 >
                   {x.logo_url?(
                     <img
@@ -398,26 +385,23 @@ export default async function Home(){
                       alt={x.name}
                       loading="lazy"
                       decoding="async"
-                      className="max-h-10 max-w-full object-contain mix-blend-multiply"
+                      className="max-h-10 max-w-full object-contain sm:max-h-11"
                     />
                   ):(
-                    <span className="text-center font-serif text-[15px] uppercase leading-tight tracking-[0.12em] text-black">
+                    <span className="text-center font-serif text-[13px] uppercase leading-tight tracking-[0.1em] text-plum sm:text-sm">
                       {x.name}
                     </span>
                   )}
                 </Link>
               ))}
-
             </div>
-
             <Link
               href="/categorie/tous"
-              className="mt-9 inline-flex items-center gap-3 rounded-full border border-plum px-7 py-3 text-[10px] uppercase tracking-[0.18em] text-plum transition hover:bg-plum hover:text-white"
+              className="mt-6 inline-flex items-center gap-2 border-b border-[#C6A15B] pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-plum transition hover:text-rose"
             >
-              Voir toutes les marques
-              <span>→</span>
+              Découvrir toutes les marques
+              <span aria-hidden="true">→</span>
             </Link>
-
           </div>
         </section>
       )}
