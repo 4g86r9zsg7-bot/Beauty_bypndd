@@ -36,10 +36,7 @@ export default function ProductCard({
   if(!sold&&p.is_new)badges.push({t:'Nouveau',c:'bg-white/95 text-plum'});
 
   const imageClass=imageFit==='contain'?'object-contain p-3':'object-cover';
-  const brandLine=[
-    p.source_name||p.brands?.name,
-    p.commercial_range==='petit_prix'?'Petit prix':p.commercial_range==='marques'?'Marques':p.commercial_range==='premium'?'Premium':null
-  ].filter(Boolean).join(' · ');
+  const brandLine=p.source_name||p.brands?.name||'';
 
   return (
     <div className="group relative isolate min-w-0">
