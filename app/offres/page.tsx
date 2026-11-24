@@ -56,23 +56,26 @@ const itemOk=(it:any)=>{
   return Number(p.stock)>=it.qty;
 };
 
-const dailyRotate=(items:any[],seed:string)=>{
-  const hash=(value:string)=>{
-    let h=2166136261;
-    for(let i=0;i<value.length;i++){
-      h^=value.charCodeAt(i);
-      h=Math.imul(h,16777619);
-    }
-    return h>>>0;
-  };
-
-  return [...items].sort((a,b)=>{
-    const diff=hash(`${seed}:${a.id}`)-hash(`${seed}:${b.id}`);
-    return diff||String(a.id).localeCompare(String(b.id));
-  });
+const packSavings=(o:any)=>{
+  const items=(o.offer_items||[]).filter((it:any)=>it.products);
+  const regular=items.reduce((sum:number,it:any)=>sum+unitPrice(it)*Number(it.qty||1),0);
+  const saving=Math.max(0,regular-Number(o.pack_price||0));
+  return {saving,rate:regular>0?saving/regular:0};
 };
 
-export default async function Offres(){
+const variantDiscountRate=(o:any)=>{
+  const item=(o.offer_items||[]).find((it:any)=>it.products);
+  if(!item)return 0;
+  const price=unitPrice(item);
+  if(price<=0)return 0;
+  const value=Number(o.discount_value||0);
+  const saving=o.discount_type==='amount'
+    ?Math.min(price,value)
+    :price*Math.min(value,90)/100;
+  return saving/price;
+};
+
+export default async function Offres(){export default async function Offres(){
   const now=new Date().toISOString();
 
   const {data}=await supabase.from('offers')
@@ -84,33 +87,26 @@ export default async function Offres(){
 
   const offers=data||[];
 
-  const day=new Intl.DateTimeFormat('en-CA',{
-    timeZone:'Africa/Casablanca',
-    year:'numeric',
-    month:'2-digit',
-    day:'2-digit'
-  }).format(new Date());
+  // Mettre d'abord en avant les offres qui apportent la plus forte économie réelle.
+  const packs=offers
+    .filter((o:any)=>o.kind==='pack')
+    .sort((a:any,b:any)=>{
+      const sa=packSavings(a);
+      const sb=packSavings(b);
+      return sb.rate-sa.rate||sb.saving-sa.saving;
+    });
 
-  const packs=dailyRotate(
-    offers.filter((o:any)=>o.kind==='pack'),
-    day
+  const free=offers.filter((o:any)=>
+    o.kind==='buy_x_get_1'&&!(o.stock!=null&&o.stock-o.sold<=0)
   );
 
-  const free=dailyRotate(
-    offers.filter((o:any)=>
-      o.kind==='buy_x_get_1'&&!(o.stock!=null&&o.stock-o.sold<=0)
-    ),
-    day
-  );
-
-  const variantDiscounts=dailyRotate(
-    offers.filter((o:any)=>
+  const variantDiscounts=offers
+    .filter((o:any)=>
       o.kind==='variant_discount'&&
       o.discount_value>0&&
       !(o.stock!=null&&o.stock-o.sold<=0)
-    ),
-    day
-  );
+    )
+    .sort((a:any,b:any)=>variantDiscountRate(b)-variantDiscountRate(a));
 
   const packSection=(
     <>
@@ -131,7 +127,7 @@ export default async function Offres(){
             </span>
           </div>
 
-          <div className="grid grid-cols-2 items-start gap-3 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {packs.map((o:any)=>{
               const its:any[]=(o.offer_items||[]).filter((it:any)=>it.products);
               const value=its.reduce((s:number,it:any)=>s+unitPrice(it)*it.qty,0);
@@ -323,7 +319,7 @@ export default async function Offres(){
             <h2 className="mt-1 font-serif text-2xl text-plum sm:text-3xl">Vos variantes à prix réduit</h2>
             <p className="mt-1 text-xs text-ink/60">La première unité reste au tarif normal, les suivantes profitent de la réduction.</p>
           </div>
-          <div className="grid grid-cols-2 items-start gap-3 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {variantDiscounts.map((o:any)=>{
               const its:any[]=(o.offer_items||[]).filter((it:any)=>it.products&&it.products.active);
               const rest=o.stock!=null?o.stock-o.sold:null;
@@ -490,7 +486,7 @@ export default async function Offres(){
         </div>
       ):(
         <div className="mx-auto max-w-7xl px-3 pt-5 sm:px-6 lg:px-8">
-          <OfferTypeFilter packs={packSection} specials={<>{variantDiscountSection}{specialSection}</>}/>
+          <OfferTypeFilter packs={packSection} variants={variantDiscountSection} buyOneGetOne={specialSection}/>
         </div>
       )}
 
