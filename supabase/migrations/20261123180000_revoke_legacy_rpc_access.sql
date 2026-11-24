@@ -1,13 +1,20 @@
+-- Keep historical notifications intact. Rows without an order access code
+-- cannot safely be attached to a guest browser by phone alone. They remain
+-- stored for administrative handling, but are not exposed by the new client-key RPCs.
 DO $legacy_notification_guard$
+DECLARE
+  v_unclaimed_count bigint;
 BEGIN
-  IF EXISTS (
-    SELECT 1
-      FROM public.notifications AS n
-      LEFT JOIN private.order_access AS oa ON oa.order_id = n.order_id
-     WHERE n.order_id IS NOT NULL
-       AND oa.order_id IS NULL
-  ) THEN
-    RAISE EXCEPTION 'Legacy order notifications without an access code require a verified recovery path before legacy RPC revocation.';
+  SELECT count(*)
+    INTO v_unclaimed_count
+    FROM public.notifications AS n
+    LEFT JOIN private.order_access AS oa ON oa.order_id = n.order_id
+   WHERE n.order_id IS NOT NULL
+     AND oa.order_id IS NULL;
+
+  IF v_unclaimed_count > 0 THEN
+    RAISE NOTICE '% anciennes notifications restent conservées et non accessibles via le portail client tant qu''elles ne sont pas récupérées de manière vérifiée.',
+      v_unclaimed_count;
   END IF;
 END;
 $legacy_notification_guard$;
