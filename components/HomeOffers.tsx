@@ -141,7 +141,6 @@ function OfferCard({offer,featured=false}:{offer:any;featured?:boolean}){
 
 export default function HomeOffers({offers}:{offers:any[]}){
   if(!offers?.length)return null;
-  const [featured,...others]=offers;
   return(
     <section aria-labelledby="home-offers-title" className="mt-14 sm:mt-16">
       <div className="mb-6 flex items-end justify-between gap-3">
@@ -155,13 +154,8 @@ export default function HomeOffers({offers}:{offers:any[]}){
         </Link>
       </div>
 
-      <div className="space-y-4 sm:space-y-5">
-        <OfferCard offer={featured} featured/>
-        {others.length>0&&(
-          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-            {others.map((offer:any)=><OfferCard key={offer.id} offer={offer}/>)}
-          </div>
-        )}
+      <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:gap-5">
+        {offers.map((offer:any)=><OfferCard key={offer.id} offer={offer}/>)}
       </div>
     </section>
   );
