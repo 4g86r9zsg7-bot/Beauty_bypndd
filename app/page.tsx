@@ -9,7 +9,6 @@ import Suggestions from '@/components/Suggestions';
 import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomePicks from '@/components/HomePicks';
 import HomeTrust from '@/components/HomeTrust';
-import HomeReviews from '@/components/HomeReviews';
 
 export const revalidate=30;
 
@@ -44,7 +43,7 @@ const uniq=(a:any[]|null)=>{
 
 export default async function Home(){
 
-  const [{data:c},{data:b},{data:promoData},{data:reviewData}]=await Promise.all([
+  const [{data:c},{data:b},{data:promoData}]=await Promise.all([
     supabase.from('categories')
       .select('id,name,slug,parent_id,image_url,position')
       .order('position',{nullsFirst:false})
@@ -56,12 +55,6 @@ export default async function Home(){
       .select('id,code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,max_uses,uses,created_at')
       .eq('active',true)
       .order('created_at',{ascending:false}),
-    supabase.from('reviews')
-      .select('id,customer_name,rating,comment,created_at,products(name,slug)')
-      .eq('published',true)
-      .not('comment','is',null)
-      .order('created_at',{ascending:false})
-      .limit(8)
   ]);
 
   const promoProductIds=[...new Set((promoData||[])
@@ -428,8 +421,6 @@ export default async function Home(){
           </div>
         </section>
       )}
-
-      <HomeReviews reviews={reviewData||[]}/>
 
       {/* SUGGESTIONS */}
       <div className="mx-auto mt-10 max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-10">
