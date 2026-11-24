@@ -13,7 +13,7 @@ const items=[
     text:'Recevez votre commande à domicile partout au Maroc.'
   },
   {
-    icon:'₫',
+    icon:'▤',
     title:'Paiement à la réception',
     text:'Réglez votre commande en espèces à la livraison.'
   },
@@ -26,24 +26,24 @@ const items=[
 
 export default function HomeTrust(){
   return (
-    <section aria-labelledby="home-trust-title" className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-      <div className="overflow-hidden rounded-3xl border border-[#ead9df] bg-gradient-to-br from-white via-[#fffdfd] to-[#FCF6F8] shadow-sm">
-        <div className="px-5 pt-7 text-center sm:px-8 sm:pt-9">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-[#98783b]">Votre confiance, notre priorité</p>
-          <h2 id="home-trust-title" className="mt-2 font-serif text-2xl text-plum sm:text-3xl">Achetez en toute sérénité</h2>
+    <section aria-labelledby="home-trust-title" className="relative left-1/2 mt-8 w-screen -translate-x-1/2 border-y border-[#ead9df] bg-gradient-to-r from-[#FCF6F8] via-white to-[#FCF6F8]">
+      <div className="mx-auto max-w-[1500px] px-0 sm:px-6 lg:px-10">
+        <div className="px-4 py-5 text-center sm:py-7">
+          <p className="text-[9px] uppercase tracking-[0.28em] text-[#98783b]">Votre confiance, notre priorité</p>
+          <h2 id="home-trust-title" className="mt-1 font-serif text-xl text-plum sm:text-2xl">Achetez en toute sérénité</h2>
         </div>
-        <div className="grid grid-cols-2 gap-px bg-[#ead9df] sm:grid-cols-4">
+        <div className="flex snap-x snap-mandatory gap-0 overflow-x-auto border-y border-[#ead9df] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:overflow-visible">
           {items.map(item=>(
-            <div key={item.title} className="flex min-w-0 flex-col items-center bg-white/90 px-3 py-6 text-center sm:px-5 sm:py-7">
-              <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-full border border-[#C6A15B]/45 bg-[#FCF8F8] font-serif text-2xl text-[#98783b]">{item.icon}</span>
-              <h3 className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-plum sm:text-[11px]">{item.title}</h3>
-              <p className="mt-2 max-w-[210px] text-[11px] leading-relaxed text-ink/65 sm:text-xs">{item.text}</p>
+            <div key={item.title} className="flex w-[78vw] max-w-[260px] shrink-0 snap-start flex-col items-center justify-center px-4 py-4 text-center sm:w-auto sm:max-w-none sm:border-r sm:border-[#ead9df] sm:px-3 sm:py-5 last:sm:border-r-0">
+              <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full border border-[#C6A15B]/45 bg-white font-serif text-xl text-[#98783b]">{item.icon}</span>
+              <h3 className="mt-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-plum sm:text-[10px]">{item.title}</h3>
+              <p className="mt-1 max-w-[210px] text-[10px] leading-relaxed text-ink/65">{item.text}</p>
             </div>
           ))}
         </div>
-        <div className="border-t border-[#ead9df] px-4 py-3 text-center">
-          <Link href="/livraison" className="inline-flex min-h-10 items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-plum underline decoration-[#C6A15B] underline-offset-4 transition hover:text-[#98783b]">
-            Consulter les frais et conditions de livraison <span aria-hidden="true">→</span>
+        <div className="px-4 py-2 text-center">
+          <Link href="/livraison" className="inline-flex min-h-9 items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-plum underline decoration-[#C6A15B] underline-offset-4 transition hover:text-[#98783b]">
+            Frais et conditions de livraison <span aria-hidden="true">→</span>
           </Link>
         </div>
       </div>
