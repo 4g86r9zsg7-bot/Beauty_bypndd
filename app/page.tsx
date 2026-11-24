@@ -251,7 +251,6 @@ export default async function Home(){
       {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
       <HomeShelves groups={groups} olderItems={olderItems}/>
       <HomePicks items={homePicks}/>
-      <HomeTrust/>
 
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
@@ -427,6 +426,8 @@ export default async function Home(){
       <div className="mx-auto mt-10 max-w-[1500px] px-4 pb-10 sm:px-6 lg:px-10">
         <Suggestions title="Vous aimerez aussi" exclude={[]} limit={4}/>
       </div>
+
+      <HomeTrust/>
 
     </>
   );
