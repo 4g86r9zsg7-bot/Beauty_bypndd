@@ -167,31 +167,46 @@ export default function Panier(){
   async function submit(e:any){
     e.preventDefault();
     setErr('');
-    if(!clientKey){setErr('La session sécurisée ne s’est pas initialisée. Actualisez la page puis réessayez.');return;}
+    if(!clientKey){
+      setErr('La session sécurisée ne s’est pas initialisée. Actualisez la page puis réessayez.');
+      return;
+    }
+
     setBusy(true);
 
-    const {data,error}=await supabase.rpc(
-      hasOffer?'place_order2_secure':'place_order_secure',
-      {
-        p_c:f,
-        p_items:lines.map((l:any)=>
-          l.offer
-            ?{offer_id:l.offer,qty:l.qty}
-            :{id:l.id,qty:l.qty,variant:l.variant}
-        ),
-        p_promo:hasOffer?'':f.promo,
-        p_client_key:clientKey
+    try{
+      const {data,error}=await supabase.rpc(
+        hasOffer?'place_order2_secure':'place_order_secure',
+        {
+          p_c:f,
+          p_items:lines.map((l:any)=>
+            l.offer
+              ?{offer_id:l.offer,qty:l.qty}
+              :{id:l.id,qty:l.qty,variant:l.variant}
+          ),
+          p_promo:hasOffer?'':f.promo,
+          p_client_key:clientKey
+        }
+      );
+
+      if(error){
+        setErr(error.message||'Impossible de valider la commande. Réessayez.');
+        return;
       }
-    );
 
-    setBusy(false);
+      if(!data){
+        setErr('La commande n’a pas pu être confirmée. Réessayez.');
+        return;
+      }
 
-    if(error)return setErr(error.message);
-
-    setOrder(data);
-
-    clear();
-    window.scrollTo({top:0,behavior:'smooth'});
+      setOrder(data);
+      clear();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }catch(error:any){
+      setErr(error?.message||'Une erreur de connexion empêche la validation. Votre panier est conservé, réessayez.');
+    }finally{
+      setBusy(false);
+    }
   }
 
   const copyAccessCode=async()=>{
