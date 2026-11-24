@@ -75,7 +75,7 @@ const variantDiscountRate=(o:any)=>{
   return saving/price;
 };
 
-export default async function Offres(){export default async function Offres(){
+export default async function Offres(){
   const now=new Date().toISOString();
 
   const {data}=await supabase.from('offers')
