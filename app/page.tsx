@@ -259,13 +259,12 @@ export default async function Home(){
         <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
 
         {/* CATEGORIES */}
-        <section className="mt-16 rounded-3xl bg-[#FCF8F8] px-3 py-10 sm:px-6 md:py-12">
-
+        <section aria-labelledby="home-categories-title" className="mt-16 rounded-3xl bg-[#FCF8F8] px-4 py-10 sm:px-6 md:py-12">
           <div className="text-center">
             <p className="text-[10px] uppercase tracking-[0.35em] text-rose">
               Inspiration élégante
             </p>
-            <h2 className="mt-3 font-serif text-3xl text-plum md:text-4xl">
+            <h2 id="home-categories-title" className="mt-3 font-serif text-3xl text-plum md:text-4xl">
               Achetez par catégorie
             </h2>
             <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-ink/60">
@@ -273,36 +272,35 @@ export default async function Home(){
             </p>
             <div className="mx-auto mt-4 h-px w-16 bg-[#C6A15B]"/>
           </div>
-
-          <div className="mt-9 -mx-3 flex gap-4 overflow-x-auto px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(112px,1fr))] lg:gap-5 lg:overflow-visible lg:px-0">
-
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:gap-5">
             {top.map((x:any)=>(
               <Link
                 key={x.id}
                 href={`/categorie/${x.slug}`}
-                className="group w-[108px] shrink-0 md:w-[118px] lg:w-auto"
+                className="group min-w-0 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#C6A15B]/70 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose focus-visible:ring-offset-2"
               >
-                <span className="relative mx-auto block h-[92px] w-[92px] overflow-hidden rounded-full bg-gradient-to-br from-[#f4e6eb] to-white ring-1 ring-[#ead8df] shadow-sm transition duration-500 group-hover:scale-105 group-hover:ring-[#C6A15B] group-hover:shadow-md md:h-[108px] md:w-[108px]">
-
-                  <span className="absolute inset-0 flex items-center justify-center font-serif text-4xl text-plum/40">
+                <span className="relative block aspect-[5/4] overflow-hidden bg-gradient-to-br from-[#f4e6eb] to-white">
+                  <span className="absolute inset-0 flex items-center justify-center font-serif text-5xl text-plum/35">
                     {x.name.charAt(0)}
                   </span>
-
                   <img
                     src={x.image_url||`/categories/${x.slug}.jpg`}
-                    alt={x.name}
+                    alt=""
                     loading="lazy"
                     decoding="async"
-                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
+                  <span className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#210d19]/55 to-transparent"/>
+                  <span className="absolute bottom-2.5 left-2.5 right-2.5 text-left text-sm font-semibold leading-tight text-white drop-shadow sm:bottom-3 sm:left-3 sm:right-3 sm:text-base">
+                    {x.name}
+                  </span>
                 </span>
-
-                <span className="mt-3 block text-center text-xs font-medium leading-tight text-ink transition group-hover:text-plum">
-                  {x.name}
+                <span className="flex min-h-10 items-center justify-between gap-2 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.12em] text-plum sm:px-4 sm:text-[11px]">
+                  <span className="truncate">Découvrir</span>
+                  <span aria-hidden="true" className="shrink-0 text-base transition-transform group-hover:translate-x-1">→</span>
                 </span>
               </Link>
             ))}
-
           </div>
         </section>
 
