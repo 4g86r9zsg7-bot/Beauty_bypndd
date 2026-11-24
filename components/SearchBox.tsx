@@ -177,6 +177,14 @@ export default function SearchBox({compact=false}:{compact?:boolean}){
           value={v}
           onChange={e=>{setV(e.target.value);setOpen(true)}}
           onFocus={()=>setOpen(true)}
+          onKeyDown={e=>{
+            if(e.key==='Escape'&&open){
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(false);
+            }
+          }}
+          aria-label="Rechercher un produit, une marque ou une catégorie"
           placeholder="Nom, marque ou catégorie"
           className={`w-full rounded-full bg-white/95 py-3.5 pl-11 pr-24 text-base text-ink shadow-sm placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-rose ${compact?'border border-sand':''}`}
         />

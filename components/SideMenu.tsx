@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import Link from 'next/link';
 import {supabase} from '@/lib/supabase';
@@ -26,13 +26,28 @@ export default function SideMenu(){
   const [cats,setCats]=useState<any[]>([]);
   const [brands,setBrands]=useState<any[]>([]);
   const [usedB,setUsedB]=useState<Set<string>>(new Set());
+  const triggerRef=useRef<HTMLButtonElement>(null);
+  const closeRef=useRef<HTMLButtonElement>(null);
+  const panelRef=useRef<HTMLElement>(null);
 
   const show=()=>{
     setMounted(true);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>setOpen(true)));
+    setSec('');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      setOpen(true);
+      closeRef.current?.focus();
+    }));
   };
 
   const hide=()=>setOpen(false);
+
+  const wasOpenRef=useRef(false);
+  useEffect(()=>{
+    if(!open&&wasOpenRef.current){
+      triggerRef.current?.focus();
+    }
+    wasOpenRef.current=open;
+  },[open]);
 
   useEffect(()=>{
     if(!mounted)return;
@@ -139,7 +154,10 @@ export default function SideMenu(){
 
   return <>
     <button
+      ref={triggerRef}
       type="button"
+      aria-haspopup="dialog"
+      aria-expanded={open}
       onClick={show}
       aria-label="Ouvrir le menu"
       className="-ml-2 rounded-full p-2 text-white transition hover:bg-white/10 active:scale-95"
@@ -150,18 +168,33 @@ export default function SideMenu(){
     </button>
 
     {mounted&&createPortal(
-      <div className={`fixed inset-0 z-[1000] transition-all duration-300 ${open?'':'invisible'}`}>
+      <div className={`fixed inset-0 z-[1000] transition-all duration-300 ${open?'':'invisible pointer-events-none'}`}>
         <div
           onClick={hide}
           className={`absolute inset-0 bg-[#180C13] transition-opacity duration-300 ${open?'opacity-100':'opacity-0'}`}
         />
 
-        <aside className={`absolute inset-y-0 left-0 flex w-[90%] max-w-[390px] flex-col bg-[#FFFCFD] shadow-2xl transition-transform duration-300 ease-out ${open?'translate-x-0':'-translate-x-full'}`}>
+        <aside
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="side-menu-title"
+          tabIndex={-1}
+          onKeyDown={e=>{
+            if(e.key!=='Tab'||!panelRef.current)return;
+            const focusable=Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+            if(!focusable.length)return;
+            const first=focusable[0],last=focusable[focusable.length-1];
+            if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+            else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+          }}
+          className={`absolute inset-y-0 left-0 flex w-[90%] max-w-[390px] flex-col bg-[#FFFCFD] shadow-2xl transition-transform duration-300 ease-out ${open?'translate-x-0':'-translate-x-full'}`}
+        >
 
           <div className="relative overflow-hidden border-b border-[#F0E1E8] bg-gradient-to-br from-[#FFF9FB] to-[#F9EAF1] px-5 pb-5 pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-serif text-[27px] italic leading-none tracking-tight text-[#702344]">
+                <p id="side-menu-title" className="font-serif text-[27px] italic leading-none tracking-tight text-[#702344]">
                   BeautyByPND
                 </p>
                 <p className="mt-2 text-[9px] uppercase tracking-[0.28em] text-[#98647A]">
@@ -171,6 +204,7 @@ export default function SideMenu(){
 
               <button
                 type="button"
+                ref={closeRef}
                 onClick={hide}
                 aria-label="Fermer le menu"
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-[#EBD5DF] bg-white/80 text-2xl font-light text-[#702344] transition hover:bg-white active:scale-95"
@@ -207,7 +241,7 @@ export default function SideMenu(){
               </Link>
 
               <Link href="/offres" onClick={hide} className={row}>
-                <span>Nos coups de cœur</span>
+                <span>Offres et coffrets</span>
                 <span className="text-lg text-[#B68A9D]">›</span>
               </Link>
 
@@ -269,20 +303,20 @@ export default function SideMenu(){
                 Tout ce dont vous avez besoin
               </p>
 
-              <div className="mt-4 grid grid-cols-1 gap-2">
+              <div className="mt-4 grid grid-cols-2 gap-2">
                 {services.map(s=>(
                   <Link
                     key={s.href}
                     href={s.href}
                     onClick={hide}
-                    className="flex items-center gap-3 rounded-xl border border-[#F0E1E8] bg-white px-3 py-3 transition hover:border-[#D8B5C5] hover:bg-[#FFFBFD] active:scale-[0.99]"
+                    className="flex min-h-[76px] items-center gap-2 rounded-xl border border-[#F0E1E8] bg-white px-2.5 py-2.5 transition hover:border-[#D8B5C5] hover:bg-[#FFFBFD] active:scale-[0.99]"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F8E8EF] text-[#853B5C]">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F8E8EF] text-[#853B5C]">
                       {s.icon}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-[#702344]">{s.title}</span>
-                      <span className="mt-0.5 block text-xs text-[#987C8A]">{s.subtitle}</span>
+                      <span className="mt-0.5 block text-[10px] leading-snug text-[#987C8A]">{s.subtitle}</span>
                     </span>
                     <span className="text-lg text-[#B68A9D]">›</span>
                   </Link>
