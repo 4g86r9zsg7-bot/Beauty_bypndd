@@ -19,7 +19,7 @@ function imageOf(item:any){
   return variant?.image||variant?.images?.[0]||product?.images?.[0]||null;
 }
 
-function OfferImage({offer,items}:{offer:any;items:any[]}){
+function OfferVisual({offer,items}:{offer:any;items:any[]}){
   const photos=items.map((item:any)=>({
     url:imageOf(item),
     name:productOf(item)?.name||'Produit'
@@ -27,28 +27,28 @@ function OfferImage({offer,items}:{offer:any;items:any[]}){
   const count=photos.length;
 
   return(
-    <div className="relative aspect-[4/3] overflow-hidden bg-[#f7edf0]">
+    <div className="relative h-[104px] overflow-hidden rounded-xl bg-[#f8f0f2] sm:h-[124px]">
       {count===1?(
-        <div className="flex h-full items-center justify-center bg-white/50 p-4">
+        <div className="flex h-full items-center justify-center p-2">
           <img src={photos[0].url} alt={photos[0].name} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
         </div>
       ):count>1?(
-        <div className={`grid h-full gap-1.5 p-2 ${count===2?'grid-cols-2':count===3?'grid-cols-[1.12fr_1fr] grid-rows-2':'grid-cols-2 grid-rows-2'}`}>
+        <div className={`grid h-full gap-1 p-1.5 ${count===2?'grid-cols-2':count===3?'grid-cols-[1.12fr_1fr] grid-rows-2':'grid-cols-2 grid-rows-2'}`}>
           {photos.map((photo:any,index:number)=>(
-            <div key={photo.name+'-'+index} className={`flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-lg bg-white/90 p-2 ${count===3&&index===0?'row-span-2':''}`}>
+            <div key={photo.name+'-'+index} className={`flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-lg bg-white/90 p-1 ${count===3&&index===0?'row-span-2':''}`}>
               <img src={photo.url} alt={photo.name} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
             </div>
           ))}
         </div>
       ):offer.image_url?(
-        <div className="flex h-full items-center justify-center bg-white/50 p-4">
+        <div className="flex h-full items-center justify-center p-2">
           <img src={offer.image_url} alt={offer.title} loading="lazy" decoding="async" className="h-full w-full object-contain"/>
         </div>
       ):(
-        <div className="flex h-full items-center justify-center font-serif text-6xl text-[#b99a69]/40">✧</div>
+        <div className="flex h-full items-center justify-center font-serif text-4xl text-[#b99a69]/40">✧</div>
       )}
-      <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.13em] text-[#704657] shadow-sm">
-        {offer.kind==='pack'?'Coffret':offer.kind==='buy_x_get_1'?'Offre spéciale':'Prix avantageux'}
+      <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.1em] text-[#704657] shadow-sm">
+        {offer.kind==='pack'?'Coffret':offer.kind==='buy_x_get_1'?'Offre spéciale':'Promo'}
       </span>
     </div>
   );
@@ -66,40 +66,32 @@ function OfferCard({offer}:{offer:any}){
     :String(Number(offer.discount_value||0))+'%';
 
   return(
-    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_5px_22px_rgba(83,48,62,.08)] ring-1 ring-[#eadde1]">
-      <OfferImage offer={offer} items={items}/>
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="line-clamp-2 font-serif text-[17px] leading-snug text-[#593b48] sm:text-lg">{offer.title}</h3>
-        {offer.description&&(
-          <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-[#806d70] sm:text-xs">{offer.description}</p>
-        )}
-        <div className="mt-3 border-t border-[#f0e6e9] pt-3">
+    <article className="min-w-0 rounded-2xl bg-white p-2.5 shadow-[0_3px_14px_rgba(83,48,62,.06)] ring-1 ring-[#eee3e6] sm:p-3">
+      <OfferVisual offer={offer} items={items}/>
+      <div className="px-0.5 pb-0.5 pt-2.5">
+        <h3 className="line-clamp-1 font-serif text-[13px] leading-snug text-[#593b48] sm:text-[15px]">{offer.title}</h3>
+        <div className="mt-1.5 flex min-h-[25px] flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
           {isPack?(
             <>
-              <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-serif text-2xl font-semibold text-[#8b3f61]">{eur(packPrice)}</span>
-                {saving>0&&<s className="text-xs text-[#9c8b90]">{eur(regular)}</s>}
-              </div>
-              {saving>0&&<p className="mt-0.5 text-[10px] font-medium text-[#80611f]">Vous économisez {eur(saving)}</p>}
+              <span className="font-serif text-[17px] font-semibold leading-none text-[#8b3f61] sm:text-lg">{eur(packPrice)}</span>
+              {saving>0&&<s className="text-[9px] text-[#9c8b90]">{eur(regular)}</s>}
             </>
           ):isFree?(
-            <>
-              <p className="font-serif text-lg text-[#8b3f61]">{Number(offer.buy_qty||1)} + 1 offert</p>
-              <p className="mt-0.5 text-[10px] text-[#806d70]">Le moins cher est offert selon les conditions de l’offre.</p>
-            </>
+            <span className="font-serif text-[15px] font-semibold leading-none text-[#8b3f61]">{Number(offer.buy_qty||1)} + 1 offert</span>
           ):(
-            <>
-              <p className="font-serif text-lg text-[#8b3f61]">{discountLabel} de réduction</p>
-              <p className="mt-0.5 text-[10px] text-[#806d70]">Voir les conditions de cette offre.</p>
-            </>
+            <span className="font-serif text-[15px] font-semibold leading-none text-[#8b3f61]">-{discountLabel}</span>
           )}
         </div>
-        <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-          <span className="text-[9px] text-[#927f84]">{items.length} produit{items.length>1?'s':''}</span>
-          <Link href="/offres" className="inline-flex items-center gap-1.5 rounded-full bg-[#593b48] px-3.5 py-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#7b294e]">
-            Découvrir <span aria-hidden="true">→</span>
-          </Link>
-        </div>
+        {isPack&&saving>0?(
+          <p className="mt-1 text-[9px] font-medium text-[#80611f]">Économisez {eur(saving)}</p>
+        ):isFree?(
+          <p className="mt-1 line-clamp-1 text-[9px] text-[#806d70]">Le moins cher offert</p>
+        ):(
+          <p className="mt-1 line-clamp-1 text-[9px] text-[#806d70]">{items.length} produit{items.length>1?'s':''} concerné{items.length>1?'s':''}</p>
+        )}
+        <Link href="/offres" className="mt-2 inline-flex items-center gap-1 border-b border-[#c6a15b] pb-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[#593b48]">
+          Découvrir <span aria-hidden="true">→</span>
+        </Link>
       </div>
     </article>
   );
@@ -108,26 +100,21 @@ function OfferCard({offer}:{offer:any}){
 export default function HomeOffers({offers}:{offers:any[]}){
   if(!offers?.length)return null;
   return(
-    <section aria-labelledby="home-offers-title" className="mt-12 sm:mt-14">
-      <div className="mb-5 flex items-end justify-between gap-3">
+    <section aria-labelledby="home-offers-title" className="mt-8 sm:mt-10">
+      <div className="mb-3 flex items-end justify-between gap-2">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-[#a1844d]">À ne pas manquer</p>
-          <h2 id="home-offers-title" className="mt-1 font-serif text-2xl text-[#593b48] sm:text-3xl">Promotions & coffrets</h2>
-          <p className="mt-1.5 text-[11px] text-[#806d70] sm:text-xs">De jolies attentions à prix doux.</p>
+          <p className="text-[8px] font-semibold uppercase tracking-[0.24em] text-[#a1844d]">À ne pas manquer</p>
+          <h2 id="home-offers-title" className="mt-0.5 font-serif text-xl text-[#593b48] sm:text-2xl">Promotions & coffrets</h2>
         </div>
-        <Link href="/offres" className="shrink-0 border-b border-[#c6a15b] pb-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#593b48] sm:text-[10px]">
+        <Link href="/offres" className="shrink-0 border-b border-[#c6a15b] pb-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[#593b48]">
           Tout voir <span aria-hidden="true">→</span>
         </Link>
       </div>
-
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:gap-4 sm:px-0">
+      <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
         {offers.map((offer:any)=>(
-          <div key={offer.id} className="w-[78vw] max-w-[330px] flex-none snap-start sm:w-[46%] lg:w-[calc((100%-2rem)/3)]">
-            <OfferCard offer={offer}/>
-          </div>
+          <OfferCard key={offer.id} offer={offer}/>
         ))}
       </div>
-      <p className="mt-1 text-center text-[9px] tracking-wide text-[#9a858d] sm:hidden">Faites glisser pour découvrir les autres offres</p>
     </section>
   );
 }
