@@ -5,7 +5,7 @@ import HeartButton from '@/components/HeartButton';
 
 export default function ProductCard({
   p,
-  imageFit='cover'
+  imageFit='contain'
 }:{
   p:any;
   imageFit?:'cover'|'contain';
@@ -83,7 +83,7 @@ export default function ProductCard({
         </div>
 
         <div className="pt-2.5">
-          <p className="truncate text-[9px] font-medium uppercase tracking-[0.14em] text-plum/75">
+          <p className="min-h-[2.4em] line-clamp-2 text-[9px] font-medium uppercase leading-snug tracking-[0.1em] text-plum/75">
             {brandLine||'\u00a0'}
           </p>
 
