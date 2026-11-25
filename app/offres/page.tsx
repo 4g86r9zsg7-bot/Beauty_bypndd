@@ -345,7 +345,7 @@ export default async function Offres(){
           </div>
           <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {variantDiscounts.map((o:any)=>{
-              const its:any[]=(o.offer_items||[]).filter(anyAvailableProduct);
+              const its:any[]=(o.offer_items||[]).filter(variantItemAvailable);
               const rest=o.stock!=null?o.stock-o.sold:null;
               const discountLabel=o.discount_type==='amount'?eur(o.discount_value):String(o.discount_value)+'%';
               return its.map((it:any)=>{
