@@ -455,6 +455,21 @@ export default async function Cat({ params, searchParams }: PageProps) {
         </section>
       )}
 
+      {s === 'arrivages' && (
+        <section className="relative mt-4 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-gradient-to-br from-[#FCF0F3] via-white to-[#F7E8ED] px-5 py-5 sm:px-7 sm:py-6">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-rose">Bientôt disponibles</p>
+          <h2 className="mt-2 max-w-2xl font-serif text-xl leading-snug text-plum sm:text-2xl">
+            Réservez vos prochains coups de cœur beauté
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink/65">
+            Un produit vous intéresse ? Ouvrez sa fiche et choisissez « Réserver sur WhatsApp ». Notre équipe vous confirmera les modalités et le délai estimé avant de valider votre réservation.
+          </p>
+          <p className="mt-3 max-w-2xl text-xs leading-relaxed text-plum/75">
+            Pour connaître l’arrivée de votre produit, gardez votre conversation WhatsApp et contactez notre équipe pour obtenir la confirmation de réception.
+          </p>
+        </section>
+      )}
+
       {cat && (
         <section aria-label="Gammes de produits" className="mt-6 grid grid-cols-3 gap-2">
           {([

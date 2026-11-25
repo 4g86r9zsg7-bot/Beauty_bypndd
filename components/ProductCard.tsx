@@ -114,7 +114,7 @@ export default function ProductCard({
                 :<span className="font-medium text-green-700">● En stock</span>
             )}
             {pre&&<span className="font-medium text-plum">Précommande</span>}
-            {arr&&<span className="font-medium text-plum">Arrivage prochainement</span>}
+            {arr&&<span className="font-medium text-plum">Bientôt disponible · Réservation WhatsApp</span>}
             {sold&&<span className="text-ink/50">Momentanément indisponible</span>}
           </p>
         </div>
