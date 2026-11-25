@@ -429,6 +429,48 @@ export default async function Cat({ params, searchParams }: PageProps) {
         </p>
       </div>
 
+      {s === 'arrivages' && (
+        <section
+          aria-labelledby="arrivages-intro-title"
+          className="relative mt-4 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-gradient-to-br from-[#F8EDF2] via-white to-[#F5E9EF] px-5 py-6 shadow-sm sm:px-7 sm:py-7"
+        >
+          <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-[#EBD5DE]/50 blur-3xl" />
+          <div className="relative">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#E8D3DD] bg-white/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-plum">
+              <span className="h-1.5 w-1.5 rounded-full bg-rose" />
+              Bientôt disponibles
+            </span>
+            <h2 id="arrivages-intro-title" className="mt-3 max-w-2xl font-serif text-2xl leading-tight text-plum sm:text-3xl">
+              Vos prochains coups de cœur beauté
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink/70">
+              Repérez les produits qui arrivent prochainement chez BeautyByPND. Consultez leur fiche pour découvrir les détails et réserver votre article.
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-white/90 bg-white/75 p-3.5">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose">01 · Découvrez</span>
+                <p className="mt-1.5 text-sm font-medium text-plum">Parcourez les arrivages</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink/60">Retrouvez ici les articles annoncés pour bientôt.</p>
+              </div>
+              <div className="rounded-xl border border-white/90 bg-white/75 p-3.5">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose">02 · Consultez</span>
+                <p className="mt-1.5 text-sm font-medium text-plum">Ouvrez la fiche produit</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink/60">Vérifiez les informations et les options disponibles.</p>
+              </div>
+              <div className="rounded-xl border border-white/90 bg-white/75 p-3.5">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-rose">03 · Réservez</span>
+                <p className="mt-1.5 text-sm font-medium text-plum">Utilisez « Réserver »</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink/60">Suivez les indications affichées sur la fiche pour votre réservation.</p>
+              </div>
+            </div>
+            <p className="mt-4 text-[11px] leading-relaxed text-ink/55">
+              Les délais et modalités peuvent varier selon le produit. Les informations communiquées sur chaque fiche font foi.
+            </p>
+          </div>
+        </section>
+      )}
+
       {s === 'promotions' && (
         <section className="relative mt-4 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-gradient-to-br from-[#FCF0F3] via-white to-[#F7E8ED] px-5 py-5 sm:px-7 sm:py-6">
           <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[#EBD5DE]/40 blur-2xl" />
@@ -629,10 +671,14 @@ export default async function Cat({ params, searchParams }: PageProps) {
             <p className="font-serif text-2xl text-plum">
               {sp.q
                 ? `Aucun produit ne correspond à « ${sp.q} »`
-                : 'Aucun produit pour le moment'}
+                : s === 'arrivages'
+                  ? 'Aucun nouvel arrivage annoncé pour le moment'
+                  : 'Aucun produit pour le moment'}
             </p>
             <p className="mt-2 text-sm text-ink/60">
-              Essayez une marque, une catégorie ou un autre mot.
+              {s === 'arrivages' && !sp.q
+                ? 'De nouveaux produits seront ajoutés ici dès que leur arrivée sera annoncée. En attendant, découvrez les dernières nouveautés.'
+                : 'Essayez une marque, une catégorie ou un autre mot.'}
             </p>
             <Link
               href="/categorie/tous"
