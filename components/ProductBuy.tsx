@@ -624,7 +624,7 @@ export default function ProductBuy({p}:{p:any}) {
                             aria-pressed={on}
                             disabled={!exists}
                             onClick={()=>chooseOption(group.name,value)}
-                            className="group flex min-w-[64px] flex-col items-center gap-2 px-1 py-1 text-center transition disabled:cursor-not-allowed disabled:opacity-35"
+                            className="group flex min-w-[64px] flex-col items-center gap-2 px-1 py-1 text-center transition disabled:cursor-not-allowed disabled:opacity-35">
                             <span className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 bg-white p-[3px] transition ${
                               on?'border-rose ring-2 ring-rose/20 ring-offset-2'
                               :unavailable?'border-sand'
