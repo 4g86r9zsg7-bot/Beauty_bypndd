@@ -16,6 +16,8 @@ function createClientKey(){
   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
 }
 const validKey=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const normalizePhone=(value:string)=>value.replace(/\\D/g,'');
+const validPhone=(value:string)=>normalizePhone(value).length>=8&&normalizePhone(value).length<=15;
 
 export function ClientProvider({children}:{children:React.ReactNode}){
   const [clientKey,setClientKey]=useState('');
@@ -60,11 +62,13 @@ export function ClientProvider({children}:{children:React.ReactNode}){
   },[clientKey,load]);
 
   const setPhone=(value:string)=>{
-    setPhoneS(value);
-    try{localStorage.setItem('clientPhone',value);}catch{}
+    const normalized=normalizePhone(value);
+    if(!validPhone(normalized))return;
+    setPhoneS(normalized);
+    try{localStorage.setItem('clientPhone',normalized);}catch{}
   };
   const withPhone=(fn:(p:string)=>void)=>{
-    if(phone)fn(phone);
+    if(validPhone(phone))fn(normalizePhone(phone));
     else setGate({fn});
   };
 
@@ -100,11 +104,15 @@ export function ClientProvider({children}:{children:React.ReactNode}){
 
   const claimOrderNotifications=async(orderPhone:string,accessCode:string)=>{
     if(!clientKey)return {error:{message:'Session client indisponible.'}};
+    const normalized=normalizePhone(orderPhone);
+    if(!validPhone(normalized)||!/^[A-F0-9]{24}$/i.test(accessCode)){
+      return {error:{message:'Numéro ou code secret invalide.'}};
+    }
     const {error}=await supabase.rpc('claim_order_notifications',{
-      p_phone:orderPhone,p_access_code:accessCode,p_client_key:clientKey
+      p_phone:normalized,p_access_code:accessCode,p_client_key:clientKey
     });
     if(!error){
-      setPhone(orderPhone);
+      setPhone(normalized);
       await load(clientKey);
     }
     return {error};
@@ -120,8 +128,8 @@ export function ClientProvider({children}:{children:React.ReactNode}){
     {gate&&<div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={()=>setGate(null)}>
       <form onClick={e=>e.stopPropagation()} onSubmit={e=>{
         e.preventDefault();
-        const p=tmp.trim();
-        if(p.replace(/\D/g,'').length<8)return;
+        const p=normalizePhone(tmp);
+        if(!validPhone(p))return;
         setPhone(p);
         const fn=gate.fn;
         setGate(null);
@@ -129,8 +137,8 @@ export function ClientProvider({children}:{children:React.ReactNode}){
       }} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <h2 className="font-serif text-2xl text-plum">Votre numéro</h2>
         <p className="mt-1 text-sm text-ink/60">Votre numéro est utilisé pour les alertes de retour en stock et pour associer une commande avec son code secret.</p>
-        <input autoFocus required type="tel" inputMode="tel" autoComplete="tel" value={tmp} onChange={e=>setTmp(e.target.value)} placeholder="Votre téléphone" className="mt-4 w-full rounded-xl border border-sand px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-rose"/>
-        <button className="mt-4 w-full rounded-full bg-rose py-4 text-xs font-semibold uppercase tracking-[0.2em] text-white">Continuer</button>
+        <input autoFocus required type="tel" inputMode="numeric" autoComplete="tel" maxLength={15} value={tmp} onChange={e=>setTmp(e.target.value.replace(/\\D/g,'').slice(0,15))} placeholder="8 à 15 chiffres" className="mt-4 w-full rounded-xl border border-sand px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-rose"/>
+        <button disabled={!validPhone(tmp)} className="mt-4 w-full rounded-full bg-rose py-4 text-xs font-semibold uppercase tracking-[0.2em] text-white disabled:opacity-50">Continuer</button>
         <button type="button" onClick={()=>setGate(null)} className="mt-2 w-full py-2 text-sm text-ink/60 underline">Annuler</button>
       </form>
     </div>}
