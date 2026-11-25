@@ -175,7 +175,7 @@ DECLARE
 BEGIN
   PERFORM private.validate_guest_cart(p_items, true);
   v_digits := pg_catalog.regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g');
-  IF p_code IS NULL OR pg_catalog.length(pg_catalog.trim(p_code)) NOT BETWEEN 1 AND 64
+  IF p_code IS NULL OR pg_catalog.length(pg_catalog.btrim(p_code)) NOT BETWEEN 1 AND 64
      OR pg_catalog.length(v_digits) NOT BETWEEN 8 AND 15
      OR p_sub IS NULL OR p_sub < 0 OR p_sub > 10000000 THEN
     RETURN pg_catalog.json_build_object('ok', false, 'message', 'Code promo ou panier invalide');
@@ -300,12 +300,12 @@ DECLARE
 BEGIN
   v_digits := pg_catalog.regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g');
   IF p_client_key IS NULL OR pg_catalog.length(v_digits) < 8
-     OR pg_catalog.length(pg_catalog.trim(coalesce(p_access_code, ''))) <> 24 THEN
+     OR pg_catalog.length(pg_catalog.btrim(coalesce(p_access_code, ''))) <> 24 THEN
     RAISE EXCEPTION 'Code ou commande invalide';
   END IF;
 
   v_code_hash := extensions.digest(
-    pg_catalog.convert_to(pg_catalog.upper(pg_catalog.trim(p_access_code)), 'UTF8'),
+    pg_catalog.convert_to(pg_catalog.upper(pg_catalog.btrim(p_access_code)), 'UTF8'),
     'sha256'
   );
   v_key_hash := extensions.digest(
@@ -364,7 +364,7 @@ BEGIN
     RAISE EXCEPTION 'Requête invalide';
   END IF;
 
-  v_variant := nullif(pg_catalog.trim(coalesce(p_variant, '')), '');
+  v_variant := nullif(pg_catalog.btrim(coalesce(p_variant, '')), '');
   SELECT p.variants INTO v_variants
     FROM public.products AS p
    WHERE p.id = p_product AND p.active = true;
@@ -417,7 +417,7 @@ BEGIN
   SELECT oa.order_id INTO v_order_id
     FROM private.order_access AS oa
    WHERE oa.code_hash = extensions.digest(
-     pg_catalog.convert_to(pg_catalog.upper(pg_catalog.trim(v_code)), 'UTF8'),
+     pg_catalog.convert_to(pg_catalog.upper(pg_catalog.btrim(v_code)), 'UTF8'),
      'sha256'
    );
   IF v_order_id IS NULL THEN
@@ -460,7 +460,7 @@ BEGIN
   SELECT oa.order_id INTO v_order_id
     FROM private.order_access AS oa
    WHERE oa.code_hash = extensions.digest(
-     pg_catalog.convert_to(pg_catalog.upper(pg_catalog.trim(v_code)), 'UTF8'),
+     pg_catalog.convert_to(pg_catalog.upper(pg_catalog.btrim(v_code)), 'UTF8'),
      'sha256'
    );
   IF v_order_id IS NULL THEN
