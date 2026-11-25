@@ -448,6 +448,10 @@ BEGIN
 END;
 $function$;
 
+-- Internal helpers are callable only by their SECURITY DEFINER owners and trigger execution.
+REVOKE ALL ON FUNCTION private.map_notification_clients() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.validate_guest_cart(jsonb, boolean) FROM PUBLIC, anon, authenticated;
+
 -- Keep public storefront RPCs available only to the API roles that need them.
 REVOKE ALL ON FUNCTION public.get_favorites(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_favorites(uuid) TO anon, authenticated;
