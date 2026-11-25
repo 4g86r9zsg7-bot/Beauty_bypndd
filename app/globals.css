@@ -1,3 +1,4 @@
 @tailwind base;@tailwind components;@tailwind utilities;
+:root{--f-serif:'Cormorant Garamond';--f-sans:'Inter';}
 body{@apply bg-cream text-ink font-sans}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
