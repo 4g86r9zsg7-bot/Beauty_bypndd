@@ -321,6 +321,10 @@ export default async function Cat({ params, searchParams }: PageProps) {
         return rank(x) - rank(y) ||
           new Date(x.created_at).getTime() - new Date(y.created_at).getTime();
       }
+      if (s === 'nouveautes') {
+        return rank(x) - rank(y) ||
+          new Date(y.created_at).getTime() - new Date(x.created_at).getTime();
+      }
       return rank(x) - rank(y);
     });
 
@@ -408,6 +412,19 @@ export default async function Cat({ params, searchParams }: PageProps) {
         </p>
       </div>
 
+      {s === 'nouveautes' && (
+        <section className="relative mt-4 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-gradient-to-br from-[#FCF4F6] via-white to-[#F8EDF1] px-5 py-5 sm:px-7 sm:py-6">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[#EBD5DE]/35 blur-2xl" />
+          <p className="relative text-[10px] font-semibold uppercase tracking-[0.22em] text-rose">Tout juste arrivés</p>
+          <p className="relative mt-2 max-w-2xl font-serif text-xl leading-snug text-plum sm:text-2xl">
+            Les dernières pépites beauté à découvrir
+          </p>
+          <p className="relative mt-2 max-w-2xl text-sm leading-relaxed text-ink/65">
+            Retrouvez nos nouveautés maquillage, soins et parfums. Les produits disponibles, précommandes et prochains arrivages sont clairement indiqués pour vous aider à choisir.
+          </p>
+        </section>
+      )}
+
       {cat && (
         <section aria-label="Gammes de produits" className="mt-6 grid grid-cols-3 gap-2">
           {([
@@ -461,7 +478,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
             )}
           </summary>
 
-          <form className="absolute inset-x-0 top-full z-30 mt-2 grid gap-3 rounded-2xl border border-sand bg-white p-4 text-sm shadow-xl md:grid-cols-2">
+          <form className="absolute inset-x-0 top-full z-30 mt-2 grid max-h-[75vh] gap-3 overflow-y-auto overscroll-contain rounded-2xl border border-sand bg-white p-4 text-sm shadow-xl md:grid-cols-2">
             <input type="hidden" name="sort" value={o || ''} />
             <input type="hidden" name="range" value={sp.range || ''} />
 
@@ -574,7 +591,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
         {list.length ? (
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
             {list.map((p: any) => (
-              <ProductCard key={p.id} p={p} />
+              <ProductCard key={p.id} p={p} highlightPromo={s === 'nouveautes'} />
             ))}
           </div>
         ) : (
