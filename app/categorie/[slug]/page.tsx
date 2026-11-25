@@ -471,7 +471,10 @@ export default async function Cat({ params, searchParams }: PageProps) {
       )}
 
       {cat && (
-        <section aria-label="Gammes de produits" className="mt-6 grid grid-cols-3 gap-2">
+        <section
+          aria-label="Gammes de produits"
+          className={parent ? 'mt-5 flex flex-wrap gap-2' : 'mt-6 grid grid-cols-3 gap-2'}
+        >
           {([
             ['petit_prix', 'Petit prix', 'Des essentiels à prix doux'],
             ['marques', 'Marques', 'Vos marques préférées'],
@@ -484,13 +487,19 @@ export default async function Cat({ params, searchParams }: PageProps) {
                 key={value}
                 href={url({ range: sp.range === value ? '' : value })}
                 aria-pressed={sp.range === value}
-                className={`flex min-h-[116px] flex-col items-center justify-center rounded-2xl border px-2.5 py-3 text-center shadow-sm transition duration-200 ${sp.range === value ? 'border-plum bg-gradient-to-b from-[#FBEFF3] to-[#F7E9EE] shadow-md ring-1 ring-plum/10' : 'border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] hover:border-plum/50 hover:shadow-md'}`}
+                className={parent
+                  ? `inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs transition duration-200 ${sp.range === value ? 'border-plum bg-[#FBEFF3] font-semibold text-plum' : 'border-[#EAD9E0] bg-white text-ink/75 hover:border-plum/50'}`
+                  : `flex min-h-[116px] flex-col items-center justify-center rounded-2xl border px-2.5 py-3 text-center shadow-sm transition duration-200 ${sp.range === value ? 'border-plum bg-gradient-to-b from-[#FBEFF3] to-[#F7E9EE] shadow-md ring-1 ring-plum/10' : 'border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] hover:border-plum/50 hover:shadow-md'}`}
               >
-                <span className="block font-serif text-[14px] leading-tight text-plum sm:text-base">{label}</span>
-                <span className="mt-2 block min-h-[2.4em] text-[10px] leading-snug text-ink/65">{desc}</span>
-                <span className="mt-1.5 block text-[10px] font-medium text-plum/65">
-                  {count} produit{count > 1 ? 's' : ''}
-                </span>
+                <span className={parent ? 'font-medium' : 'block font-serif text-[14px] leading-tight text-plum sm:text-base'}>{label}</span>
+                {!parent && (
+                  <>
+                    <span className="mt-2 block min-h-[2.4em] text-[10px] leading-snug text-ink/65">{desc}</span>
+                    <span className="mt-1.5 block text-[10px] font-medium text-plum/65">
+                      {count} produit{count > 1 ? 's' : ''}
+                    </span>
+                  </>
+                )}
               </Link>
             );
           })}
