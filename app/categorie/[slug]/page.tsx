@@ -65,8 +65,9 @@ const subtree = (all: any[], id: any, depth = 0): any[] =>
     : [id, ...kidsOf(all, id).flatMap((k) => subtree(all, k.id, depth + 1))];
 
 // ---------- Métadonnées SEO ----------
-export async function generateMetadata({params,searchParams}: {params: {slug: string}; searchParams?: SP}) {
-  const s = params.slug;
+export async function generateMetadata({params,searchParams}: {params: Promise<{slug: string}>; searchParams: Promise<SP>}) {
+  const {slug: s} = await params;
+  const sp = await searchParams;
   const all = await getCats();
   const f = FIXED[s];
   const c = all.find((x) => x.slug === s);
@@ -123,10 +124,10 @@ export async function generateMetadata({params,searchParams}: {params: {slug: st
     robots: {
       // Les pages filtrées restent accessibles aux visiteurs, mais ne créent pas
       // des variantes indexables de la même catégorie dans Google.
-      index: !searchParams || !Object.values(searchParams).some((value) => Boolean(value)),
+      index: !Object.values(sp).some((value) => Boolean(value)),
       follow: true,
       googleBot: {
-        index: !searchParams || !Object.values(searchParams).some((value) => Boolean(value)),
+        index: !Object.values(sp).some((value) => Boolean(value)),
         follow: true
       }
     },
@@ -154,11 +155,11 @@ export default async function Cat({
   params,
   searchParams
 }: {
-  params: {slug: string};
-  searchParams: SP
+  params: Promise<{slug: string}>;
+  searchParams: Promise<SP>
 }) {
-  const s = params.slug;
-  const sp = searchParams;
+  const {slug: s} = await params;
+  const sp = await searchParams;
 
   if (s === 'sacs-accessoires') notFound();
 
