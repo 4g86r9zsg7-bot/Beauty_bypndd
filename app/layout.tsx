@@ -2,7 +2,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Link from 'next/link';
-import {Cormorant_Garamond,Inter} from 'next/font/google';
 import {CartProvider} from '@/lib/cart';
 import {WA} from '@/lib/supabase';
 import CartLink from '@/components/CartLink';
@@ -13,18 +12,6 @@ import BackToTop from '@/components/BackToTop';
 import {ClientProvider} from '@/components/ClientProvider';
 import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';
 import {IG} from '@/lib/shop';
-
-const serif=Cormorant_Garamond({
-  subsets:['latin'],
-  weight:['400','500','600'],
-  style:['normal','italic'],
-  variable:'--f-serif'
-});
-
-const sans=Inter({
-  subsets:['latin'],
-  variable:'--f-sans'
-});
 
 export const metadata:Metadata={
   metadataBase:new URL('https://beautybypnd.com'),
@@ -80,7 +67,12 @@ export const metadata:Metadata={
 
 export default function L({children}:{children:React.ReactNode}){
   return <html lang="fr">
-    <body className={`${serif.variable} ${sans.variable} overflow-x-hidden`}>
+    <head>
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+    </head>
+    <body className="overflow-x-hidden">
       <ClientProvider>
         <CartProvider>
           <div className="flex flex-col items-center justify-center gap-1 bg-[#0c0208] px-4 py-2.5 text-center text-white">
