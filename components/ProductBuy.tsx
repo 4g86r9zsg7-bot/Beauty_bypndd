@@ -605,13 +605,11 @@ export default function ProductBuy({p}:{p:any}) {
                       {visibleValues.map(value=>{
                         const on=selectedOptions[group.name]===value;
                         const matching=vs.filter(x=>
-                          String(x.options?.[group.name]??'')===value&&
-                          optionGroups.every(other=>
-                            other.name===group.name||
-                            !selectedOptions[other.name]||
-                            String(x.options?.[other.name]??'')===selectedOptions[other.name]
-                          )
+                          String(x.options?.[group.name]??'')===value
                         );
+                        // Evaluate each option across all its real variants.
+                        // This lets shoppers change another option when their current
+                        // size/color combination does not exist or is sold out.
                         const unavailable=matching.length>0&&matching.every(isVariantSoldOut);
                         const exists=matching.length>0;
                         const representative=matching[0]||vs.find(x=>
@@ -660,13 +658,11 @@ export default function ProductBuy({p}:{p:any}) {
                       {group.values.map(value=>{
                         const on=selectedOptions[group.name]===value;
                         const matching=vs.filter(x=>
-                          String(x.options?.[group.name]??'')===value&&
-                          optionGroups.every(other=>
-                            other.name===group.name||
-                            !selectedOptions[other.name]||
-                            String(x.options?.[other.name]??'')===selectedOptions[other.name]
-                          )
+                          String(x.options?.[group.name]??'')===value
                         );
+                        // Evaluate each option across all its real variants.
+                        // This lets shoppers change another option when their current
+                        // size/color combination does not exist or is sold out.
                         const unavailable=matching.length>0&&matching.every(isVariantSoldOut);
                         const exists=matching.length>0;
                         return (
@@ -689,6 +685,11 @@ export default function ProductBuy({p}:{p:any}) {
                 </div>
               );
             })}
+            {allOptionsSelected&&!selectedCombo&&(
+              <p role="status" className="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2.5 text-xs leading-relaxed text-amber-900">
+                Cette combinaison n’est pas disponible. Choisissez une autre taille ou couleur.
+              </p>
+            )}
           </div>
         )}
 
@@ -712,6 +713,7 @@ export default function ProductBuy({p}:{p:any}) {
 
                 return (
                   <button key={x.name} type="button"
+                    disabled={unavailable}
                     onClick={()=>{
                       setLegacyV(x.name);
                       resetSelection();
@@ -719,8 +721,11 @@ export default function ProductBuy({p}:{p:any}) {
                     aria-pressed={on}
                     aria-label={`${x.name}${unavailable?' — épuisé':''}`}
                     className={colorVariant
-                      ?'flex min-w-0 flex-col items-center gap-2 rounded-xl border border-plum/10 bg-white px-1.5 py-3 text-center transition hover:border-plum/35 hover:shadow-sm'
-                      :`flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-2 text-center transition ${
+                      ?`flex min-w-0 flex-col items-center gap-2 rounded-xl border px-1.5 py-3 text-center transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                        on?'border-rose bg-blush/35 shadow-sm'
+                        :'border-plum/10 bg-white hover:border-plum/35 hover:shadow-sm'
+                      }`
+                      :`flex min-w-0 flex-col items-center overflow-hidden rounded-xl border bg-white p-2 text-center transition disabled:cursor-not-allowed disabled:opacity-40 ${
                         on?'border-plum bg-blush/30 shadow-sm ring-1 ring-plum/20'
                         :'border-plum/15 hover:border-rose'
                       }`}>
