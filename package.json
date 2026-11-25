@@ -1,4 +1,3 @@
-
 {
   "name": "beauty_bypndd",
   "private": true,
@@ -8,7 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "14.2.15",
+    "next": "15.5.29",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "@supabase/supabase-js": "2.45.4",
