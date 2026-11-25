@@ -70,6 +70,9 @@ REVOKE ALL ON TABLE private.notification_clients FROM PUBLIC, anon, authenticate
 
 CREATE INDEX IF NOT EXISTS notification_clients_client_key_idx
   ON private.notification_clients (client_key_hash, notification_id);
+
+-- Replace legacy phone-based uniqueness with browser-client scoping.
+DROP INDEX IF EXISTS private.restock_alerts_customer_product_variant_uidx;
 CREATE UNIQUE INDEX IF NOT EXISTS restock_alerts_client_key_product_variant_uidx
   ON private.restock_alerts
     (client_key_hash, product_id, (coalesce(variant_name, '')))
