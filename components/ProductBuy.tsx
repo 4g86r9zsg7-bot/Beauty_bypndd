@@ -492,22 +492,29 @@ export default function ProductBuy({p}:{p:any}) {
           </a>
         )}
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <span className="font-serif text-3xl text-plum">{hasPriceRange?`À partir de ${eur(price)}`:eur(price)}</span>
-          {promo&&(
-            <>
-              <s className="text-sm text-ink/40">{eur(p.old_price)}</s>
-              <span className="rounded-full bg-blush px-3 py-1 text-xs font-semibold text-plum">
+        <div className="mt-5 rounded-2xl border border-sand bg-[#fcf9f8] p-4 sm:p-5">
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
+            <span className="font-serif text-3xl leading-none text-plum">{hasPriceRange?`À partir de ${eur(price)}`:eur(price)}</span>
+            {promo&&(
+              <s className="pb-0.5 text-sm text-ink/40">{eur(p.old_price)}</s>
+            )}
+            {promo&&(
+              <span className="mb-0.5 rounded-full bg-plum px-3 py-1 text-[11px] font-semibold tracking-wide text-white">
                 -{Math.round(100-price/p.old_price*100)}%
               </span>
-            </>
+            )}
+          </div>
+          {promo&&(
+            <p className="mt-2 text-xs font-medium text-plum">
+              Vous économisez {Math.round(Number(p.old_price)-price)} DH sur ce produit.
+            </p>
+          )}
+          {hasPriceRange&&(
+            <p className="mt-2 text-xs leading-relaxed text-ink/55">
+              Le prix varie selon l’option choisie.
+            </p>
           )}
         </div>
-        {hasPriceRange&&(
-          <p className="mt-1.5 text-xs leading-relaxed text-ink/55">
-            Le prix varie selon l’option choisie.
-          </p>
-        )}
 
         {!needV&&(
           <div className={`mt-4 flex flex-col gap-1.5 rounded-xl border p-3.5 ${
