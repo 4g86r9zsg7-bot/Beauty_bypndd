@@ -473,7 +473,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
       {cat && (
         <section
           aria-label="Gammes de produits"
-          className={parent ? 'mt-5 flex flex-wrap gap-2' : 'mt-6 grid grid-cols-3 gap-2'}
+          className={parent ? 'mt-5 grid grid-cols-3 gap-2' : 'mt-6 grid grid-cols-3 gap-2'}
         >
           {([
             ['petit_prix', 'Petit prix', 'Des essentiels à prix doux'],
@@ -488,7 +488,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
                 href={url({ range: sp.range === value ? '' : value })}
                 aria-pressed={sp.range === value}
                 className={parent
-                  ? `inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs transition duration-200 ${sp.range === value ? 'border-plum bg-[#FBEFF3] font-semibold text-plum' : 'border-[#EAD9E0] bg-white text-ink/75 hover:border-plum/50'}`
+                  ? `flex w-full items-center justify-center rounded-full border px-2 py-2 text-xs transition duration-200 ${sp.range === value ? 'border-plum bg-[#FBEFF3] font-semibold text-plum' : 'border-[#EAD9E0] bg-white text-ink/75 hover:border-plum/50'}`
                   : `flex min-h-[116px] flex-col items-center justify-center rounded-2xl border px-2.5 py-3 text-center shadow-sm transition duration-200 ${sp.range === value ? 'border-plum bg-gradient-to-b from-[#FBEFF3] to-[#F7E9EE] shadow-md ring-1 ring-plum/10' : 'border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] hover:border-plum/50 hover:shadow-md'}`}
               >
                 <span className={parent ? 'font-medium' : 'block font-serif text-[14px] leading-tight text-plum sm:text-base'}>{label}</span>
