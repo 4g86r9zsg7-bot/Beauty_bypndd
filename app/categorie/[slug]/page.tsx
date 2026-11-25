@@ -274,7 +274,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
   // Marques réellement présentes dans cette catégorie.
   let brandProductsQuery: any = supabase
     .from('products')
-    .select('brand_id,brands(id,name)')
+    .select('brand_id,price,old_price,variants,brands(id,name)')
     .eq('active', true);
 
   if (fixed?.filter) brandProductsQuery = fixed.filter(brandProductsQuery);
@@ -346,6 +346,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
   const seen = new Set<string>();
 
   const brands = (brandProducts || [])
+    .filter((p: any) => s !== 'promotions' || isRealPromotion(p))
     .map((p: any) => p.brands)
     .filter((x: any) => x?.id && x?.name)
     .filter((x: any) => {
