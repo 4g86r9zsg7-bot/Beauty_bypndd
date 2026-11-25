@@ -480,6 +480,23 @@ export default async function Cat({ params, searchParams }: PageProps) {
         </section>
       )}
 
+      {s === 'maquillage' && categoryShortcuts.length > 0 && (
+        <nav aria-label="Sous-catégories maquillage" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {categoryShortcuts.map((sub: any) => (
+            <Link
+              key={sub.id}
+              href={'/categorie/' + sub.slug}
+              className="flex min-h-[76px] flex-col justify-center rounded-xl border border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] px-3 py-3 text-center transition hover:border-plum/50 hover:shadow-sm"
+            >
+              <span className="font-serif text-sm leading-tight text-plum">{sub.name}</span>
+              <span className="mt-1 text-[10px] text-ink/55">
+                {sub.productCount} produit{sub.productCount > 1 ? 's' : ''}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      )}
+
       {cat && (
         <section aria-label="Gammes de produits" className="mt-6 grid grid-cols-3 gap-2">
           {([
