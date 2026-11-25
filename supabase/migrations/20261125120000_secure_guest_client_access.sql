@@ -16,6 +16,12 @@ $migration_guard$;
 ALTER TABLE private.restock_alerts
   ADD COLUMN IF NOT EXISTS client_key_hash bytea;
 
+-- The order-access table contains only hashed order access codes.
+-- Keep it inaccessible to API roles; SECURITY DEFINER RPCs owned by postgres
+-- continue to access it without exposing rows through the client API.
+ALTER TABLE private.order_access ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE private.order_access FROM PUBLIC, anon, authenticated;
+
 CREATE TABLE IF NOT EXISTS private.client_favorites (
   client_key_hash bytea NOT NULL CHECK (octet_length(client_key_hash) = 32),
   product_id uuid NOT NULL REFERENCES public.products(id),
