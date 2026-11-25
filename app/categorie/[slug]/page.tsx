@@ -259,6 +259,9 @@ export default async function Cat({ params, searchParams }: PageProps) {
   }
 
   const o = sp.sort;
+  const availableSorts = s === 'promotions'
+    ? [...SORTS, ['promo', 'Meilleures réductions'] as [string, string]]
+    : SORTS;
 
   q = o === 'asc'
     ? q.order('price')
@@ -271,7 +274,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
   // Marques réellement présentes dans cette catégorie.
   let brandProductsQuery: any = supabase
     .from('products')
-    .select('brand_id,brands(id,name)')
+    .select('brand_id,price,old_price,variants,brands(id,name)')
     .eq('active', true);
 
   if (fixed?.filter) brandProductsQuery = fixed.filter(brandProductsQuery);
@@ -309,7 +312,16 @@ export default async function Cat({ params, searchParams }: PageProps) {
     return prices.length ? Math.min(...prices) : Number(p.price) || 0;
   };
 
+  const isRealPromotion = (p: any) =>
+    Number(p.old_price) > 0 && Number(p.old_price) > productPrice(p);
+
+  const discountRate = (p: any) =>
+    isRealPromotion(p)
+      ? (1 - productPrice(p) / Number(p.old_price)) * 100
+      : 0;
+
   const list = allProducts
+    .filter((p: any) => s !== 'promotions' || isRealPromotion(p))
     .filter((p: any) => !sp.range || p.commercial_range === sp.range)
     .filter((p: any) => !sp.min || !isFinite(Number(sp.min)) || productPrice(p) >= Number(sp.min))
     .filter((p: any) => !sp.max || !isFinite(Number(sp.max)) || productPrice(p) <= Number(sp.max))
@@ -317,6 +329,10 @@ export default async function Cat({ params, searchParams }: PageProps) {
       if (o === 'asc') return productPrice(x) - productPrice(y);
       if (o === 'desc') return productPrice(y) - productPrice(x);
       if (o === 'pop') return Number(y.sold || 0) - Number(x.sold || 0);
+      if (o === 'promo' || (s === 'promotions' && !o)) {
+        return discountRate(y) - discountRate(x) ||
+          new Date(y.created_at).getTime() - new Date(x.created_at).getTime();
+      }
       if (o === 'old') {
         return rank(x) - rank(y) ||
           new Date(x.created_at).getTime() - new Date(y.created_at).getTime();
@@ -330,6 +346,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
   const seen = new Set<string>();
 
   const brands = (brandProducts || [])
+    .filter((p: any) => s !== 'promotions' || isRealPromotion(p))
     .map((p: any) => p.brands)
     .filter((x: any) => x?.id && x?.name)
     .filter((x: any) => {
@@ -386,7 +403,8 @@ export default async function Cat({ params, searchParams }: PageProps) {
   if (sp.min) chips.push([`Dès ${sp.min} DH`, url({ min: '' })]);
   if (sp.max) chips.push([`Jusqu’à ${sp.max} DH`, url({ max: '' })]);
 
-  const sortLabel = SORTS.find((x) => x[0] === (o || ''))?.[1] || 'Plus récents';
+  const sortLabel = availableSorts.find((x) => x[0] === (o || ''))?.[1] ||
+    (s === 'promotions' ? 'Meilleures réductions' : 'Plus récents');
 
   const field = 'w-full rounded-full border border-sand bg-white px-4 py-2.5 text-sm outline-none focus:border-plum';
 
@@ -410,6 +428,19 @@ export default async function Cat({ params, searchParams }: PageProps) {
           {list.length} produit{list.length > 1 ? 's' : ''}
         </p>
       </div>
+
+      {s === 'promotions' && (
+        <section className="relative mt-4 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-gradient-to-br from-[#FCF0F3] via-white to-[#F7E8ED] px-5 py-5 sm:px-7 sm:py-6">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-[#EBD5DE]/40 blur-2xl" />
+          <p className="relative text-[10px] font-semibold uppercase tracking-[0.22em] text-rose">Bons plans beauté</p>
+          <p className="relative mt-2 max-w-2xl font-serif text-xl leading-snug text-plum sm:text-2xl">
+            Vos essentiels beauté à prix réduits
+          </p>
+          <p className="relative mt-2 max-w-2xl text-sm leading-relaxed text-ink/65">
+            Retrouvez ici les offres en cours sur le maquillage, les soins et les parfums. Chaque réduction est calculée à partir du prix actuel et de l’ancien prix affiché.
+          </p>
+        </section>
+      )}
 
       {s === 'nouveautes' && (
         <section className="relative mt-4 overflow-hidden rounded-2xl border border-[#EAD9E0] bg-gradient-to-br from-[#FCF4F6] via-white to-[#F8EDF1] px-5 py-5 sm:px-7 sm:py-6">
@@ -553,7 +584,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
           </summary>
 
           <ul className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-sand bg-white text-sm shadow-lg">
-            {SORTS.map(([v, l]) => (
+            {availableSorts.map(([v, l]) => (
               <li key={v}>
                 <Link
                   href={url({ sort: v })}
@@ -590,7 +621,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
         {list.length ? (
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
             {list.map((p: any) => (
-              <ProductCard key={p.id} p={p} highlightPromo={s === 'nouveautes'} />
+              <ProductCard key={p.id} p={p} highlightPromo={s === 'nouveautes' || s === 'promotions'} />
             ))}
           </div>
         ) : (
