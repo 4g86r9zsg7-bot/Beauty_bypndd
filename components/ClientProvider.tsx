@@ -121,7 +121,7 @@ export function ClientProvider({children}:{children:React.ReactNode}){
       <form onClick={e=>e.stopPropagation()} onSubmit={e=>{
         e.preventDefault();
         const p=tmp.trim();
-        if(p.replace(/\\D/g,'').length<8)return;
+        if(p.replace(/\D/g,'').length<8)return;
         setPhone(p);
         const fn=gate.fn;
         setGate(null);
