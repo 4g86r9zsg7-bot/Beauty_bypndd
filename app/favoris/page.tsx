@@ -8,11 +8,13 @@ import {useClient} from '@/components/ClientProvider';
 import ProductCard from '@/components/ProductCard';
 
 export default function Favoris(){
-  const {phone,favs,askPhone}=useClient();
+  const {clientKey,favs}=useClient();
   const [items,setItems]=useState<any[]|null>(null);
 
   useEffect(()=>{
     let active=true;
+
+    if(!clientKey)return ()=>{active=false};
 
     if(!favs.length){
       setItems([]);
@@ -31,7 +33,7 @@ export default function Favoris(){
       });
 
     return ()=>{active=false};
-  },[favs]);
+  },[clientKey,favs]);
 
   const heart=(
     <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blush text-plum shadow-sm">
@@ -74,29 +76,23 @@ export default function Favoris(){
           </p>
         </div>
 
-        {phone&&items!==null&&items.length>0&&(
+        {clientKey&&items!==null&&items.length>0&&(
           <span className="rounded-full bg-blush px-4 py-2 text-xs font-semibold text-plum">
             {items.length} {items.length>1?'produits':'produit'}
           </span>
         )}
       </div>
 
-      {!phone?(
+      {!clientKey?(
         <div className="py-16 px-5 text-center">
           {heart}
           <p className="mt-6 font-serif text-2xl text-plum">
             Retrouvez vos favoris
           </p>
           <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-ink/60">
-            Entrez votre numéro de téléphone pour retrouver votre sélection personnelle.
+            Votre liste est liée à cet appareil et accessible uniquement depuis cette session de navigation.
           </p>
-          <button
-            type="button"
-            onClick={askPhone}
-            className="mt-7 rounded-full bg-rose px-8 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90"
-          >
-            Entrer mon numéro
-          </button>
+          <p className="mt-5 text-xs text-ink/50">Chargement de votre espace sécurisé…</p>
         </div>
       ):items===null?(
         <div className="grid grid-cols-2 gap-3 py-8 md:grid-cols-4 md:gap-5">

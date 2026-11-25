@@ -8,6 +8,7 @@ import {supabase,eur,WA} from '@/lib/supabase';
 import Suggestions from '@/components/Suggestions';
 import CartOfferUpsell from '@/components/CartOfferUpsell';
 import {DELIVERY,PREORDER} from '@/lib/shop';
+import {useClient} from '@/components/ClientProvider';
 
 const bag=<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8.5h14l-1 11.5H6z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/></svg>;
 
@@ -24,6 +25,7 @@ const normalizeCity=(city:string)=>{
 
 export default function Panier(){
   const {lines,setQty,remove,clear,subtotal,count}=useCart();
+  const {clientKey,setPhone}=useClient();
 
   const [cfg,setCfg]=useState<any>(null);
   const [f,setF]=useState({
@@ -59,7 +61,7 @@ export default function Panier(){
 
     let off=false;
 
-    supabase.rpc('quote_cart',{p_items:it}).then(({data,error})=>{
+    supabase.rpc('quote_cart_secure',{p_items:it}).then(({data,error})=>{
       if(!off)setQt(error?null:data);
     });
 
@@ -125,7 +127,7 @@ export default function Panier(){
     setPr(null);
 
     try{
-      const {data,error}=await supabase.rpc('check_promo',{
+      const {data,error}=await supabase.rpc('check_promo_secure',{
         p_code:code,
         p_sub:subtotal,
         p_phone:f.phone,
@@ -165,6 +167,7 @@ export default function Panier(){
   async function submit(e:any){
     e.preventDefault();
     setErr('');
+    if(!clientKey){setErr('Initialisation de la session sécurisée. Réessayez dans un instant.');return;}
     setBusy(true);
 
     const {data,error}=await supabase.rpc(
@@ -176,7 +179,8 @@ export default function Panier(){
             ?{offer_id:l.offer,qty:l.qty}
             :{id:l.id,qty:l.qty,variant:l.variant}
         ),
-        p_promo:hasOffer?'':f.promo
+        p_promo:hasOffer?'':f.promo,
+        p_client_key:clientKey
       }
     );
 
@@ -185,6 +189,7 @@ export default function Panier(){
     if(error)return setErr(error.message);
 
     setOrder(data);
+    setPhone(f.phone);
 
     clear();
     window.scrollTo({top:0,behavior:'smooth'});

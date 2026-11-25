@@ -1,4 +1,3 @@
-
 import {notFound} from 'next/navigation';
 import Link from 'next/link';
 import type {Metadata} from 'next';
@@ -28,11 +27,12 @@ function getImages(value:any):string[]{
   return [];
 }
 
-export async function generateMetadata({params}:{params:{slug:string}}):Promise<Metadata>{
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+  const {slug}=await params;
   const {data}=await supabase
     .from('products')
     .select('name,description,images,price,brands(name)')
-    .eq('slug',params.slug)
+    .eq('slug',slug)
     .eq('active',true)
     .single();
 
@@ -54,7 +54,7 @@ export async function generateMetadata({params}:{params:{slug:string}}):Promise<
 
   const description=(clean||fallback).slice(0,155);
   const images=getImages(d.images);
-  const canonical=`/produit/${params.slug}`;
+  const canonical=`/produit/${slug}`;
 
   return {
     title,
@@ -102,11 +102,12 @@ export async function generateMetadata({params}:{params:{slug:string}}):Promise<
   };
 }
 
-export default async function P({params}:{params:{slug:string}}){
+export default async function P({params}:{params:Promise<{slug:string}>}){
+  const {slug}=await params;
   const {data:p}=await supabase
     .from('products')
     .select('*,brands(name)')
-    .eq('slug',params.slug)
+    .eq('slug',slug)
     .eq('active',true)
     .single();
 
