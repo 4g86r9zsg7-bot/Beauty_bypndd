@@ -322,8 +322,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
           new Date(x.created_at).getTime() - new Date(y.created_at).getTime();
       }
       if (s === 'nouveautes') {
-        return rank(x) - rank(y) ||
-          new Date(y.created_at).getTime() - new Date(x.created_at).getTime();
+        return new Date(y.created_at).getTime() - new Date(x.created_at).getTime();
       }
       return rank(x) - rank(y);
     });
