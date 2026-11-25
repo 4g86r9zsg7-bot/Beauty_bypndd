@@ -13,6 +13,27 @@ BEGIN
 END;
 $migration_guard$;
 
+-- Legacy notifications without an order access hash cannot be claimed safely
+-- by phone alone. Keep them untouched and report their count during rollout.
+DO $legacy_notification_notice$
+DECLARE
+  v_unclaimed_notifications bigint;
+  v_unclaimed_orders bigint;
+BEGIN
+  SELECT count(*), count(DISTINCT n.order_id)
+    INTO v_unclaimed_notifications, v_unclaimed_orders
+    FROM public.notifications AS n
+    LEFT JOIN private.order_access AS oa ON oa.order_id = n.order_id
+   WHERE n.order_id IS NOT NULL
+     AND oa.order_id IS NULL;
+
+  IF v_unclaimed_notifications > 0 THEN
+    RAISE NOTICE '% notifications across % orders have no stored access code. They remain preserved but cannot be claimed through the secure guest portal using a phone number alone.',
+      v_unclaimed_notifications, v_unclaimed_orders;
+  END IF;
+END;
+$legacy_notification_notice$;
+
 ALTER TABLE private.restock_alerts
   ADD COLUMN IF NOT EXISTS client_key_hash bytea;
 
