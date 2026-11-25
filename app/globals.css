@@ -1,3 +1,18 @@
-@tailwind base;@tailwind components;@tailwind utilities;
-body{@apply bg-cream text-ink font-sans}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --f-serif: Georgia, 'Times New Roman', serif;
+  --f-sans: Arial, Helvetica, sans-serif;
+}
+
+body {
+  @apply bg-cream text-ink font-sans;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
