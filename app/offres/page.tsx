@@ -47,13 +47,33 @@ const unitPrice=(it:any)=>
 const itemOk=(it:any)=>{
   const p=it.products;
   if(!p||!p.active||['soldout','arrival','preorder'].includes(p.availability))return false;
-
-  if(vlist(p).length){
-    const v=vlist(p).find((x:any)=>x.name===it.variant);
-    return !!v&&Number(v.stock??0)>=it.qty;
+  const qty=Math.max(1,Number(it.qty)||1);
+  const variants=vlist(p);
+  if(variants.length){
+    const v=variants.find((x:any)=>x.name===it.variant);
+    return !!v&&v.status!=='soldout'&&Number(v.stock??0)>=qty;
   }
+  return Number(p.stock??0)>=qty;
+};
 
-  return Number(p.stock)>=it.qty;
+const anyAvailableProduct=(it:any)=>{
+  const p=it.products;
+  if(!p||!p.active||['soldout','arrival','preorder'].includes(p.availability))return false;
+  const variants=vlist(p);
+  return variants.length
+    ?variants.some((v:any)=>v.status!=='soldout'&&Number(v.stock??0)>0)
+    :Number(p.stock??0)>0;
+};
+
+const variantItemAvailable=(it:any)=>{
+  const p=it.products;
+  if(!p||!p.active||['soldout','arrival','preorder'].includes(p.availability))return false;
+  const variants=vlist(p);
+  if(variants.length){
+    const v=variants.find((x:any)=>x.name===it.variant);
+    return !!v&&v.status!=='soldout'&&Number(v.stock??0)>0;
+  }
+  return Number(p.stock??0)>0;
 };
 
 const packSavings=(o:any)=>{
@@ -97,14 +117,17 @@ export default async function Offres(){
     });
 
   const free=offers.filter((o:any)=>
-    o.kind==='buy_x_get_1'&&!(o.stock!=null&&o.stock-o.sold<=0)
+    o.kind==='buy_x_get_1'&&
+    !(o.stock!=null&&o.stock-o.sold<=0)&&
+    (o.offer_items||[]).some(anyAvailableProduct)
   );
 
   const variantDiscounts=offers
     .filter((o:any)=>
       o.kind==='variant_discount'&&
       o.discount_value>0&&
-      !(o.stock!=null&&o.stock-o.sold<=0)
+      !(o.stock!=null&&o.stock-o.sold<=0)&&
+      (o.offer_items||[]).some(variantItemAvailable)
     )
     .sort((a:any,b:any)=>variantDiscountRate(b)-variantDiscountRate(a));
 
@@ -132,10 +155,11 @@ export default async function Offres(){
               const its:any[]=(o.offer_items||[]).filter((it:any)=>it.products);
               const value=its.reduce((s:number,it:any)=>s+unitPrice(it)*it.qty,0);
               const price=Number(o.pack_price);
-              const saving=value-price;
-              const pct=value>0?Math.round(saving/value*100):0;
               const rest=o.stock!=null?o.stock-o.sold:null;
               const available=its.length>0&&its.every(itemOk)&&(rest==null||rest>0);
+              // Ne jamais annoncer une économie calculée sur une variante absente ou indisponible.
+              const saving=available&&Number.isFinite(value)&&Number.isFinite(price)?Math.max(0,value-price):0;
+              const pct=value>0&&saving>0?Math.round(saving/value*100):0;
 
               const packPhotos=its.map((it:any)=>({
                 url:itemPhoto(it),
@@ -321,7 +345,7 @@ export default async function Offres(){
           </div>
           <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {variantDiscounts.map((o:any)=>{
-              const its:any[]=(o.offer_items||[]).filter((it:any)=>it.products&&it.products.active);
+              const its:any[]=(o.offer_items||[]).filter(variantItemAvailable);
               const rest=o.stock!=null?o.stock-o.sold:null;
               const discountLabel=o.discount_type==='amount'?eur(o.discount_value):String(o.discount_value)+'%';
               return its.map((it:any)=>{
@@ -329,11 +353,12 @@ export default async function Offres(){
                 const variants=vlist(p);
                 const variant=it.variant?variants.find((v:any)=>v.name===it.variant):null;
                 const price=Number(variant?.price??p.price??0);
+                const image=variant?.image||variant?.images?.[0]||p.images?.[0]||null;
                 const discounted=o.discount_type==='amount'?Math.max(0,price-Number(o.discount_value)):price*(1-Number(o.discount_value)/100);
                 return (
                   <article key={o.id+'-'+it.id} className="overflow-hidden rounded-2xl border border-[#f0dce4] bg-white shadow-[0_4px_16px_rgba(122,31,74,.06)]">
                     <div className="aspect-square bg-[#fdf3f7]">
-                      {p.images?.[0]?<img src={p.images[0]} alt={p.name} loading="lazy" className="h-full w-full object-contain p-3"/>:<div className="flex h-full items-center justify-center font-serif text-5xl text-[#C6A15B]/60">✧</div>}
+                      {image?<img src={image} alt={p.name+(it.variant?' - '+it.variant:'')} loading="lazy" decoding="async" className="h-full w-full object-contain p-3"/>:<div className="flex h-full items-center justify-center font-serif text-5xl text-[#C6A15B]/60">✧</div>}
                     </div>
                     <div className="p-3 sm:p-4">
                       <p className="text-[9px] font-semibold uppercase tracking-wider text-[#8a6a22]">{o.title}</p>
@@ -376,7 +401,7 @@ export default async function Offres(){
 
           <div className="space-y-4">
             {free.map((o:any)=>{
-              const its:any[]=(o.offer_items||[]).filter((it:any)=>it.products&&it.products.active);
+              const its:any[]=(o.offer_items||[]).filter(anyAvailableProduct);
               const rest=o.stock!=null?o.stock-o.sold:null;
 
               return (

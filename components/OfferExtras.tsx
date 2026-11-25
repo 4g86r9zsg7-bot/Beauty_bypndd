@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useEffect,useState} from 'react';
+import {useEffect,useId,useState} from 'react';
 
 type OfferItem={
   id:string;
@@ -67,6 +67,7 @@ export function OfferDetails({
   items:OfferItem[];
 }){
   const [open,setOpen]=useState(false);
+  const titleId=useId();
 
   useEffect(()=>{
     if(!open)return;
@@ -96,7 +97,7 @@ export function OfferDetails({
           <section
             role="dialog"
             aria-modal="true"
-            aria-labelledby="offer-details-title"
+            aria-labelledby={titleId}
             className="relative max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-3xl bg-[#fffdfd] p-5 shadow-2xl sm:p-7"
             onClick={e=>e.stopPropagation()}
           >
@@ -112,7 +113,7 @@ export function OfferDetails({
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#C6A15B]">
               Beauty_bypndd
             </p>
-            <h3 id="offer-details-title" className="mt-2 pr-8 font-serif text-3xl text-plum">
+            <h3 id={titleId} className="mt-2 pr-8 font-serif text-3xl text-plum">
               {title}
             </h3>
             {description&&(
@@ -132,7 +133,7 @@ export function OfferDetails({
                 <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-[#f0dce4] bg-white p-3">
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#fdf3f7]">
                     {item.image&&(
-                      <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-cover"/>
+                      <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-contain p-1"/>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
