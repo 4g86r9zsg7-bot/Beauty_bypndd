@@ -10,12 +10,20 @@ export default function Notifications(){
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [error,setError]=useState('');
+  const normalizedPhone=phone.replace(/\\D/g,'');
   const claim=async(e:any)=>{
-    e.preventDefault();setBusy(true);setMessage('');setError('');
-    const result=await claimOrderNotifications(phone,code);
-    setBusy(false);
-    if(result.error)setError('Numéro ou code secret incorrect. Vérifiez les informations de votre commande.');
-    else{setMessage('Commande associée. Vos notifications disponibles ont été actualisées.');setCode('');}
+    e.preventDefault();
+    if(normalizedPhone.length<8||normalizedPhone.length>15||code.length!==24||!clientKey)return;
+    setBusy(true);setMessage('');setError('');
+    try{
+      const result=await claimOrderNotifications(normalizedPhone,code);
+      if(result.error)setError('Numéro ou code secret incorrect. Vérifiez les informations de votre commande.');
+      else{setMessage('Commande associée. Vos notifications disponibles ont été actualisées.');setCode('');}
+    }catch{
+      setError('Impossible de vérifier ces informations pour le moment. Réessayez.');
+    }finally{
+      setBusy(false);
+    }
   };
   const bell=<span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blush text-plum"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 17h12l-1.6-2.2V10a4.4 4.4 0 0 0-8.8 0v4.8z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span>;
   return <div className="mx-auto max-w-xl">
@@ -52,14 +60,14 @@ export default function Notifications(){
       <p className="mt-2 text-sm leading-relaxed text-ink/60">Le numéro seul ne donne jamais accès aux notifications. Saisissez le numéro de la commande et le code secret de 24 caractères remis après son enregistrement.</p>
       <form onSubmit={claim} className="mt-4 space-y-3">
         <label className="block text-sm text-ink/70">Numéro de téléphone
-          <input required type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} className="mt-1 w-full rounded-xl border border-sand px-4 py-3 text-base"/>
+          <input required type="tel" inputMode="numeric" autoComplete="tel" maxLength={15} value={phone} onChange={e=>setPhone(e.target.value.replace(/\\D/g,'').slice(0,15))} placeholder="8 à 15 chiffres" className="mt-1 w-full rounded-xl border border-sand px-4 py-3 text-base"/>
         </label>
         <label className="block text-sm text-ink/70">Code secret de la commande
           <input required minLength={24} maxLength={24} autoCapitalize="characters" autoComplete="off" value={code} onChange={e=>setCode(e.target.value.toUpperCase().replace(/[^A-F0-9]/g,''))} placeholder="24 caractères" className="mt-1 w-full rounded-xl border border-sand px-4 py-3 font-mono text-base tracking-wider"/>
         </label>
         {error&&<p role="alert" className="text-sm text-red-700">{error}</p>}
         {message&&<p role="status" className="text-sm text-green-700">{message}</p>}
-        <button disabled={busy||code.length!==24||!clientKey} className="w-full rounded-full bg-rose py-3.5 text-xs font-semibold uppercase tracking-wider text-white disabled:opacity-50">{busy?'Vérification…':'Associer ma commande'}</button>
+        <button disabled={busy||normalizedPhone.length<8||normalizedPhone.length>15||code.length!==24||!clientKey} className="w-full rounded-full bg-rose py-3.5 text-xs font-semibold uppercase tracking-wider text-white disabled:opacity-50">{busy?'Vérification…':'Associer ma commande'}</button>
       </form>
     </section>
     <p className="mt-8 text-center text-sm"><Link href="/suivi" className="underline">Suivre ma commande</Link></p>
