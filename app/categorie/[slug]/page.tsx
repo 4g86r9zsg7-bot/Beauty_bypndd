@@ -1,8 +1,8 @@
 
-import {cache} from 'react';
+import { cache } from 'react';
 import Link from 'next/link';
-import {notFound} from 'next/navigation';
-import {supabase} from '@/lib/supabase';
+import { notFound } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import Suggestions from '@/components/Suggestions';
 
@@ -19,14 +19,46 @@ type SP = {
   max?: string;
 };
 
-const FIXED: Record<string, {title: string; desc: string; filter?: (q: any) => any}> = {
-  'coups-de-coeur': {title: 'Coups de cœur', desc: 'Découvrez les coups de cœur Beauty_bypndd : une sélection de maquillage, soins, parfums et produits beauté appréciés par nos clientes au Maroc.', filter: (q) => q.eq('featured', true)},
-  'meilleures-ventes': {title: 'Meilleures ventes', desc: 'Découvrez les meilleures ventes Beauty_bypndd : maquillage, parfums, soins et produits de beauté tendance au Maroc.', filter: (q) => q.eq('is_bestseller', true)},
-  tous: {title: 'Tous les produits', desc: 'Explorez tous les produits Beauty_bypndd : maquillage, soins du visage, soins du corps, parfums, brumes parfumées et mode au Maroc.'},
-  nouveautes: {title: 'Nouveautés', desc: 'Découvrez les nouveautés Beauty_bypndd : les derniers produits de maquillage, soins, parfums et beauté à découvrir au Maroc.', filter: (q) => q.eq('is_new', true)},
-  promotions: {title: 'Promotions', desc: 'Profitez des promotions Beauty_bypndd sur une sélection de produits de beauté, maquillage, soins et parfums au Maroc.', filter: (q) => q.not('old_price', 'is', null)},
-  arrivages: {title: 'Prochains arrivages', desc: 'Découvrez les prochains arrivages Beauty_bypndd et retrouvez bientôt vos produits de beauté préférés.', filter: (q) => q.eq('availability', 'arrival')},
-  precommandes: {title: 'Précommandes', desc: 'Commandez vos produits en précommande chez Beauty_bypndd : maquillage, parfums, soins et nouveautés beauté.', filter: (q) => q.eq('availability', 'preorder')},
+type PageProps = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<SP>;
+};
+
+const FIXED: Record<string, { title: string; desc: string; filter?: (q: any) => any }> = {
+  'coups-de-coeur': {
+    title: 'Coups de cœur',
+    desc: 'Découvrez les coups de cœur Beauty_bypndd : une sélection de maquillage, soins, parfums et produits beauté appréciés par nos clientes au Maroc.',
+    filter: (q) => q.eq('featured', true)
+  },
+  'meilleures-ventes': {
+    title: 'Meilleures ventes',
+    desc: 'Découvrez les meilleures ventes Beauty_bypndd : maquillage, parfums, soins et produits de beauté tendance au Maroc.',
+    filter: (q) => q.eq('is_bestseller', true)
+  },
+  tous: {
+    title: 'Tous les produits',
+    desc: 'Explorez tous les produits Beauty_bypndd : maquillage, soins du visage, soins du corps, parfums, brumes parfumées et mode au Maroc.'
+  },
+  nouveautes: {
+    title: 'Nouveautés',
+    desc: 'Découvrez les nouveautés Beauty_bypndd : les derniers produits de maquillage, soins, parfums et beauté à découvrir au Maroc.',
+    filter: (q) => q.eq('is_new', true)
+  },
+  promotions: {
+    title: 'Promotions',
+    desc: 'Profitez des promotions Beauty_bypndd sur une sélection de produits de beauté, maquillage, soins et parfums au Maroc.',
+    filter: (q) => q.not('old_price', 'is', null)
+  },
+  arrivages: {
+    title: 'Prochains arrivages',
+    desc: 'Découvrez les prochains arrivages Beauty_bypndd et retrouvez bientôt vos produits de beauté préférés.',
+    filter: (q) => q.eq('availability', 'arrival')
+  },
+  precommandes: {
+    title: 'Précommandes',
+    desc: 'Commandez vos produits en précommande chez Beauty_bypndd : maquillage, parfums, soins et nouveautés beauté.',
+    filter: (q) => q.eq('availability', 'preorder')
+  }
 };
 
 const SORTS: [string, string][] = [
@@ -47,10 +79,10 @@ const AVAILABILITY: [string, string][] = [
 
 // ---------- Catégories ----------
 const getCats = cache(async () => {
-  const {data} = await supabase
+  const { data } = await supabase
     .from('categories')
     .select('id,slug,name,parent_id,image_url,position')
-    .order('position', {ascending: true, nullsFirst: false})
+    .order('position', { ascending: true, nullsFirst: false })
     .order('name');
 
   return (data || []) as any[];
@@ -65,8 +97,10 @@ const subtree = (all: any[], id: any, depth = 0): any[] =>
     : [id, ...kidsOf(all, id).flatMap((k) => subtree(all, k.id, depth + 1))];
 
 // ---------- Métadonnées SEO ----------
-export async function generateMetadata({params,searchParams}: {params: {slug: string}; searchParams?: SP}) {
-  const s = params.slug;
+export async function generateMetadata({ params, searchParams }: PageProps) {
+  const { slug: s } = await params;
+  const sp = await searchParams;
+
   const all = await getCats();
   const f = FIXED[s];
   const c = all.find((x) => x.slug === s);
@@ -90,8 +124,8 @@ export async function generateMetadata({params,searchParams}: {params: {slug: st
   const description = f
     ? f.desc
     : subs.length
-    ? `Découvrez notre sélection ${title.toLowerCase()} chez Beauty_bypndd : ${subs.join(', ')}. Produits de beauté et marques tendance à prix accessibles, livraison au Maroc et paiement à la livraison.`
-    : `Découvrez ${title} chez Beauty_bypndd : une sélection de produits de beauté et de grandes marques à prix accessibles, avec livraison au Maroc et paiement à la livraison.`;
+      ? `Découvrez notre sélection ${title.toLowerCase()} chez Beauty_bypndd : ${subs.join(', ')}. Produits de beauté et marques tendance à prix accessibles, livraison au Maroc et paiement à la livraison.`
+      : `Découvrez ${title} chez Beauty_bypndd : une sélection de produits de beauté et de grandes marques à prix accessibles, avec livraison au Maroc et paiement à la livraison.`;
 
   let pq: any = supabase
     .from('products')
@@ -101,18 +135,19 @@ export async function generateMetadata({params,searchParams}: {params: {slug: st
   if (c) {
     pq = pq
       .in('category_id', subtree(all, c.id))
-      .order('sold', {ascending: false});
+      .order('sold', { ascending: false });
   } else {
     pq = (f?.filter ? f.filter(pq) : pq)
-      .order('created_at', {ascending: false});
+      .order('created_at', { ascending: false });
   }
 
-  const {data: pr} = await pq.limit(1);
+  const { data: pr } = await pq.limit(1);
 
   const img: string | undefined =
     c?.image_url || pr?.[0]?.images?.[0];
 
   const pageTitle = `${title} | Beauty_bypndd`;
+  const hasFilters = Object.values(sp).some((value) => Boolean(value));
 
   return {
     title: pageTitle,
@@ -121,12 +156,10 @@ export async function generateMetadata({params,searchParams}: {params: {slug: st
       canonical: `/categorie/${s}`
     },
     robots: {
-      // Les pages filtrées restent accessibles aux visiteurs, mais ne créent pas
-      // des variantes indexables de la même catégorie dans Google.
-      index: !searchParams || !Object.values(searchParams).some((value) => Boolean(value)),
+      index: !hasFilters,
       follow: true,
       googleBot: {
-        index: !searchParams || !Object.values(searchParams).some((value) => Boolean(value)),
+        index: !hasFilters,
         follow: true
       }
     },
@@ -138,7 +171,7 @@ export async function generateMetadata({params,searchParams}: {params: {slug: st
       locale: 'fr_FR',
       type: 'website',
       images: img
-        ? [{url: img, alt: `${title} - Beauty_bypndd`}]
+        ? [{ url: img, alt: `${title} - Beauty_bypndd` }]
         : undefined
     },
     twitter: {
@@ -150,15 +183,9 @@ export async function generateMetadata({params,searchParams}: {params: {slug: st
   };
 }
 
-export default async function Cat({
-  params,
-  searchParams
-}: {
-  params: {slug: string};
-  searchParams: SP
-}) {
-  const s = params.slug;
-  const sp = searchParams;
+export default async function Cat({ params, searchParams }: PageProps) {
+  const { slug: s } = await params;
+  const sp = await searchParams;
 
   if (s === 'sacs-accessoires') notFound();
 
@@ -195,7 +222,7 @@ export default async function Cat({
   if (t) {
     const [bm, cm] = await Promise.all([
       supabase.from('brands').select('id').ilike('name', `%${t}%`),
-      supabase.from('categories').select('id').ilike('name', `%${t}%`),
+      supabase.from('categories').select('id').ilike('name', `%${t}%`)
     ]);
 
     const bi = (bm.data || []).map((x: any) => x.id);
@@ -236,13 +263,12 @@ export default async function Cat({
   q = o === 'asc'
     ? q.order('price')
     : o === 'desc'
-    ? q.order('price', {ascending: false})
-    : o === 'pop'
-    ? q.order('sold', {ascending: false})
-    : q.order('created_at', {ascending: o === 'old'});
+      ? q.order('price', { ascending: false })
+      : o === 'pop'
+        ? q.order('sold', { ascending: false })
+        : q.order('created_at', { ascending: o === 'old' });
 
-  // Marques réellement présentes dans cette catégorie (et ses sous-catégories).
-  // Cette requête reste indépendante des filtres actifs pour garder la liste complète.
+  // Marques réellement présentes dans cette catégorie.
   let brandProductsQuery: any = supabase
     .from('products')
     .select('brand_id,brands(id,name)')
@@ -251,7 +277,7 @@ export default async function Cat({
   if (fixed?.filter) brandProductsQuery = fixed.filter(brandProductsQuery);
   if (cat) brandProductsQuery = brandProductsQuery.in('category_id', subtree(all, cat.id));
 
-  const [{data}, {data: brandProducts}] = await Promise.all([
+  const [{ data }, { data: brandProducts }] = await Promise.all([
     q,
     brandProductsQuery
   ]);
@@ -265,23 +291,37 @@ export default async function Cat({
   };
 
   const allProducts = [...(data || [])];
-  const productPrice = (p:any) => {
-    const vars=Array.isArray(p.variants)?p.variants:[];
-    const reservable=p.availability==='preorder'||p.availability==='arrival';
-    const prices=vars.filter((v:any)=>v&&typeof v==='object'&&['available','last','preorder','arrival'].includes(v.status||'available')&&(v.stock==null||Number(v.stock)>0||reservable))
-      .map((v:any)=>Number(v.price??p.price)).filter((n:number)=>Number.isFinite(n)&&n>0);
-    return prices.length?Math.min(...prices):Number(p.price)||0;
+
+  const productPrice = (p: any) => {
+    const vars = Array.isArray(p.variants) ? p.variants : [];
+    const reservable = p.availability === 'preorder' || p.availability === 'arrival';
+
+    const prices = vars
+      .filter((v: any) =>
+        v &&
+        typeof v === 'object' &&
+        ['available', 'last', 'preorder', 'arrival'].includes(v.status || 'available') &&
+        (v.stock == null || Number(v.stock) > 0 || reservable)
+      )
+      .map((v: any) => Number(v.price ?? p.price))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+
+    return prices.length ? Math.min(...prices) : Number(p.price) || 0;
   };
+
   const list = allProducts
-    .filter((p:any)=>!sp.range||p.commercial_range===sp.range)
-    .filter((p:any)=>!sp.min||!isFinite(Number(sp.min))||productPrice(p)>=Number(sp.min))
-    .filter((p:any)=>!sp.max||!isFinite(Number(sp.max))||productPrice(p)<=Number(sp.max))
-    .sort((x:any,y:any)=>{
-      if(o==='asc')return productPrice(x)-productPrice(y);
-      if(o==='desc')return productPrice(y)-productPrice(x);
-      if(o==='pop')return Number(y.sold||0)-Number(x.sold||0);
-      if(o==='old')return rank(x)-rank(y)||new Date(x.created_at).getTime()-new Date(y.created_at).getTime();
-      return rank(x)-rank(y);
+    .filter((p: any) => !sp.range || p.commercial_range === sp.range)
+    .filter((p: any) => !sp.min || !isFinite(Number(sp.min)) || productPrice(p) >= Number(sp.min))
+    .filter((p: any) => !sp.max || !isFinite(Number(sp.max)) || productPrice(p) <= Number(sp.max))
+    .sort((x: any, y: any) => {
+      if (o === 'asc') return productPrice(x) - productPrice(y);
+      if (o === 'desc') return productPrice(y) - productPrice(x);
+      if (o === 'pop') return Number(y.sold || 0) - Number(x.sold || 0);
+      if (o === 'old') {
+        return rank(x) - rank(y) ||
+          new Date(x.created_at).getTime() - new Date(y.created_at).getTime();
+      }
+      return rank(x) - rank(y);
     });
 
   const seen = new Set<string>();
@@ -305,7 +345,7 @@ export default async function Cat({
   // ---------- URL ----------
   const url = (over: Partial<SP>) => {
     const p = new URLSearchParams();
-    const m: any = {...sp, ...over};
+    const m: any = { ...sp, ...over };
 
     for (const k of ['q', 'brand', 'range', 'sort', 'availability', 'stock', 'min', 'max']) {
       if (m[k]) p.set(k, m[k]);
@@ -325,18 +365,23 @@ export default async function Cat({
 
   const chips: [string, string][] = [];
 
-  if (sp.q) chips.push([`« ${sp.q} »`, url({q: ''})]);
-  if (brandName) chips.push([brandName, url({brand: ''})]);
-  if (sp.range) chips.push([{petit_prix:'Petit prix',marques:'Marques',premium:'Premium'}[sp.range]||sp.range,url({range:''})]);
-
-  if (sp.availability) {
-    chips.push([availabilityLabel, url({availability: '', stock: ''})]);
-  } else if (sp.stock) {
-    chips.push(['En stock', url({stock: ''})]);
+  if (sp.q) chips.push([`« ${sp.q} »`, url({ q: '' })]);
+  if (brandName) chips.push([brandName, url({ brand: '' })]);
+  if (sp.range) {
+    chips.push([
+      ({ petit_prix: 'Petit prix', marques: 'Marques', premium: 'Premium' } as Record<string, string>)[sp.range] || sp.range,
+      url({ range: '' })
+    ]);
   }
 
-  if (sp.min) chips.push([`Dès ${sp.min} DH`, url({min: ''})]);
-  if (sp.max) chips.push([`Jusqu’à ${sp.max} DH`, url({max: ''})]);
+  if (sp.availability) {
+    chips.push([availabilityLabel, url({ availability: '', stock: '' })]);
+  } else if (sp.stock) {
+    chips.push(['En stock', url({ stock: '' })]);
+  }
+
+  if (sp.min) chips.push([`Dès ${sp.min} DH`, url({ min: '' })]);
+  if (sp.max) chips.push([`Jusqu’à ${sp.max} DH`, url({ max: '' })]);
 
   const sortLabel = SORTS.find((x) => x[0] === (o || ''))?.[1] || 'Plus récents';
 
@@ -363,21 +408,27 @@ export default async function Cat({
         </p>
       </div>
 
-      {cat&&(
+      {cat && (
         <section aria-label="Gammes de produits" className="mt-6 grid grid-cols-3 gap-2">
           {([
-            ['petit_prix','Petit prix','Des essentiels à prix doux'],
-            ['marques','Marques','Vos marques préférées'],
-            ['premium','Premium','Une sélection premium']
-          ] as [string,string,string][]).map(([value,label,desc])=>{
-            const count=allProducts.filter((p:any)=>p.commercial_range===value).length;
+            ['petit_prix', 'Petit prix', 'Des essentiels à prix doux'],
+            ['marques', 'Marques', 'Vos marques préférées'],
+            ['premium', 'Premium', 'Une sélection premium']
+          ] as [string, string, string][]).map(([value, label, desc]) => {
+            const count = allProducts.filter((p: any) => p.commercial_range === value).length;
+
             return (
-              <Link key={value} href={url({range:sp.range===value?'':value})}
-                aria-pressed={sp.range===value}
-                className={`flex min-h-[116px] flex-col items-center justify-center rounded-2xl border px-2.5 py-3 text-center shadow-sm transition duration-200 ${sp.range===value?'border-plum bg-gradient-to-b from-[#FBEFF3] to-[#F7E9EE] shadow-md ring-1 ring-plum/10':'border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] hover:border-plum/50 hover:shadow-md'}`}>
+              <Link
+                key={value}
+                href={url({ range: sp.range === value ? '' : value })}
+                aria-pressed={sp.range === value}
+                className={`flex min-h-[116px] flex-col items-center justify-center rounded-2xl border px-2.5 py-3 text-center shadow-sm transition duration-200 ${sp.range === value ? 'border-plum bg-gradient-to-b from-[#FBEFF3] to-[#F7E9EE] shadow-md ring-1 ring-plum/10' : 'border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] hover:border-plum/50 hover:shadow-md'}`}
+              >
                 <span className="block font-serif text-[14px] leading-tight text-plum sm:text-base">{label}</span>
                 <span className="mt-2 block min-h-[2.4em] text-[10px] leading-snug text-ink/65">{desc}</span>
-                <span className="mt-1.5 block text-[10px] font-medium text-plum/65">{count} produit{count>1?'s':''}</span>
+                <span className="mt-1.5 block text-[10px] font-medium text-plum/65">
+                  {count} produit{count > 1 ? 's' : ''}
+                </span>
               </Link>
             );
           })}
@@ -398,9 +449,9 @@ export default async function Cat({
               strokeLinecap="round"
               aria-hidden="true"
             >
-              <path d="M4 7h10M18 7h2M4 17h2M10 17h10"/>
-              <circle cx="16" cy="7" r="2"/>
-              <circle cx="8" cy="17" r="2"/>
+              <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="8" cy="17" r="2" />
             </svg>
             Filtres
             {chips.length > 0 && (
@@ -411,8 +462,8 @@ export default async function Cat({
           </summary>
 
           <form className="absolute inset-x-0 top-full z-30 mt-2 grid gap-3 rounded-2xl border border-sand bg-white p-4 text-sm shadow-xl md:grid-cols-2">
-            <input type="hidden" name="sort" value={o || ''}/>
-            <input type="hidden" name="range" value={sp.range || ''}/>
+            <input type="hidden" name="sort" value={o || ''} />
+            <input type="hidden" name="range" value={sp.range || ''} />
 
             <input
               name="q"
@@ -489,7 +540,7 @@ export default async function Cat({
             {SORTS.map(([v, l]) => (
               <li key={v}>
                 <Link
-                  href={url({sort: v})}
+                  href={url({ sort: v })}
                   className={`block px-4 py-3 hover:bg-sand/40 ${(o || '') === v ? 'font-semibold text-plum' : ''}`}
                 >
                   {l}
@@ -523,7 +574,7 @@ export default async function Cat({
         {list.length ? (
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
             {list.map((p: any) => (
-              <ProductCard key={p.id} p={p}/>
+              <ProductCard key={p.id} p={p} />
             ))}
           </div>
         ) : (
@@ -546,7 +597,11 @@ export default async function Cat({
         )}
       </div>
 
-      <Suggestions title="Vous aimerez aussi" exclude={list.map((p: any) => p.id)} limit={4}/>
+      <Suggestions
+        title="Vous aimerez aussi"
+        exclude={list.map((p: any) => p.id)}
+        limit={4}
+      />
     </>
   );
 }
