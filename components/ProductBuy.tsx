@@ -601,7 +601,7 @@ export default function ProductBuy({p}:{p:any}) {
                   </p>
 
                   {colorGroup?(
-                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
+                    <div className="flex flex-wrap items-start gap-x-5 gap-y-4">
                       {visibleValues.map(value=>{
                         const on=selectedOptions[group.name]===value;
                         const matching=vs.filter(x=>
@@ -624,7 +624,7 @@ export default function ProductBuy({p}:{p:any}) {
                             aria-pressed={on}
                             disabled={!exists}
                             onClick={()=>chooseOption(group.name,value)}
-                            className={`group flex min-w-0 flex-col items-center gap-2 rounded-xl border px-1.5 py-3 text-center transition disabled:cursor-not-allowed disabled:opacity-35 ${on?'border-rose bg-blush/35 shadow-sm':'border-plum/10 bg-white hover:border-plum/35 hover:shadow-sm'}`}>
+                            className="group flex min-w-[64px] flex-col items-center gap-2 px-1 py-1 text-center transition disabled:cursor-not-allowed disabled:opacity-35"
                             <span className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 bg-white p-[3px] transition ${
                               on?'border-rose ring-2 ring-rose/20 ring-offset-2'
                               :unavailable?'border-sand'
