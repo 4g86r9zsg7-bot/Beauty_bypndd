@@ -208,7 +208,7 @@ export default async function Cat({ params, searchParams }: PageProps) {
   // ---------- Produits ----------
   let q: any = supabase
     .from('products')
-    .select('id,name,slug,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,sold,created_at,brands(name)')
+    .select('id,name,slug,category_id,price,old_price,images,variants,availability,stock,is_bestseller,is_new,source_name,commercial_range,sold,created_at,brands(name)')
     .eq('active', true);
 
   if (fixed?.filter) q = fixed.filter(q);
@@ -294,6 +294,16 @@ export default async function Cat({ params, searchParams }: PageProps) {
   };
 
   const allProducts = [...(data || [])];
+
+  // Raccourcis dédiés à la catégorie Maquillage.
+  const categoryShortcuts = s === 'maquillage' && cat
+    ? kidsOf(all, cat.id).map((sub: any) => ({
+        ...sub,
+        productCount: allProducts.filter((p: any) =>
+          subtree(all, sub.id).includes(p.category_id)
+        ).length
+      }))
+    : [];
 
   const productPrice = (p: any) => {
     const vars = Array.isArray(p.variants) ? p.variants : [];
@@ -467,6 +477,30 @@ export default async function Cat({ params, searchParams }: PageProps) {
           <p className="mt-3 max-w-2xl text-xs leading-relaxed text-plum/75">
             Pour connaître l’arrivée de votre produit, gardez votre conversation WhatsApp et contactez notre équipe pour obtenir la confirmation de réception.
           </p>
+        </section>
+      )}
+
+      {s === 'maquillage' && (
+        <section className="mt-4">
+          <p className="max-w-3xl text-sm leading-relaxed text-ink/65">
+            Découvrez notre sélection maquillage pour sublimer votre teint, intensifier votre regard et apporter la touche finale à vos lèvres. Retrouvez facilement chaque essentiel grâce aux catégories ci-dessous.
+          </p>
+          {categoryShortcuts.length > 0 && (
+            <nav aria-label="Sous-catégories maquillage" className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              {categoryShortcuts.map((sub: any) => (
+                <Link
+                  key={sub.id}
+                  href={'/categorie/' + sub.slug}
+                  className="flex min-h-[76px] flex-col justify-center rounded-xl border border-[#EAD9E0] bg-gradient-to-b from-white to-[#FCF7F8] px-3 py-3 text-center transition hover:border-plum/50 hover:shadow-sm"
+                >
+                  <span className="font-serif text-sm leading-tight text-plum">{sub.name}</span>
+                  <span className="mt-1 text-[10px] text-ink/55">
+                    {sub.productCount} produit{sub.productCount > 1 ? 's' : ''}
+                  </span>
+                </Link>
+              ))}
+            </nav>
+          )}
         </section>
       )}
 
