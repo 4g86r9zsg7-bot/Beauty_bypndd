@@ -5,10 +5,12 @@ import HeartButton from '@/components/HeartButton';
 
 export default function ProductCard({
   p,
-  imageFit='cover'
+  imageFit='cover',
+  highlightPromo=false
 }:{
   p:any;
   imageFit?:'cover'|'contain';
+  highlightPromo?:boolean;
 }){
   const imgs:string[]=p.images||[];
   const variants=Array.isArray(p.variants)?p.variants:[];
@@ -99,6 +101,11 @@ export default function ProductCard({
               <s className="text-[11px] text-ink/45">{eur(p.old_price)}</s>
             )}
           </div>
+          {promo&&highlightPromo&&!sold&&(
+            <p className="mt-0.5 text-[10px] font-medium text-rose">
+              Économisez {eur(Number(p.old_price)-displayPrice)} ({off}%)
+            </p>
+          )}
 
           <p className="mt-1 min-h-[16px] text-[10px]">
             {inStock&&(
