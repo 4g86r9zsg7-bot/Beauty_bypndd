@@ -63,7 +63,7 @@ const toHexColor=(value:any):string=>{
 
 // Création du message WhatsApp personnalisé.
 // Aucun numéro de commande n'est communiqué au client.
-const createWhatsAppMessage=(o:any)=>{
+const createWhatsAppMessage=(o:any,products:any[]=[] )=>{
   const firstName=String(o.name||'').trim().split(/\s+/)[0]||'';
   const items=Array.isArray(o.items)?o.items:[];
   const hasPreorder=items.some((i:any)=>i.preorder===true);
@@ -98,6 +98,24 @@ const createWhatsAppMessage=(o:any)=>{
       message+='Nous vous tiendrons informée dès réception de votre commande afin d’organiser la livraison.\n\n';
     }else{
       message+='Délai de livraison estimé : 24 à 48 heures.\n\n';
+    }
+  }
+
+  if(o.status==='delivered'){
+    const productLinks=items
+      .map((item:any)=>{
+        const product=products.find((p:any)=>String(p.id)===String(item.id));
+        return product?.slug
+          ? {name:String(product.name||item.name||'Article'),url:`https://beautybypndd.com/produit/${encodeURIComponent(product.slug)}#avis`}
+          : null;
+      })
+      .filter((item:any)=>item!==null);
+
+    if(productLinks.length){
+      message+='Votre avis compte beaucoup pour nous ! 💜\\n';
+      message+='Retrouvez vos articles ici :\\n';
+      message+=productLinks.map((item:any)=>`- ${item.name} : ${item.url}`).join('\\n');
+      message+='\\n\\nPour partager votre expérience, répondez simplement à ce message WhatsApp. Nous serons ravies de vous lire !\\n\\n';
     }
   }
 
@@ -1593,7 +1611,7 @@ export default function Admin(){
 
                 {NMSG[o.status]&&(
                   <a
-                    href={`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(createWhatsAppMessage(o))}`}
+                    href={`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(createWhatsAppMessage(o,prods))}`}
                     className="rounded-full border border-plum px-4 py-2 text-xs text-plum"
                     target="_blank"
                     rel="noopener noreferrer"
