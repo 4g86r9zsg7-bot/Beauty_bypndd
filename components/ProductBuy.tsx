@@ -300,7 +300,7 @@ export default function ProductBuy({p}:{p:any}) {
         p.slug?`Lien : https://beautybypnd.com/produit/${p.slug}`:null,
         '',
         'Ma question :'
-      ].filter(Boolean).join('\\n')
+      ].filter(Boolean).join('\n')
     )}`;
 
   const shareProduct=async()=>{
