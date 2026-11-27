@@ -262,7 +262,7 @@ export default function ProductBuy({p}:{p:any}) {
   }
 
   const left=cur?.stock??p.stock;
-  const max=(pre||mode==='pre')?null:(left??null);
+  const max=(pre||mode==='pre'||mode==='reserve')?null:(left??null);
 
   const inCart=(lines||[]).find(
     (l:any)=>l.id===p.id&&l.variant===v
@@ -271,12 +271,12 @@ export default function ProductBuy({p}:{p:any}) {
   const full=max!=null&&inCart>=max;
   const needV=hasV&&!cur;
   const restockKey=`${p.id}:${v||''}`;
-  const needAck=mode==='pre'||(pre&&mode==='cart');
+  const needAck=mode==='pre'||mode==='reserve'||(pre&&mode==='cart');
 
   const status=mode==='pre'||needAck
     ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
     :mode==='reserve'
-    ?{label:'Prochain arrivage',detail:'Réservation possible sur WhatsApp',tone:'blue',icon:'calendar'}
+    ?{label:'Prochain arrivage',detail:'Réservation possible directement sur le site',tone:'blue',icon:'calendar'}
     :mode==='notify'
     ?{label:'Épuisé',detail:'Actuellement indisponible',tone:'red',icon:'x'}
     :(vst==='last'||(left!=null&&left>0&&left<=3))
@@ -291,16 +291,15 @@ export default function ProductBuy({p}:{p:any}) {
       :(!pre&&x.stock!=null&&x.stock<=0)?' · précommande':'';
   };
 
-  const wa=(s:string)=>
+  const waQuestion=()=>
     `https://wa.me/${WA}?text=${encodeURIComponent(
       [
-        `Bonjour BeautyByPND ! Je souhaite ${s} le produit suivant :`,
+        'Bonjour BeautyByPND ! J’ai une question au sujet de ce produit :',
         `Produit : ${p.name}`,
         v?`Variante : ${v}`:null,
-        `Prix : ${price} DH`,
-        p.slug?`Lien du produit : https://beautybypnd.com/produit/${p.slug}`:null,
+        p.slug?`Lien : https://beautybypnd.com/produit/${p.slug}`:null,
         '',
-        'Pouvez-vous me confirmer sa disponibilité et les modalités de livraison ?'
+        'Ma question :'
       ].filter(Boolean).join('\\n')
     )}`;
 
@@ -574,7 +573,7 @@ export default function ProductBuy({p}:{p:any}) {
         {!needV&&mode==='reserve'&&(
           <div className={note}>
             <b className="text-plum">Prochain arrivage.</b>
-            {' '}Réservez cet article : nous vous prévenons par WhatsApp dès sa réception.
+            {' '}Ajoutez-le à votre panier pour finaliser votre réservation sur le site. Nous vous prévenons par WhatsApp dès sa réception.
           </div>
         )}
 
@@ -796,10 +795,6 @@ export default function ProductBuy({p}:{p:any}) {
                 ?'Choisissez toutes les options pour voir les photos, le prix et la disponibilité de cette combinaison.'
                 :'Choisissez une variante pour voir ses photos, son prix et sa disponibilité.'}
             </p>
-          ):mode==='reserve'?(
-            <a href={wa('je souhaite réserver')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-              Réserver sur WhatsApp
-            </a>
           ):mode==='notify'?(
             <div className="space-y-2">
               <button type="button"
@@ -811,10 +806,6 @@ export default function ProductBuy({p}:{p:any}) {
               {restockErrors[restockKey]&&<p role="alert" className="text-center text-xs text-red-700">{restockErrors[restockKey]}</p>}
               {restockStatus[restockKey]&&<p className="text-center text-xs text-ink/60">Vous recevrez une notification dans votre espace client dès le retour de cet article.</p>}
             </div>
-          ):mode==='order'?(
-            <a href={wa('je souhaite commander')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-              Commander sur WhatsApp
-            </a>
           ):(
             <>
               {needAck&&(
@@ -823,7 +814,7 @@ export default function ProductBuy({p}:{p:any}) {
                     onChange={e=>setAck(e.target.checked)}
                     className="mt-1 accent-rose"/>
                   <span>
-                    Je comprends que c’est une précommande et que je dois patienter {PREORDER} avant la livraison.
+                    {mode==='reserve'?'Je comprends que cet article sera disponible au prochain arrivage.':'Je comprends que c’est une précommande et que je dois patienter '+PREORDER+' avant la livraison.'}
                   </span>
                 </label>
               )}
@@ -837,7 +828,7 @@ export default function ProductBuy({p}:{p:any}) {
                   setDone(true);
                 }}
                 className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-                {full?'Stock maximum atteint':needAck?'Précommander':'Ajouter au panier'}
+                {full?'Stock maximum atteint':mode==='reserve'?'Réserver sur le site':needAck?'Précommander':'Ajouter au panier'}
               </button>
 
               {full&&(
@@ -854,15 +845,14 @@ export default function ProductBuy({p}:{p:any}) {
                 </p>
               )}
 
-              {!needAck&&(
-                <a href={wa('je souhaite commander')}
-                  className={`${btn} border border-plum/30 bg-white text-plum hover:border-plum hover:bg-blush/30`}>
-                  Commander sur WhatsApp
-                </a>
-              )}
+
             </>
           )}
         </div>
+
+        <a href={waQuestion()} className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-plum/20 bg-white px-5 py-3 text-xs font-medium text-plum transition hover:border-rose hover:bg-blush/30">
+          Une question sur ce produit ? Contactez-nous sur WhatsApp
+        </a>
 
         {productBenefits&&(
           <section className="mt-6 rounded-2xl border border-rose/20 bg-blush/20 p-5 sm:p-6">
