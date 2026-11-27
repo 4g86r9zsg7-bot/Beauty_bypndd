@@ -18,8 +18,8 @@ begin
     raise exception 'Accès administrateur requis';
   end if;
 
-  if jsonb_typeof(p_offer) <> 'object'
-     or jsonb_typeof(p_items) <> 'array'
+  if jsonb_typeof(p_offer) is distinct from 'object'
+     or jsonb_typeof(p_items) is distinct from 'array'
      or jsonb_array_length(p_items) < 1 then
     raise exception 'Données de l’offre invalides';
   end if;
@@ -28,7 +28,7 @@ begin
     raise exception 'Le titre de l’offre est obligatoire';
   end if;
 
-  if p_offer->>'kind' not in ('pack','buy_x_get_1','variant_discount') then
+  if coalesce(p_offer->>'kind','') not in ('pack','buy_x_get_1','variant_discount') then
     raise exception 'Type d’offre invalide';
   end if;
 
@@ -69,6 +69,7 @@ begin
     if p_offer->>'kind' in ('pack','variant_discount')
        and pg_catalog.jsonb_typeof(v_product.variants) = 'array'
        and pg_catalog.jsonb_array_length(coalesce(v_product.variants,'[]'::jsonb)) > 0
+       and pg_catalog.jsonb_typeof(v_product.variants->0) = 'object'
        and nullif(v_item->>'variant','') is null then
       raise exception 'Une variante doit être choisie pour chaque produit concerné';
     end if;
