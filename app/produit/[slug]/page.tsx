@@ -145,14 +145,13 @@ export default async function P({params}:{params:Promise<{slug:string}>}){
 
   const {data:rv}=await supabase
     .from('reviews')
-    .select('rating,comment,customer_name,created_at')
+    .select('rating,comment,customer_name,created_at,order_id')
     .eq('product_id',p.id)
     .eq('published',true)
     .order('created_at',{ascending:false});
 
-  // Keep the public reviews query independent from the protected orders table.
-  // Purchase verification will be added through a dedicated safe server-side source.
-  const rl=(rv||[]).map((review:any)=>({...review,verified:false}));
+  // Each review is linked to a real order through the reviews.order_id foreign key.
+  const rl=(rv||[]).map((review:any)=>({...review,verified:Boolean(review.order_id)}));
   const avg=rl.length
     ?rl.reduce((s:number,x:any)=>s+Number(x.rating||0),0)/rl.length
     :0;
