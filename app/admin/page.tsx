@@ -102,10 +102,10 @@ const createWhatsAppMessage=(o:any,products:any[]=[],reviewToken='')=>{
   }
 
   if(o.status==='delivered'&&reviewToken){
-    message+='Votre avis compte beaucoup pour nous ! 💜\\n';
-    message+='Vous pouvez noter les articles reçus en cliquant sur ce lien sécurisé :\\n';
-    message+=`https://beautybypnd.com/avis/${reviewToken}\\n\\n`;
-    message+='Merci de prendre quelques instants pour partager votre expérience.\\n\\n';
+    message+='Votre avis compte beaucoup pour nous ! 💜\n';
+    message+='Vous pouvez noter les articles reçus en cliquant sur ce lien sécurisé :\n';
+    message+=`https://beautybypnd.com/avis/${reviewToken}\n\n`;
+    message+='Merci de prendre quelques instants pour partager votre expérience.\n\n';
   }
   message+='Nous vous remercions pour votre confiance.\n\nBeautyByPND';
 
