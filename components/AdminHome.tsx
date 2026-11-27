@@ -158,8 +158,8 @@ export default function AdminHome({stats:s,go,editProduct}:{
     },
     {
       key:'reviews',tab:'reviews',label:'Avis clientes',
-      desc:'Publier ou masquer les avis',
-      badge:s.hiddenReviews?`${s.hiddenReviews} masqués`:undefined,
+      desc:'Valider les avis avant leur publication',
+      badge:s.hiddenReviews?`${s.hiddenReviews} à valider`:undefined,
       alert:s.hiddenReviews>0,icon:'☆'
     },
     {
