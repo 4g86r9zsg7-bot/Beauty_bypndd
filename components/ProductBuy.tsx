@@ -563,7 +563,7 @@ export default function ProductBuy({p}:{p:any}) {
           </div>
         )}
 
-        {!needV&&(mode==='pre'||needAck)&&(
+        {!needV&&(mode==='pre'||(pre&&mode==='cart'))&&(
           <div className={note}>
             <b className="text-plum">Précommande.</b>
             {' '}Cet article n’est pas en stock : il est commandé pour vous, avec un délai de <b>{PREORDER}</b>, confirmé par WhatsApp.
