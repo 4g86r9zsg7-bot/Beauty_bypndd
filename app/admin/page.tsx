@@ -258,18 +258,12 @@ export default function Admin(){
   const [bulkBusy,setBulkBusy]=useState(false);
 
   async function check(){
-    const {data:{user}}=await supabase.auth.getUser();
-
+    const {data:{user},error:userError}=await supabase.auth.getUser();
+    if(userError){setMsg('Vérification de la session impossible : '+userError.message);setOk(false);return;}
     if(!user)return setOk(false);
-
-    const {data}=await supabase
-      .from('admins')
-      .select('user_id')
-      .eq('user_id',user.id)
-      .maybeSingle();
-
+    const {data,error}=await supabase.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();
+    if(error){setMsg('Vérification des droits administrateur impossible : '+error.message);setOk(false);return;}
     setOk(!!data);
-
     if(data)load();
   }
 
@@ -280,28 +274,18 @@ export default function Admin(){
       supabase.from('categories').select('*'),
       supabase.from('brands').select('*')
     ]);
-
-    setO(o.data||[]);
-    setP(p.data||[]);
-    setC(c.data||[]);
-    setB(b.data||[]);
-
-    const rv=await supabase
-      .from('reviews')
-      .select('*,products(name)')
-      .order('created_at',{ascending:false});
-
-    setRevs(rv.data||[]);
-
-    const pc=await supabase
-      .from('promo_codes')
-      .select('*')
-      .order('created_at',{ascending:false});
-
-    setPromos(pc.data||[]);
-
+    const errors:string[]=[];
+    if(o.error)errors.push('commandes : '+o.error.message);else setO(o.data||[]);
+    if(p.error)errors.push('produits : '+p.error.message);else setP(p.data||[]);
+    if(c.error)errors.push('catégories : '+c.error.message);else setC(c.data||[]);
+    if(b.error)errors.push('marques : '+b.error.message);else setB(b.data||[]);
+    const rv=await supabase.from('reviews').select('*,products(name)').order('created_at',{ascending:false});
+    if(rv.error)errors.push('avis : '+rv.error.message);else setRevs(rv.data||[]);
+    const pc=await supabase.from('promo_codes').select('*').order('created_at',{ascending:false});
+    if(pc.error)errors.push('codes promo : '+pc.error.message);else setPromos(pc.data||[]);
     const al=await supabase.from('admin_activity_logs').select('*').order('created_at',{ascending:false}).limit(100);
-    setActivity(al.data||[]);
+    if(al.error)errors.push('historique : '+al.error.message);else setActivity(al.data||[]);
+    if(errors.length)setMsg('Actualisation incomplète — '+errors.join(' · '));
   }
 
   async function logActivity(action:string,entityType:string,entityId:string|null,label:string,details:any={}){
@@ -991,43 +975,41 @@ export default function Admin(){
 
   const savePromo=async(e:any)=>{
     e.preventDefault();
-
     const code=String(pf.code||'').trim().toUpperCase();
-    const v=parseFloat(String(pf.value).replace(',','.'));
-
-    if(!code||!(v>0)){
-      setMsg('Code ou valeur invalide');
-      return;
-    }
-
+    const v=Number(String(pf.value??'').replace(',','.'));
     const targetType=pf.target_type||'all';
     const targetId=targetType==='all'?null:pf.target_id||null;
+    const maxUses=pf.max===''||pf.max==null?null:Number(pf.max);
+    if(!/^[A-Z0-9][A-Z0-9_-]{2,31}$/.test(code)){setMsg('Le code doit contenir 3 à 32 caractères : lettres, chiffres, tirets ou underscores.');return;}
+    if(!Number.isFinite(v)||v<=0){setMsg('La valeur de la réduction doit être supérieure à zéro.');return;}
+    if(pf.kind==='percent'&&(!Number.isInteger(v)||v>90)){setMsg('Le pourcentage doit être un nombre entier compris entre 1 et 90.');return;}
+    if(pf.kind==='fixed'&&v>10000000){setMsg('Le montant de la réduction est trop élevé.');return;}
+    if(!['percent','fixed'].includes(pf.kind)){setMsg('Choisis un type de réduction valide.');return;}
+    if(!['all','category','brand','product','variant'].includes(targetType)){setMsg('Choisis une cible valide pour ce code promo.');return;}
     if(targetType!=='all'&&!targetId){setMsg('Choisis la cible de ce code promo.');return;}
-    if(targetType==='variant'&&!pf.target_variant){setMsg('Choisis aussi la variante concernée.');return;}
-
+    if(targetType==='variant'&&!String(pf.target_variant||'').trim()){setMsg('Choisis aussi la variante concernée.');return;}
+    if(maxUses!==null&&(!Number.isInteger(maxUses)||maxUses<1||maxUses>1000000)){setMsg('La limite d’utilisation doit être un nombre entier supérieur ou égal à 1.');return;}
+    if(pf.starts&&pf.ends&&new Date(pf.ends+'T23:59:59')<new Date(pf.starts+'T00:00:00')){setMsg('La date de fin doit être postérieure ou égale à la date de début.');return;}
+    if(targetType==='category'&&!cats.some((x:any)=>x.id===targetId)){setMsg('La catégorie sélectionnée est introuvable.');return;}
+    if(targetType==='brand'&&!brands.some((x:any)=>x.id===targetId)){setMsg('La marque sélectionnée est introuvable.');return;}
+    const targetProduct=targetType==='product'||targetType==='variant'?prods.find((x:any)=>x.id===targetId):null;
+    if((targetType==='product'||targetType==='variant')&&!targetProduct){setMsg('Le produit sélectionné est introuvable.');return;}
+    if(targetType==='variant'){
+      const variants=Array.isArray(targetProduct?.variants)?targetProduct.variants:[];
+      if(!variants.some((x:any)=>typeof x==='string'?x===pf.target_variant:x?.name===pf.target_variant)){setMsg('La variante sélectionnée n’existe plus sur ce produit.');return;}
+    }
     const row:any={
-      code,
-      kind:pf.kind,
-      target_type:targetType,
-      target_id:targetId,
-      target_variant:targetType==='variant'?pf.target_variant:null,
-      percent:pf.kind==='percent'?Math.min(90,Math.round(v)):null,
-      amount:pf.kind==='fixed'?v:null,
+      code,kind:pf.kind,target_type:targetType,target_id:targetId,
+      target_variant:targetType==='variant'?String(pf.target_variant).trim():null,
+      percent:pf.kind==='percent'?v:null,amount:pf.kind==='fixed'?v:null,
       starts_at:pf.starts?new Date(pf.starts+'T00:00:00').toISOString():null,
       expires_at:pf.ends?new Date(pf.ends+'T23:59:59').toISOString():null,
-      max_uses:pf.max?parseInt(pf.max):null,
-      active:pf.active!==false
+      max_uses:maxUses,active:pf.active!==false
     };
-
     const {error}=await supabase.from('promo_codes').upsert(row,{onConflict:'code'});
     if(!error)await logActivity('Enregistrement code promo','code promo',code,code,{kind:row.kind,active:row.active});
-
-    setMsg(error?error.message:'Code enregistré');
-
-    if(!error){
-      setPf({kind:'percent',active:true,target_type:'all'});
-      load();
-    }
+    setMsg(error?'Enregistrement du code promo impossible : '+error.message:'Code promo enregistré avec succès.');
+    if(!error){setPf({kind:'percent',active:true,target_type:'all'});await load();}
   };
 
   const editPromo=(c:any)=>setPf({
@@ -1044,22 +1026,30 @@ export default function Admin(){
   });
 
   const togglePromo=async(c:any)=>{
-    await supabase.from('promo_codes').update({active:!c.active}).eq('code',c.code);
-    load();
+    const {error}=await supabase.from('promo_codes').update({active:!c.active}).eq('code',c.code);
+    setMsg(error?'Modification du code promo impossible : '+error.message:(c.active?'Code promo désactivé.':'Code promo activé.'));
+    if(!error)await load();
   };
 
   const delPromo=async(c:any)=>{
     if(confirm(`Supprimer le code ${c.code} ?`)){
-      await supabase.from('promo_codes').delete().eq('code',c.code);
-      load();
+      const {error}=await supabase.from('promo_codes').delete().eq('code',c.code);
+      setMsg(error?'Suppression impossible : '+error.message:'Code promo supprimé.');
+      if(!error)await load();
     }
   };
 
   const upd=async(id:string,patch:any)=>{
     const product=prods.find(p=>p.id===id);
+    if(product&&hasObjVars(product)&&Object.prototype.hasOwnProperty.call(patch,'availability')){
+      setMsg('Pour un produit avec variantes, modifie la disponibilité de chaque variante dans sa fiche produit. La disponibilité générale est calculée automatiquement.');
+      return;
+    }
     const {error}=await supabase.from('products').update(patch).eq('id',id);
-    if(!error)await logActivity('Modification rapide produit','produit',id,product?.name||'Produit',patch);
-    load();
+    if(error){setMsg('Modification impossible : '+error.message);return;}
+    await logActivity('Modification rapide produit','produit',id,product?.name||'Produit',patch);
+    setMsg('Modification enregistrée.');
+    await load();
   };
 
   const toggleBulkProduct=(p:any)=>{
@@ -1096,9 +1086,11 @@ export default function Admin(){
 
       let patch:any={};
       if(hasObjVars(p)){
-        const variants=(draft.variants||[]).map((v:any)=>{
+        const sourceVariants=draft.variants||[];
+        if(sourceVariants.some((v:any)=>typeof v==='object'&&(!Number.isInteger(Number(v.stock))||Number(v.stock)<0))){failed++;continue;}
+        const variants=sourceVariants.map((v:any)=>{
           if(typeof v!=='object')return v;
-          const quantity=Math.max(0,Math.floor(Number(v.stock)||0));
+          const quantity=Number(v.stock);
           const status=['available','last','soldout'].includes(v.status||'available')
             ?(quantity<=0?'soldout':quantity<=3?'last':'available')
             :(v.status||'available');
@@ -1116,7 +1108,8 @@ export default function Admin(){
           :'soldout';
         patch={variants,stock,availability};
       }else{
-        const stock=Math.max(0,Math.floor(Number(draft.stock)||0));
+        const stock=Number(draft.stock);
+        if(!Number.isInteger(stock)||stock<0){failed++;continue;}
         patch={stock,availability:autoAv(p.availability,stock)};
       }
 
@@ -1804,17 +1797,19 @@ export default function Admin(){
                   />
                 </label>}
 
-              <select
-                value={p.availability}
-                onChange={e=>upd(p.id,{availability:e.target.value})}
-                className="border p-1"
-              >
-                <option value="available">Disponible</option>
-                <option value="arrival">Arrivage</option>
-                <option value="preorder">Précommande</option>
-                <option value="last">Dernières pièces</option>
-                <option value="soldout">Épuisé</option>
-              </select>
+              {hasObjVars(p)
+                ?<span className="text-xs text-ink/65">Disponibilité calculée selon les variantes</span>
+                :<select
+                  value={p.availability}
+                  onChange={e=>upd(p.id,{availability:e.target.value})}
+                  className="border p-1"
+                >
+                  <option value="available">Disponible</option>
+                  <option value="arrival">Arrivage</option>
+                  <option value="preorder">Précommande</option>
+                  <option value="last">Dernières pièces</option>
+                  <option value="soldout">Épuisé</option>
+                </select>}
 
               <button onClick={()=>startEdit(p)} className="underline font-semibold">
                 Modifier
