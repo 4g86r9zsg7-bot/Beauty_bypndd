@@ -9,7 +9,7 @@ const items=[
 
 export default function HomeTrust(){
   return (
-    <section aria-label="Nos engagements" className="mx-auto mt-8 w-full max-w-6xl px-3 pb-5 sm:px-6 lg:px-8">
+    <section aria-label="Nos engagements" className="mx-auto mt-8 w-full max-w-6xl px-3 pb-0 sm:px-6 lg:px-8">
       <div className="bg-[#FCF6F8]">
         <div className="grid grid-cols-4 items-center gap-1 px-1 py-3 sm:px-4 sm:py-4">
           {items.map(item=>(
@@ -19,7 +19,7 @@ export default function HomeTrust(){
             </div>
           ))}
         </div>
-        <div className="pb-2 text-center">
+        <div className="pb-1 text-center">
           <Link href="/livraison" className="text-[8px] font-medium text-plum/70 underline decoration-[#C6A15B] underline-offset-2 sm:text-[9px]">
             Voir les conditions de livraison
           </Link>
