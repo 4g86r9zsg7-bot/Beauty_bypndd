@@ -1026,22 +1026,30 @@ export default function Admin(){
   });
 
   const togglePromo=async(c:any)=>{
-    await supabase.from('promo_codes').update({active:!c.active}).eq('code',c.code);
-    load();
+    const {error}=await supabase.from('promo_codes').update({active:!c.active}).eq('code',c.code);
+    setMsg(error?'Modification du code promo impossible : '+error.message:(c.active?'Code promo désactivé.':'Code promo activé.'));
+    if(!error)await load();
   };
 
   const delPromo=async(c:any)=>{
     if(confirm(`Supprimer le code ${c.code} ?`)){
-      await supabase.from('promo_codes').delete().eq('code',c.code);
-      load();
+      const {error}=await supabase.from('promo_codes').delete().eq('code',c.code);
+      setMsg(error?'Suppression impossible : '+error.message:'Code promo supprimé.');
+      if(!error)await load();
     }
   };
 
   const upd=async(id:string,patch:any)=>{
     const product=prods.find(p=>p.id===id);
+    if(product&&hasObjVars(product)&&Object.prototype.hasOwnProperty.call(patch,'availability')){
+      setMsg('Pour un produit avec variantes, modifie la disponibilité de chaque variante dans sa fiche produit. La disponibilité générale est calculée automatiquement.');
+      return;
+    }
     const {error}=await supabase.from('products').update(patch).eq('id',id);
-    if(!error)await logActivity('Modification rapide produit','produit',id,product?.name||'Produit',patch);
-    load();
+    if(error){setMsg('Modification impossible : '+error.message);return;}
+    await logActivity('Modification rapide produit','produit',id,product?.name||'Produit',patch);
+    setMsg('Modification enregistrée.');
+    await load();
   };
 
   const toggleBulkProduct=(p:any)=>{
@@ -1078,9 +1086,11 @@ export default function Admin(){
 
       let patch:any={};
       if(hasObjVars(p)){
-        const variants=(draft.variants||[]).map((v:any)=>{
+        const sourceVariants=draft.variants||[];
+        if(sourceVariants.some((v:any)=>typeof v==='object'&&(!Number.isInteger(Number(v.stock))||Number(v.stock)<0))){failed++;continue;}
+        const variants=sourceVariants.map((v:any)=>{
           if(typeof v!=='object')return v;
-          const quantity=Math.max(0,Math.floor(Number(v.stock)||0));
+          const quantity=Number(v.stock);
           const status=['available','last','soldout'].includes(v.status||'available')
             ?(quantity<=0?'soldout':quantity<=3?'last':'available')
             :(v.status||'available');
@@ -1098,7 +1108,8 @@ export default function Admin(){
           :'soldout';
         patch={variants,stock,availability};
       }else{
-        const stock=Math.max(0,Math.floor(Number(draft.stock)||0));
+        const stock=Number(draft.stock);
+        if(!Number.isInteger(stock)||stock<0){failed++;continue;}
         patch={stock,availability:autoAv(p.availability,stock)};
       }
 
@@ -1786,17 +1797,19 @@ export default function Admin(){
                   />
                 </label>}
 
-              <select
-                value={p.availability}
-                onChange={e=>upd(p.id,{availability:e.target.value})}
-                className="border p-1"
-              >
-                <option value="available">Disponible</option>
-                <option value="arrival">Arrivage</option>
-                <option value="preorder">Précommande</option>
-                <option value="last">Dernières pièces</option>
-                <option value="soldout">Épuisé</option>
-              </select>
+              {hasObjVars(p)
+                ?<span className="text-xs text-ink/65">Disponibilité calculée selon les variantes</span>
+                :<select
+                  value={p.availability}
+                  onChange={e=>upd(p.id,{availability:e.target.value})}
+                  className="border p-1"
+                >
+                  <option value="available">Disponible</option>
+                  <option value="arrival">Arrivage</option>
+                  <option value="preorder">Précommande</option>
+                  <option value="last">Dernières pièces</option>
+                  <option value="soldout">Épuisé</option>
+                </select>}
 
               <button onClick={()=>startEdit(p)} className="underline font-semibold">
                 Modifier
