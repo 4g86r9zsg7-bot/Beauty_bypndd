@@ -242,6 +242,7 @@ export default async function Home(){
   return (
     <>
       <Shortcuts/>
+      <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
       <Hero/>
 
       {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
@@ -309,7 +310,6 @@ export default async function Home(){
 
         </div>
 
-        <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
 
         {/* CATEGORIES */}
         <section aria-labelledby="home-categories-title" className="mt-16 rounded-3xl bg-[#FCF8F8] px-4 py-10 sm:px-6 md:py-12">

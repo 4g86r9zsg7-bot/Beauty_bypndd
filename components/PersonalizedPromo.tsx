@@ -1,13 +1,13 @@
 'use client';
 
 import {useEffect,useMemo,useState} from 'react';
-import Link from 'next/link';
 
 const STORAGE_KEY='beautybypndd_recently_viewed';
 
 export default function PersonalizedPromo({codes}:{codes:any[]}){
   const [history,setHistory]=useState<any[]>([]);
   const [ready,setReady]=useState(false);
+  const [activeIndex,setActiveIndex]=useState(0);
 
   useEffect(()=>{
     try{
@@ -47,51 +47,35 @@ export default function PersonalizedPromo({codes}:{codes:any[]}){
       .slice(0,4);
   },[codes,history,ready]);
 
+  useEffect(()=>{
+    setActiveIndex(0);
+    if(matching.length<2)return;
+    const timer=window.setInterval(()=>{
+      setActiveIndex(current=>(current+1)%matching.length);
+    },6500);
+    return ()=>window.clearInterval(timer);
+  },[matching]);
+
   if(!ready||!matching.length)return null;
-  const personalized=matching.some((p:any)=>(p.target_type||'all')!=='all');
+  const promo=matching[activeIndex%matching.length];
+  const saving=promo.kind==='percent'?'-'+Number(promo.percent)+' %':'-'+Number(promo.amount)+' DH';
+  const message='Code promo '+promo.code+' : '+saving+' à saisir dans votre panier';
 
   return (
-    <section className="relative mt-7 overflow-hidden rounded-[26px] border border-[#C6A15B]/45 bg-gradient-to-br from-[#fff8fa] via-white to-[#f8eaf0] px-5 py-8 shadow-sm sm:px-8">
-      <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#C6A15B]/10 blur-3xl"/>
-      <div className="relative">
-        <div className="text-center">
-          <p className="text-[10px] uppercase tracking-[0.35em] text-[#98783b]">
-            {personalized?'Selon vos intérêts':'Un petit cadeau pour vous'}
-          </p>
-          <h2 className="mt-3 font-serif text-3xl text-plum sm:text-4xl">
-            {personalized?'Offres sélectionnées pour vous':'Codes promo exclusifs'}
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/65">
-            {personalized
-              ?'Voici les réductions actives qui correspondent aux produits et catégories que vous avez consultés.'
-              :'Profitez des codes promo actuellement disponibles dans notre boutique.'}
-          </p>
-          <div className="mx-auto mt-4 h-px w-16 bg-[#C6A15B]"/>
-        </div>
-        <div className="mx-auto mt-7 grid max-w-4xl gap-4 sm:grid-cols-2">
-          {matching.map((p:any)=>(
-            <div key={p.id||p.code} className="relative overflow-hidden rounded-2xl border border-[#ead8df] bg-white/90 p-5 text-center shadow-sm">
-              <span className="text-[9px] uppercase tracking-[0.25em] text-[#98783b]">
-                {p.target_type&&p.target_type!=='all'?'Offre adaptée à vos intérêts':'Code disponible'}
-              </span>
-              <p className="mt-2 break-all font-serif text-2xl font-semibold tracking-[0.12em] text-plum">{p.code}</p>
-              <p className="mt-2 font-serif text-3xl text-rose">
-                {p.kind==='percent'?'-'+Number(p.percent)+' %':'-'+Number(p.amount)+' DH'}
-              </p>
-              <p className="mt-2 text-xs font-medium text-plum">{p.target_label||'Valable sur le catalogue'}</p>
-              <p className="mt-1 text-[10px] text-ink/55">À saisir dans votre panier</p>
-              {p.expires_at&&(
-                <p className="mt-2 text-[10px] text-[#98783b]">
-                  Valable jusqu'au {new Date(p.expires_at).toLocaleDateString('fr-FR')}
-                </p>
-              )}
-              <Link href="/categorie/tous" className="mt-4 inline-flex rounded-full border border-[#C6A15B] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-plum transition hover:bg-[#fdf3f7]">
-                En profiter
-              </Link>
-            </div>
-          ))}
-        </div>
+    <div className="promo-ticker relative mb-2 mt-0 overflow-hidden border-y border-[#eadde2] bg-gradient-to-r from-[#fffafb] via-[#f9eff3] to-[#fffafb] py-2" aria-label="Codes promotionnels disponibles">
+      <div className="promo-ticker-track" aria-live="polite">
+        {[0,1].map(copy=>(
+          <span key={copy} className="promo-ticker-message" aria-hidden={copy===1}>
+            <span className="promo-ticker-kicker">Offre privilège</span>
+            <span className="promo-ticker-separator" aria-hidden="true">✦</span>
+            <span>Code <strong className="promo-ticker-code">{promo.code}</strong></span>
+            <strong className="promo-ticker-saving">{saving}</strong>
+            <span>à saisir dans votre panier</span>
+            <span className="promo-ticker-separator" aria-hidden="true">✦</span>
+          </span>
+        ))}
       </div>
-    </section>
+      <span className="sr-only">{message}</span>
+    </div>
   );
 }
