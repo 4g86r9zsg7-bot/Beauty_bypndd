@@ -106,7 +106,7 @@ const createWhatsAppMessage=(o:any,products:any[]=[] )=>{
       .map((item:any)=>{
         const product=products.find((p:any)=>String(p.id)===String(item.id));
         return product?.slug
-          ? {name:String(product.name||item.name||'Article'),url:`https://beautybypndd.com/produit/${encodeURIComponent(product.slug)}#avis`}
+          ? {name:String(product.name||item.name||'Article'),url:`https://beautybypnd.com/produit/${encodeURIComponent(product.slug)}#avis`}
           : null;
       })
       .filter((item:any)=>item!==null);
