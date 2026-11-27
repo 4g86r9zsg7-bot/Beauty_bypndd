@@ -11,14 +11,14 @@ import {OfferCountdown,OfferDetails} from '@/components/OfferExtras';
 
 export const dynamic='force-dynamic';
 
-const title='Packs & Offres exclusives | Beauty_bypndd';
-const description='Découvrez les packs beauté et offres exclusives Beauty_bypndd à prix avantageux.';
+const title='Packs & Offres exclusives';
+const description='Découvrez les packs beauté et offres exclusives BeautyByPND à prix avantageux, avec livraison partout au Maroc.';
 
 export const metadata={
   title,
   description,
   alternates:{canonical:'/offres'},
-  openGraph:{title,description,url:'/offres',siteName:'Beauty_bypndd',locale:'fr_FR',type:'website'}
+  openGraph:{title:`${title} | BeautyByPND`,description,url:'/offres',siteName:'BeautyByPND',locale:'fr_MA',type:'website'}
 };
 
 const TAGS:Record<string,string>={
