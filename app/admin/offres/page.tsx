@@ -23,8 +23,12 @@ export default function Offres(){
       supabase.from('offers').select('*, offer_items(id,product_id,variant,qty)').order('created_at',{ascending:false}),
       supabase.from('products').select('id,name,price,variants,active').eq('active',true).order('name'),
     ]);
-    if(o.error)setMsg('Impossible de charger les offres : '+o.error.message);
-    setOffers(o.data||[]);setProds(p.data||[]);
+    if(o.error||p.error){
+      const errors=[o.error&&'offres : '+o.error.message,p.error&&'produits : '+p.error.message].filter(Boolean);
+      setMsg('Chargement incomplet — '+errors.join(' · '));
+    }
+    if(!o.error)setOffers(o.data||[]);
+    if(!p.error)setProds(p.data||[]);
   };
   useEffect(()=>{load()},[]);
   const pm=new Map(prods.map((p:any)=>[p.id,p]));
@@ -99,8 +103,8 @@ export default function Offres(){
     if(error||!id)return setMsg('Enregistrement impossible : '+(error?.message||'identifiant de l’offre manquant'));
     setMsg('Offre enregistrée avec succès.');reset();await load();
   }
-  async function del(o:any){if(!confirm(`Supprimer l’offre « ${o.title} » ?`))return;const {error}=await supabase.from('offers').delete().eq('id',o.id);setMsg(error?error.message:'Offre supprimée');load()}
-  async function toggle(o:any){const {error}=await supabase.from('offers').update({active:!o.active}).eq('id',o.id);setMsg(error?error.message:o.active?'Offre désactivée':'Offre activée');load()}
+  async function del(o:any){if(!confirm(`Supprimer l’offre « ${o.title} » ?`))return;const {error}=await supabase.from('offers').delete().eq('id',o.id);setMsg(error?'Suppression impossible : '+error.message:'Offre supprimée.');if(!error)await load()}
+  async function toggle(o:any){const {error}=await supabase.from('offers').update({active:!o.active}).eq('id',o.id);setMsg(error?'Modification impossible : '+error.message:(o.active?'Offre désactivée.':'Offre activée.'));if(!error)await load()}
 
   const inp="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm";
   const hits=q.trim().length>=2?prods.filter((p:any)=>p.name.toLowerCase().includes(q.trim().toLowerCase())&&(vnames(p).length?vnames(p).some(v=>!items.some(i=>i.product_id===p.id&&i.variant===v)):!items.some(i=>i.product_id===p.id))).slice(0,8):[];
