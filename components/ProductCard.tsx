@@ -85,7 +85,7 @@ export default function ProductCard({
         </div>
 
         <div className="pt-2.5">
-          <p className="truncate text-[9px] font-medium uppercase tracking-[0.14em] text-plum/75">
+          <p className="min-h-[2.4em] line-clamp-2 break-words text-[8px] font-medium uppercase leading-[1.2] tracking-[0.1em] text-plum/75 sm:text-[9px] sm:tracking-[0.14em]">
             {brandLine||'\u00a0'}
           </p>
 
