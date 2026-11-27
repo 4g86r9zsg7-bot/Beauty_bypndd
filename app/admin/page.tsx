@@ -505,7 +505,7 @@ export default function Admin(){
       token=String(data);
       setReviewTokens(old=>({...old,[o.id]:token}));
     }
-    const url=`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(createWhatsAppMessage(o,prods,token))}`;
+    const url=`https://wa.me/${waNum(o.phone)}?text=${encodeURIComponent(createWhatsAppMessage(o,token))}`;
     popup.location.href=url;
   };
 
