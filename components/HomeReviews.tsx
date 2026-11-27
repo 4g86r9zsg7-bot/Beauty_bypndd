@@ -37,17 +37,6 @@ export default function HomeReviews({list}:{list:any[]}) {
           </ul>
         </div>
       </div>
-      <style jsx>{`
-        .home-reviews-track { animation: home-reviews-marquee 42s linear infinite; }
-        .home-reviews-track:hover { animation-play-state: paused; }
-        @keyframes home-reviews-marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .home-reviews-track { animation: none; }
-        }
-      `}</style>
     </section>
   );
 }
