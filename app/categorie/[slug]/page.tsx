@@ -462,10 +462,10 @@ export default async function Cat({ params, searchParams }: PageProps) {
             Réservez vos prochains coups de cœur beauté
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink/65">
-            Un produit vous intéresse ? Ouvrez sa fiche et choisissez « Réserver sur WhatsApp ». Notre équipe vous confirmera les modalités et le délai estimé avant de valider votre réservation.
+            Un produit vous intéresse ? Ouvrez sa fiche pour l’ajouter à votre panier et finaliser votre réservation directement sur le site.
           </p>
           <p className="mt-3 max-w-2xl text-xs leading-relaxed text-plum/75">
-            Pour connaître l’arrivée de votre produit, gardez votre conversation WhatsApp et contactez notre équipe pour obtenir la confirmation de réception.
+            Nous vous préviendrons par WhatsApp dès la réception de votre article. Pour toute question, notre équipe reste à votre écoute.
           </p>
         </section>
       )}
