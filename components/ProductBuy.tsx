@@ -823,7 +823,7 @@ export default function ProductBuy({p}:{p:any}) {
                 onClick={()=>{
                   add({
                     id:p.id,name:p.name,price,qty:1,
-                    image:vph[0]||base,variant:v,max,pre:needAck
+                    image:vph[0]||base,variant:v,max,pre:mode==='reserve'?false:needAck
                   });
                   setDone(true);
                 }}
