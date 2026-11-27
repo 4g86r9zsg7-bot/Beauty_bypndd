@@ -11,4 +11,7 @@ body{@apply bg-cream text-ink font-sans}
 .promo-ticker-separator{color:#b18a4a;font-size:10px}
 .promo-ticker-code{display:inline-block;margin-left:.2rem;border:1px solid #e4cbd5;border-radius:4px;background:#fff;padding:.18rem .42rem;color:#54283f;font-size:10px;letter-spacing:.13em}
 .promo-ticker-saving{color:#98783b;font-size:10px;font-weight:700;letter-spacing:.08em}
-@media(prefers-reduced-motion:reduce){.promo-ticker-track{animation:none;transform:none}.promo-ticker-message:nth-child(2){display:none}}
+@keyframes homeReviewsMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.home-reviews-track{animation:homeReviewsMarquee 42s linear infinite}
+.home-reviews-track:hover{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.promo-ticker-track,.home-reviews-track{animation:none;transform:none}.promo-ticker-message:nth-child(2){display:none}}
