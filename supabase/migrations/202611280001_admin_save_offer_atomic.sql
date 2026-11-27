@@ -66,6 +66,13 @@ begin
 
     if not found then raise exception 'Un produit de cette offre est introuvable'; end if;
 
+    if p_offer->>'kind' in ('pack','variant_discount')
+       and pg_catalog.jsonb_typeof(v_product.variants) = 'array'
+       and pg_catalog.jsonb_array_length(coalesce(v_product.variants,'[]'::jsonb)) > 0
+       and nullif(v_item->>'variant','') is null then
+      raise exception 'Une variante doit être choisie pour chaque produit concerné';
+    end if;
+
     if nullif(v_item->>'variant','') is not null
        and not exists (
          select 1
@@ -122,6 +129,22 @@ begin
     delete from public.offer_items where offer_id=v_id;
   end if;
 
+  if p_offer->>'kind' = 'pack'
+     and (select coalesce(sum(greatest(1,coalesce(nullif(x->>'qty','')::integer,1))),0)
+          from pg_catalog.jsonb_array_elements(p_items) x) < 2 then
+    raise exception 'Un pack doit contenir au moins deux articles';
+  end if;
+
+  if p_offer->>'kind' = 'buy_x_get_1'
+     and coalesce(nullif(p_offer->>'buy_qty','')::integer,0) < 1 then
+    raise exception 'Quantité de produits achetés invalide';
+  end if;
+
+  if p_offer->>'kind' = 'variant_discount'
+     and p_offer->>'discount_type' not in ('percent','amount') then
+    raise exception 'Type de réduction invalide';
+  end if;
+
   insert into public.offer_items(offer_id,product_id,variant,qty)
   select
     v_id,
@@ -138,3 +161,28 @@ $$;
 
 revoke all on function public.admin_save_offer(jsonb,jsonb,uuid) from public, anon;
 grant execute on function public.admin_save_offer(jsonb,jsonb,uuid) to authenticated;
+
+alter table public.promo_codes
+  add constraint promo_codes_kind_valid
+  check (kind in ('percent','fixed')) not valid;
+alter table public.promo_codes validate constraint promo_codes_kind_valid;
+
+alter table public.promo_codes
+  add constraint promo_codes_percent_valid
+  check (kind <> 'percent' or (percent is not null and percent between 1 and 90)) not valid;
+alter table public.promo_codes validate constraint promo_codes_percent_valid;
+
+alter table public.promo_codes
+  add constraint promo_codes_amount_valid
+  check (kind <> 'fixed' or (amount is not null and amount > 0)) not valid;
+alter table public.promo_codes validate constraint promo_codes_amount_valid;
+
+alter table public.promo_codes
+  add constraint promo_codes_max_uses_valid
+  check (max_uses is null or max_uses >= 1) not valid;
+alter table public.promo_codes validate constraint promo_codes_max_uses_valid;
+
+alter table public.promo_codes
+  add constraint promo_codes_dates_valid
+  check (starts_at is null or expires_at is null or expires_at >= starts_at) not valid;
+alter table public.promo_codes validate constraint promo_codes_dates_valid;
