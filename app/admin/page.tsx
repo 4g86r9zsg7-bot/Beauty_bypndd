@@ -1164,7 +1164,7 @@ export default function Admin(){
           ['orders','Commandes'],
           ['products','Produits'],
           ['history','Historique'],
-          ['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' masqués':revs.length})`],
+          ['reviews',`Avis (${revs.filter(r=>!r.published).length?revs.filter(r=>!r.published).length+' à valider':revs.length})`],
           ['promos','Codes promo'],
           ['new','Ajouter un produit'],
           ['security','Mot de passe']
@@ -1499,7 +1499,7 @@ export default function Admin(){
                 </button>
 
                 <span className={r.published?'text-plum':'text-red-700'}>
-                  {r.published?'Publié':'Masqué'}
+                  {r.published?'Publié':'En attente de validation'}
                 </span>
               </div>
             </div>
