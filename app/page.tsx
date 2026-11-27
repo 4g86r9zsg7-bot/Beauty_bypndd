@@ -9,6 +9,7 @@ import Suggestions from '@/components/Suggestions';
 import PersonalizedPromo from '@/components/PersonalizedPromo';
 import HomePicks from '@/components/HomePicks';
 import HomeTrust from '@/components/HomeTrust';
+import HomeReviews from '@/components/HomeReviews';
 
 export const revalidate=30;
 
@@ -43,7 +44,7 @@ const uniq=(a:any[]|null)=>{
 
 export default async function Home(){
 
-  const [{data:c},{data:b},{data:promoData}]=await Promise.all([
+  const [{data:c},{data:b},{data:promoData},{data:reviewData}]=await Promise.all([
     supabase.from('categories')
       .select('id,name,slug,parent_id,image_url,position')
       .order('position',{nullsFirst:false})
@@ -53,6 +54,10 @@ export default async function Home(){
       .order('name'),
     supabase.from('promo_codes')
       .select('code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,created_at')
+      .order('created_at',{ascending:false}),
+    supabase.from('reviews')
+      .select('id,rating,comment,customer_name,created_at,order_id')
+      .eq('published',true)
       .order('created_at',{ascending:false})
   ]);
 
@@ -64,6 +69,10 @@ export default async function Home(){
   const {data:promoProducts}=promoProductIds.length
     ?await supabase.from('products').select('id,name').in('id',promoProductIds)
     :{data:[]};
+
+  const homeReviews=(reviewData||[])
+    .filter((review:any)=>Number(review.rating)>=1&&Number(review.rating)<=5)
+    .map((review:any)=>({...review,verified:Boolean(review.order_id)}));
 
   const cats=uniq(c);
   const brands=uniq(b);
@@ -248,6 +257,7 @@ export default async function Home(){
       {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
       <HomeShelves groups={groups} olderItems={olderItems}/>
       <HomePicks items={homePicks}/>
+      <HomeReviews list={homeReviews}/>
 
       <main className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
 
