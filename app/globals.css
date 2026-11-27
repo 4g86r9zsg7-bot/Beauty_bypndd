@@ -4,7 +4,11 @@ body{@apply bg-cream text-ink font-sans}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 @keyframes promoTickerMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.promo-ticker-track{display:flex;width:max-content;animation:promoTickerMove 22s linear infinite}
+.promo-ticker-track{display:flex;width:max-content;animation:promoTickerMove 24s linear infinite}
 .promo-ticker:hover .promo-ticker-track{animation-play-state:paused}
-.promo-ticker-message{display:flex;flex:none;align-items:center;gap:1.25rem;padding:0 1.5rem;color:#54283f;font-family:var(--f-sans),sans-serif;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.promo-ticker-message{display:flex;flex:none;align-items:center;gap:.9rem;padding:0 1.25rem;color:#54283f;font-family:var(--f-sans),sans-serif;font-size:9px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+.promo-ticker-kicker{color:#98783b;font-size:8px;font-weight:700;letter-spacing:.16em}
+.promo-ticker-separator{color:#b18a4a;font-size:10px}
+.promo-ticker-code{display:inline-block;margin-left:.2rem;border:1px solid #e4cbd5;border-radius:4px;background:#fff;padding:.18rem .42rem;color:#54283f;font-size:10px;letter-spacing:.13em}
+.promo-ticker-saving{color:#98783b;font-size:10px;font-weight:700;letter-spacing:.08em}
 @media(prefers-reduced-motion:reduce){.promo-ticker-track{animation:none;transform:none}.promo-ticker-message:nth-child(2){display:none}}
