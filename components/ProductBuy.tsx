@@ -273,10 +273,10 @@ export default function ProductBuy({p}:{p:any}) {
   const restockKey=`${p.id}:${v||''}`;
   const needAck=mode==='pre'||mode==='reserve'||(pre&&mode==='cart');
 
-  const status=mode==='pre'||needAck
-    ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
-    :mode==='reserve'
+  const status=mode==='reserve'
     ?{label:'Prochain arrivage',detail:'Réservation possible directement sur le site',tone:'blue',icon:'calendar'}
+    :mode==='pre'||needAck
+    ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
     :mode==='notify'
     ?{label:'Épuisé',detail:'Actuellement indisponible',tone:'red',icon:'x'}
     :(vst==='last'||(left!=null&&left>0&&left<=3))
