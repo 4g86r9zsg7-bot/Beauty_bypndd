@@ -262,7 +262,7 @@ export default function ProductBuy({p}:{p:any}) {
   }
 
   const left=cur?.stock??p.stock;
-  const max=(pre||mode==='pre')?null:(left??null);
+  const max=(pre||mode==='pre'||mode==='reserve')?null:(left??null);
 
   const inCart=(lines||[]).find(
     (l:any)=>l.id===p.id&&l.variant===v
@@ -271,12 +271,12 @@ export default function ProductBuy({p}:{p:any}) {
   const full=max!=null&&inCart>=max;
   const needV=hasV&&!cur;
   const restockKey=`${p.id}:${v||''}`;
-  const needAck=mode==='pre'||(pre&&mode==='cart');
+  const needAck=mode==='pre'||mode==='reserve'||(pre&&mode==='cart');
 
-  const status=mode==='pre'||needAck
+  const status=mode==='reserve'
+    ?{label:'Prochain arrivage',detail:'Réservation possible directement sur le site',tone:'blue',icon:'calendar'}
+    :mode==='pre'||needAck
     ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
-    :mode==='reserve'
-    ?{label:'Prochain arrivage',detail:'Réservation possible sur WhatsApp',tone:'blue',icon:'calendar'}
     :mode==='notify'
     ?{label:'Épuisé',detail:'Actuellement indisponible',tone:'red',icon:'x'}
     :(vst==='last'||(left!=null&&left>0&&left<=3))
@@ -288,20 +288,19 @@ export default function ProductBuy({p}:{p:any}) {
     return s==='arrival'?' · arrivage'
       :s==='preorder'?' · précommande'
       :s==='soldout'?' · épuisé'
-      :(!pre&&x.stock!=null&&x.stock<=0)?' · précommande':'';
+      :(!pre&&!arrival&&x.stock!=null&&x.stock<=0)?' · précommande':'';
   };
 
-  const wa=(s:string)=>
+  const waQuestion=()=>
     `https://wa.me/${WA}?text=${encodeURIComponent(
       [
-        `Bonjour BeautyByPND ! Je souhaite ${s} le produit suivant :`,
+        'Bonjour BeautyByPND ! J’ai une question au sujet de ce produit :',
         `Produit : ${p.name}`,
         v?`Variante : ${v}`:null,
-        `Prix : ${price} DH`,
-        p.slug?`Lien du produit : https://beautybypnd.com/produit/${p.slug}`:null,
+        p.slug?`Lien : https://beautybypnd.com/produit/${p.slug}`:null,
         '',
-        'Pouvez-vous me confirmer sa disponibilité et les modalités de livraison ?'
-      ].filter(Boolean).join('\\n')
+        'Ma question :'
+      ].filter(Boolean).join('\n')
     )}`;
 
   const shareProduct=async()=>{
@@ -564,7 +563,7 @@ export default function ProductBuy({p}:{p:any}) {
           </div>
         )}
 
-        {!needV&&(mode==='pre'||needAck)&&(
+        {!needV&&(mode==='pre'||(pre&&mode==='cart'))&&(
           <div className={note}>
             <b className="text-plum">Précommande.</b>
             {' '}Cet article n’est pas en stock : il est commandé pour vous, avec un délai de <b>{PREORDER}</b>, confirmé par WhatsApp.
@@ -574,7 +573,7 @@ export default function ProductBuy({p}:{p:any}) {
         {!needV&&mode==='reserve'&&(
           <div className={note}>
             <b className="text-plum">Prochain arrivage.</b>
-            {' '}Réservez cet article : nous vous prévenons par WhatsApp dès sa réception.
+            {' '}Ajoutez-le à votre panier pour finaliser votre réservation sur le site. Nous vous prévenons par WhatsApp dès sa réception.
           </div>
         )}
 
@@ -796,10 +795,6 @@ export default function ProductBuy({p}:{p:any}) {
                 ?'Choisissez toutes les options pour voir les photos, le prix et la disponibilité de cette combinaison.'
                 :'Choisissez une variante pour voir ses photos, son prix et sa disponibilité.'}
             </p>
-          ):mode==='reserve'?(
-            <a href={wa('je souhaite réserver')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-              Réserver sur WhatsApp
-            </a>
           ):mode==='notify'?(
             <div className="space-y-2">
               <button type="button"
@@ -811,10 +806,6 @@ export default function ProductBuy({p}:{p:any}) {
               {restockErrors[restockKey]&&<p role="alert" className="text-center text-xs text-red-700">{restockErrors[restockKey]}</p>}
               {restockStatus[restockKey]&&<p className="text-center text-xs text-ink/60">Vous recevrez une notification dans votre espace client dès le retour de cet article.</p>}
             </div>
-          ):mode==='order'?(
-            <a href={wa('je souhaite commander')} className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-              Commander sur WhatsApp
-            </a>
           ):(
             <>
               {needAck&&(
@@ -823,7 +814,7 @@ export default function ProductBuy({p}:{p:any}) {
                     onChange={e=>setAck(e.target.checked)}
                     className="mt-1 accent-rose"/>
                   <span>
-                    Je comprends que c’est une précommande et que je dois patienter {PREORDER} avant la livraison.
+                    {mode==='reserve'?'Je comprends que cet article sera disponible au prochain arrivage.':'Je comprends que c’est une précommande et que je dois patienter '+PREORDER+' avant la livraison.'}
                   </span>
                 </label>
               )}
@@ -832,12 +823,12 @@ export default function ProductBuy({p}:{p:any}) {
                 onClick={()=>{
                   add({
                     id:p.id,name:p.name,price,qty:1,
-                    image:vph[0]||base,variant:v,max,pre:needAck
+                    image:vph[0]||base,variant:v,max,pre:mode==='reserve'?false:needAck
                   });
                   setDone(true);
                 }}
                 className={`${btn} bg-rose text-white shadow-md hover:bg-plum`}>
-                {full?'Stock maximum atteint':needAck?'Précommander':'Ajouter au panier'}
+                {full?'Stock maximum atteint':mode==='reserve'?'Réserver sur le site':needAck?'Précommander':'Ajouter au panier'}
               </button>
 
               {full&&(
@@ -854,15 +845,23 @@ export default function ProductBuy({p}:{p:any}) {
                 </p>
               )}
 
-              {!needAck&&(
-                <a href={wa('je souhaite commander')}
-                  className={`${btn} border border-plum/30 bg-white text-plum hover:border-plum hover:bg-blush/30`}>
-                  Commander sur WhatsApp
-                </a>
-              )}
+
             </>
           )}
         </div>
+
+        <a href={waQuestion()} className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/[0.06] px-4 py-3 text-left transition hover:border-[#25D366]/40 hover:bg-[#25D366]/[0.10] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25D366]/10 text-[#159D50]">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20.52 3.48A11.82 11.82 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.1.55 4.16 1.6 5.98L.1 24l6.3-1.65a11.9 11.9 0 0 0 5.68 1.45h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.24-6.15-3.45-8.44ZM12.09 21.78a9.86 9.86 0 0 1-5.02-1.37l-.36-.21-3.74.98 1-3.65-.24-.37a9.85 9.85 0 1 1 8.36 4.62Zm5.41-7.38c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.78.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.79-1.68-2.09-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.68-1.63-.93-2.23-.24-.58-.49-.5-.68-.51h-.58c-.2 0-.53.07-.8.38-.28.3-1.05 1.02-1.05 2.48s1.08 2.88 1.23 3.08c.15.2 2.12 3.24 5.14 4.54.72.31 1.28.5 1.72.64.72.23 1.38.2 1.9.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.28-.2-.58-.35Z"/>
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-plum">Une question sur ce produit ?</span>
+            <span className="mt-0.5 block text-xs text-ink/60">Notre équipe vous répond sur WhatsApp</span>
+          </span>
+          <svg className="shrink-0 text-plum/45 transition group-hover:translate-x-0.5 group-hover:text-plum" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
 
         {productBenefits&&(
           <section className="mt-6 rounded-2xl border border-rose/20 bg-blush/20 p-5 sm:p-6">
