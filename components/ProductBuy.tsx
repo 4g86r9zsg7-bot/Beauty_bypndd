@@ -275,7 +275,7 @@ export default function ProductBuy({p}:{p:any}) {
 
   const status=mode==='reserve'
     ?{label:'Prochain arrivage',detail:'Réservation possible directement sur le site',tone:'blue',icon:'calendar'}
-    :mode==='pre'||needAck
+    :mode==='pre'||(needAck&&mode!=='reserve')
     ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
     :mode==='notify'
     ?{label:'Épuisé',detail:'Actuellement indisponible',tone:'red',icon:'x'}
@@ -288,7 +288,7 @@ export default function ProductBuy({p}:{p:any}) {
     return s==='arrival'?' · arrivage'
       :s==='preorder'?' · précommande'
       :s==='soldout'?' · épuisé'
-      :(!pre&&x.stock!=null&&x.stock<=0)?' · précommande':'';
+      :(!pre&&!arrival&&x.stock!=null&&x.stock<=0)?' · précommande':'';
   };
 
   const waQuestion=()=>
@@ -850,8 +850,17 @@ export default function ProductBuy({p}:{p:any}) {
           )}
         </div>
 
-        <a href={waQuestion()} className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-plum/20 bg-white px-5 py-3 text-xs font-medium text-plum transition hover:border-rose hover:bg-blush/30">
-          Une question sur ce produit ? Contactez-nous sur WhatsApp
+        <a href={waQuestion()} className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/[0.06] px-4 py-3 text-left transition hover:border-[#25D366]/40 hover:bg-[#25D366]/[0.10] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25D366]/10 text-[#159D50]">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20.52 3.48A11.82 11.82 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.1.55 4.16 1.6 5.98L.1 24l6.3-1.65a11.9 11.9 0 0 0 5.68 1.45h.01c6.55 0 11.88-5.33 11.88-11.88 0-3.17-1.24-6.15-3.45-8.44ZM12.09 21.78a9.86 9.86 0 0 1-5.02-1.37l-.36-.21-3.74.98 1-3.65-.24-.37a9.85 9.85 0 1 1 8.36 4.62Zm5.41-7.38c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.78.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.79-1.68-2.09-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.68-1.63-.93-2.23-.24-.58-.49-.5-.68-.51h-.58c-.2 0-.53.07-.8.38-.28.3-1.05 1.02-1.05 2.48s1.08 2.88 1.23 3.08c.15.2 2.12 3.24 5.14 4.54.72.31 1.28.5 1.72.64.72.23 1.38.2 1.9.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.13-.28-.2-.58-.35Z"/>
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-plum">Une question sur ce produit ?</span>
+            <span className="mt-0.5 block text-xs text-ink/60">Notre équipe vous répond sur WhatsApp</span>
+          </span>
+          <svg className="shrink-0 text-plum/45 transition group-hover:translate-x-0.5 group-hover:text-plum" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </a>
 
         {productBenefits&&(
