@@ -57,7 +57,7 @@ export default function HomeReviews({list}:{list:any[]}){
                   Note laissée sans commentaire.
                 </p>
               )}
-              <div className="mt-auto flex items-center justify-between gap-3 border-t border-sand/70 pt-4 mt-5">
+              <div className="mt-auto flex items-center justify-between gap-3 border-t border-sand/70 pt-4">
                 <p className="truncate text-xs font-semibold text-plum">
                   {review.customer_name||'Cliente BeautyByPND'}
                 </p>
@@ -71,7 +71,7 @@ export default function HomeReviews({list}:{list:any[]}){
 
         <div className="mt-7 text-center">
           <Link href="/contact" className="inline-flex items-center gap-2 rounded-full border border-plum px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-plum transition hover:bg-plum hover:text-white">
-            Partager votre expérience <span aria-hidden="true">→</span>
+            Une question ? Contactez notre équipe <span aria-hidden="true">→</span>
           </Link>
         </div>
       </div>
