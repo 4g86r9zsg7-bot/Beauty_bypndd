@@ -275,7 +275,7 @@ export default function ProductBuy({p}:{p:any}) {
 
   const status=mode==='reserve'
     ?{label:'Prochain arrivage',detail:'Réservation possible directement sur le site',tone:'blue',icon:'calendar'}
-    :mode==='pre'||(needAck&&mode!=='reserve')
+    :mode==='pre'||needAck
     ?{label:'Précommande',detail:`Délai estimé : ${PREORDER}`,tone:'amber',icon:'clock'}
     :mode==='notify'
     ?{label:'Épuisé',detail:'Actuellement indisponible',tone:'red',icon:'x'}
