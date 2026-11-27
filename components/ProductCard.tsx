@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {eur} from '@/lib/supabase';
 import CardBuy from '@/components/CardBuy';
 import HeartButton from '@/components/HeartButton';
+import ProductImage from '@/components/ProductImage';
 
 export default function ProductCard({
   p,
@@ -50,11 +51,9 @@ export default function ProductCard({
           imageFit==='contain'?'aspect-square':'aspect-[4/5]'
         }`}>
           {imgs[0]?(
-            <img
+            <ProductImage
               src={imgs[0]}
               alt={p.name}
-              loading="lazy"
-              decoding="async"
               className={`absolute inset-0 h-full w-full ${imageClass} transition duration-500 ${
                 imgs[1]?'group-hover:opacity-0':'group-hover:scale-105'
               } ${sold?'opacity-60':''}`}
