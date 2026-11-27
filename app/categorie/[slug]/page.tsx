@@ -172,13 +172,18 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
       type: 'website',
       images: img
         ? [{ url: img, alt: `${title} - BeautyByPND` }]
-        : undefined
+        : [{
+            url: '/opengraph-image',
+            width: 1200,
+            height: 630,
+            alt: `${title} - BeautyByPND`
+          }]
     },
     twitter: {
-      card: img ? 'summary_large_image' : 'summary',
+      card: 'summary_large_image',
       title: pageTitle,
       description,
-      images: img ? [img] : undefined
+      images: img ? [img] : ['/opengraph-image']
     }
   };
 }

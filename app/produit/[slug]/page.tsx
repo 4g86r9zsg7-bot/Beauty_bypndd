@@ -92,13 +92,18 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
       images:images.length?images.map((url:string)=>({
         url,
         alt:name
-      })):undefined
+      })):[{
+        url:'/opengraph-image',
+        width:1200,
+        height:630,
+        alt:'BeautyByPND — Découvrez nos produits beauté'
+      }]
     },
     twitter:{
-      card:images.length?'summary_large_image':'summary',
+      card:'summary_large_image',
       title:socialTitle,
       description,
-      images:images.length?images:undefined
+      images:images.length?images:['/opengraph-image']
     }
   };
 }

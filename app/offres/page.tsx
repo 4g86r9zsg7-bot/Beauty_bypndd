@@ -18,7 +18,26 @@ export const metadata={
   title,
   description,
   alternates:{canonical:'/offres'},
-  openGraph:{title:`${title} | BeautyByPND`,description,url:'/offres',siteName:'BeautyByPND',locale:'fr_MA',type:'website'}
+  openGraph:{
+    title:`${title} | BeautyByPND`,
+    description,
+    url:'/offres',
+    siteName:'BeautyByPND',
+    locale:'fr_MA',
+    type:'website',
+    images:[{
+      url:'/opengraph-image',
+      width:1200,
+      height:630,
+      alt:'BeautyByPND — Packs et offres exclusives'
+    }]
+  },
+  twitter:{
+    card:'summary_large_image',
+    title:`${title} | BeautyByPND`,
+    description,
+    images:['/opengraph-image']
+  }
 };
 
 const TAGS:Record<string,string>={

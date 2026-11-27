@@ -21,13 +21,20 @@ export const metadata={
     url:'/',
     siteName:'BeautyByPND',
     locale:'fr_MA',
-    type:'website'
+    type:'website',
+    images:[{
+      url:'/opengraph-image',
+      width:1200,
+      height:630,
+      alt:'BeautyByPND — Le luxe à petit prix'
+    }]
   },
   alternates:{canonical:'/'},
   twitter:{
     card:'summary_large_image',
     title:'BeautyByPND | Le luxe à petit prix',
-    description:'Maquillage, soins, parfums et mode avec livraison partout au Maroc.'
+    description:'Maquillage, soins, parfums et mode avec livraison partout au Maroc.',
+    images:['/opengraph-image']
   }
 };
 

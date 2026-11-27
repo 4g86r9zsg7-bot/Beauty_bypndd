@@ -45,12 +45,19 @@ export const metadata:Metadata={
     description:'Maquillage, soins, parfums et produits de beauté de grandes marques. Découvrez les nouveautés et offres exclusives BeautyByPND.',
     siteName:'BeautyByPND',
     locale:'fr_MA',
-    type:'website'
+    type:'website',
+    images:[{
+      url:'/opengraph-image',
+      width:1200,
+      height:630,
+      alt:'BeautyByPND — L’élégance au féminin'
+    }]
   },
   twitter:{
     card:'summary_large_image',
     title:'BeautyByPND | L’élégance au féminin',
-    description:'Maquillage, soins, parfums et produits de beauté. Découvrez BeautyByPND.'
+    description:'Maquillage, soins, parfums et produits de beauté. Découvrez BeautyByPND.',
+    images:['/opengraph-image']
   },
   robots:{
     index:true,
