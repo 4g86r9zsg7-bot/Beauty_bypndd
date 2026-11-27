@@ -13,14 +13,14 @@ import HomeTrust from '@/components/HomeTrust';
 export const revalidate=30;
 
 export const metadata={
-  title:'BeautyByPND | Le luxe à petit prix',
+  title:'Le luxe à petit prix',
   description:'Découvrez BeautyByPND : maquillage, soins, parfums et mode avec de grandes marques à prix accessibles. Livraison partout au Maroc et paiement à la livraison.',
   openGraph:{
     title:'BeautyByPND | Le luxe à petit prix',
     description:'Beauté, soins, parfums et mode : grandes marques authentiques à prix accessibles.',
     url:'/',
     siteName:'BeautyByPND',
-    locale:'fr_FR',
+    locale:'fr_MA',
     type:'website'
   },
   alternates:{canonical:'/'},

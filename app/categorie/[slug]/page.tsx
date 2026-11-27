@@ -27,36 +27,36 @@ type PageProps = {
 const FIXED: Record<string, { title: string; desc: string; filter?: (q: any) => any }> = {
   'coups-de-coeur': {
     title: 'Coups de cœur',
-    desc: 'Découvrez les coups de cœur Beauty_bypndd : une sélection de maquillage, soins, parfums et produits beauté appréciés par nos clientes au Maroc.',
+    desc: 'Découvrez les coups de cœur BeautyByPND : une sélection de maquillage, soins, parfums et produits beauté appréciés par nos clientes au Maroc.',
     filter: (q) => q.eq('featured', true)
   },
   'meilleures-ventes': {
     title: 'Meilleures ventes',
-    desc: 'Découvrez les meilleures ventes Beauty_bypndd : maquillage, parfums, soins et produits de beauté tendance au Maroc.',
+    desc: 'Découvrez les meilleures ventes BeautyByPND : maquillage, parfums, soins et produits de beauté tendance au Maroc.',
     filter: (q) => q.eq('is_bestseller', true)
   },
   tous: {
     title: 'Tous les produits',
-    desc: 'Explorez tous les produits Beauty_bypndd : maquillage, soins du visage, soins du corps, parfums, brumes parfumées et mode au Maroc.'
+    desc: 'Explorez tous les produits BeautyByPND : maquillage, soins du visage, soins du corps, parfums, brumes parfumées et mode au Maroc.'
   },
   nouveautes: {
     title: 'Nouveautés',
-    desc: 'Découvrez les nouveautés Beauty_bypndd : les derniers produits de maquillage, soins, parfums et beauté à découvrir au Maroc.',
+    desc: 'Découvrez les nouveautés BeautyByPND : les derniers produits de maquillage, soins, parfums et beauté à découvrir au Maroc.',
     filter: (q) => q.eq('is_new', true)
   },
   promotions: {
     title: 'Promotions',
-    desc: 'Profitez des promotions Beauty_bypndd sur une sélection de produits de beauté, maquillage, soins et parfums au Maroc.',
+    desc: 'Profitez des promotions BeautyByPND sur une sélection de produits de beauté, maquillage, soins et parfums au Maroc.',
     filter: (q) => q.not('old_price', 'is', null)
   },
   arrivages: {
     title: 'Prochains arrivages',
-    desc: 'Découvrez les prochains arrivages Beauty_bypndd et retrouvez bientôt vos produits de beauté préférés.',
+    desc: 'Découvrez les prochains arrivages BeautyByPND et retrouvez bientôt vos produits de beauté préférés.',
     filter: (q) => q.eq('availability', 'arrival')
   },
   precommandes: {
     title: 'Précommandes',
-    desc: 'Commandez vos produits en précommande chez Beauty_bypndd : maquillage, parfums, soins et nouveautés beauté.',
+    desc: 'Commandez vos produits en précommande chez BeautyByPND : maquillage, parfums, soins et nouveautés beauté.',
     filter: (q) => q.eq('availability', 'preorder')
   }
 };
@@ -107,7 +107,7 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
 
   if (!f && !c) {
     return {
-      title: 'Boutique beauté | Beauty_bypndd',
+      title: 'Boutique beauté',
       robots: {
         index: false,
         follow: true
@@ -124,8 +124,8 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
   const description = f
     ? f.desc
     : subs.length
-      ? `Découvrez notre sélection ${title.toLowerCase()} chez Beauty_bypndd : ${subs.join(', ')}. Produits de beauté et marques tendance à prix accessibles, livraison au Maroc et paiement à la livraison.`
-      : `Découvrez ${title} chez Beauty_bypndd : une sélection de produits de beauté et de grandes marques à prix accessibles, avec livraison au Maroc et paiement à la livraison.`;
+      ? `Découvrez notre sélection ${title.toLowerCase()} chez BeautyByPND : ${subs.join(', ')}. Produits de beauté et marques tendance à prix accessibles, livraison au Maroc et paiement à la livraison.`
+      : `Découvrez ${title} chez BeautyByPND : une sélection de produits de beauté et de grandes marques à prix accessibles, avec livraison au Maroc et paiement à la livraison.`;
 
   let pq: any = supabase
     .from('products')
@@ -146,11 +146,11 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
   const img: string | undefined =
     c?.image_url || pr?.[0]?.images?.[0];
 
-  const pageTitle = `${title} | Beauty_bypndd`;
+  const pageTitle = `${title} | BeautyByPND`;
   const hasFilters = Object.values(sp).some((value) => Boolean(value));
 
   return {
-    title: pageTitle,
+    title,
     description,
     alternates: {
       canonical: `/categorie/${s}`
@@ -167,11 +167,11 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
       title: pageTitle,
       description,
       url: `/categorie/${s}`,
-      siteName: 'Beauty_bypndd',
-      locale: 'fr_FR',
+      siteName: 'BeautyByPND',
+      locale: 'fr_MA',
       type: 'website',
       images: img
-        ? [{ url: img, alt: `${title} - Beauty_bypndd` }]
+        ? [{ url: img, alt: `${title} - BeautyByPND` }]
         : undefined
     },
     twitter: {

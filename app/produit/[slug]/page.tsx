@@ -38,7 +38,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
 
   if(!data){
     return {
-      title:'Produit | BeautyByPND',
+      title:'Produit',
       robots:{index:false,follow:true}
     };
   }
@@ -48,7 +48,8 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
   const name=cleanText(d.name);
   const clean=cleanText(d.description);
 
-  const title=`${name}${brand&&!name.toLowerCase().includes(String(brand).toLowerCase())?` – ${brand}`:''} | BeautyByPND`;
+  const title=`${name}${brand&&!name.toLowerCase().includes(String(brand).toLowerCase())?` – ${brand}`:''}`;
+  const socialTitle=`${title} | BeautyByPND`;
 
   const fallback=`Découvrez ${name}${brand?` de ${brand}`:''} chez BeautyByPND. Beauté, maquillage et soins au Maroc, livraison à domicile et paiement à la livraison.`;
 
@@ -82,11 +83,11 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
       }
     },
     openGraph:{
-      title,
+      title:socialTitle,
       description,
       url:canonical,
       siteName:'BeautyByPND',
-      locale:'fr_FR',
+      locale:'fr_MA',
       type:'website',
       images:images.length?images.map((url:string)=>({
         url,
@@ -95,7 +96,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
     },
     twitter:{
       card:images.length?'summary_large_image':'summary',
-      title,
+      title:socialTitle,
       description,
       images:images.length?images:undefined
     }
