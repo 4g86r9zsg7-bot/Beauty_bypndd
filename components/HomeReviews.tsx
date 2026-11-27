@@ -22,9 +22,9 @@ export default function HomeReviews({list}:{list:any[]}) {
   ));
 
   return (
-    <section aria-label="Avis clients" className="mx-auto mt-8 w-full max-w-[1500px] px-4 sm:px-6 lg:px-10">
-      <div className="flex min-h-[62px] flex-col gap-3 rounded-2xl border border-[#F0E4E8] bg-[#FCF8F8] px-3 py-3 sm:flex-row sm:items-center sm:gap-5 sm:px-5">
-        <div className="flex shrink-0 items-center gap-2">
+    <section aria-label="Avis clients" className="mt-8 w-full min-w-0 px-0">
+      <div className="flex min-h-[48px] w-full min-w-0 flex-col gap-3 py-2 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex shrink-0 items-center gap-2 px-1">
           <span className="text-xs font-semibold text-plum">Avis clients</span>
           <span className="text-sm font-semibold tabular-nums text-plum">{average.toFixed(1)}/5</span>
           <Stars v={average} size={13}/>
