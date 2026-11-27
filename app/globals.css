@@ -2,3 +2,9 @@
 :root{--f-serif:'Cormorant Garamond';--f-sans:'Inter';}
 body{@apply bg-cream text-ink font-sans}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+@keyframes promoTickerMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.promo-ticker-track{display:flex;width:max-content;animation:promoTickerMove 22s linear infinite}
+.promo-ticker:hover .promo-ticker-track{animation-play-state:paused}
+.promo-ticker-message{display:flex;flex:none;align-items:center;gap:1.25rem;padding:0 1.5rem;color:#54283f;font-family:var(--f-sans),sans-serif;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.promo-ticker-track{animation:none;transform:none}.promo-ticker-message:nth-child(2){display:none}}
