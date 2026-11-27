@@ -51,7 +51,7 @@ export default async function Home(){
     supabase.from('brands')
       .select('id,name')
       .order('name'),
-    supabase.from('public_promo_codes')
+    supabase.from('promo_codes')
       .select('code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,created_at')
       .order('created_at',{ascending:false})
   ]);
