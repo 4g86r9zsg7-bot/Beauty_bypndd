@@ -59,16 +59,19 @@ export default function PersonalizedPromo({codes}:{codes:any[]}){
   if(!ready||!matching.length)return null;
   const promo=matching[activeIndex%matching.length];
   const saving=promo.kind==='percent'?'-'+Number(promo.percent)+' %':'-'+Number(promo.amount)+' DH';
-  const message='CODE PROMO · '+promo.code+' · '+saving+' · À SAISIR DANS VOTRE PANIER';
+  const message='Code promo '+promo.code+' : '+saving+' à saisir dans votre panier';
 
   return (
-    <div className="promo-ticker my-3 overflow-hidden border-y border-[#eadde2] bg-[#FCF8F8] py-3" aria-label="Codes promotionnels disponibles">
+    <div className="promo-ticker relative mb-2 mt-0 overflow-hidden border-y border-[#eadde2] bg-gradient-to-r from-[#fffafb] via-[#f9eff3] to-[#fffafb] py-2" aria-label="Codes promotionnels disponibles">
       <div className="promo-ticker-track" aria-live="polite">
         {[0,1].map(copy=>(
           <span key={copy} className="promo-ticker-message" aria-hidden={copy===1}>
-            <span className="text-[#98783b]">✦</span>
-            <span>{message}</span>
-            <span className="text-[#98783b]">✦</span>
+            <span className="promo-ticker-kicker">Offre privilège</span>
+            <span className="promo-ticker-separator" aria-hidden="true">✦</span>
+            <span>Code <strong className="promo-ticker-code">{promo.code}</strong></span>
+            <strong className="promo-ticker-saving">{saving}</strong>
+            <span>à saisir dans votre panier</span>
+            <span className="promo-ticker-separator" aria-hidden="true">✦</span>
           </span>
         ))}
       </div>
