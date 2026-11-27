@@ -41,7 +41,7 @@ BEGIN
     SELECT DISTINCT ON (i.value->>'id') (i.value->>'id')::uuid product_id,
       coalesce(nullif(i.value->>'name',''),'Article') product_name,i.ordinality
     FROM jsonb_array_elements(coalesce(v_order.items,'[]'::jsonb)) WITH ORDINALITY AS i(value,ordinality)
-    WHERE i.value->>'id' ~* '^[0-9a-f-]{36}$'
+    WHERE i.value->>'id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     ORDER BY i.value->>'id',i.ordinality
   ) x;
   RETURN json_build_object('ok',true,'first_name',split_part(v_order.name,' ',1),'items',v_items);
