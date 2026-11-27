@@ -1,6 +1,6 @@
 import {supabase,eur} from '@/lib/supabase';import {DELIVERY,PREORDER,IG} from '@/lib/shop';import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';
 export const revalidate=300;
-export const metadata={title:'Livraison | Beauty_bypndd',description:'Livraison à domicile, paiement à la livraison, frais et conditions chez Beauty_bypndd.'};
+export const metadata={title:'Livraison',description:'Consultez les frais, délais et conditions de livraison BeautyByPND au Maroc. Paiement à la livraison disponible.'};
 export default async function Livraison(){
 const {data}=await supabase.from('settings').select('value').eq('key','delivery').single();const v:any=data?.value||{};
 const zones:any[]=v.zones||[];const base=zones.find((z:any)=>z.city==='*')?.fee;const cities=zones.filter((z:any)=>z.city!=='*');
