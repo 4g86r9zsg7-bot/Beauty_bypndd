@@ -67,31 +67,37 @@ export default function Offres(){
     let pp:number|null=null,bq:number|null=null;let discountValue:number|null=null;
     if(isPack){
       pp=Number(String(f.pack_price).replace(',','.'));
-      if(!isFinite(pp)||pp<=0)return setMsg('Indiquez le prix du pack.');
-      if(items.reduce((s,i)=>s+(i.qty||1),0)<2)return setMsg('Un pack contient au moins 2 articles.');
+      if(!Number.isFinite(pp)||pp<=0)return setMsg('Indiquez un prix de pack valide.');
+      if(items.reduce((s,i)=>s+(Number(i.qty)||1),0)<2)return setMsg('Un pack contient au moins 2 articles.');
       for(const it of items){const p=pm.get(it.product_id);if(vnames(p).length&&!it.variant)return setMsg(`Choisissez la variante de « ${p?.name} ».`)}
     }else if(isVariantDiscount){
       discountValue=Number(String(f.discount_value).replace(',','.'));
-      if(!isFinite(discountValue)||discountValue<=0)return setMsg('Indiquez une réduction supérieure à zéro.');
+      if(!Number.isFinite(discountValue)||discountValue<=0)return setMsg('Indiquez une réduction supérieure à zéro.');
+      if(!['percent','amount'].includes(f.discount_type))return setMsg('Choisissez un type de réduction valide.');
       if(f.discount_type==='percent'&&discountValue>90)return setMsg('La réduction en pourcentage ne peut pas dépasser 90 %.');
+      if(f.discount_type==='amount'&&discountValue>10000000)return setMsg('Le montant de la réduction est trop élevé.');
       for(const it of items){const p=pm.get(it.product_id);if(vnames(p).length&&!it.variant)return setMsg('Choisissez la variante concernée pour « '+p?.name+' ».');}
     }else{
-      bq=Number(f.buy_qty);if(!Number.isInteger(bq)||bq<1)return setMsg('Indiquez le nombre de produits achetés (par exemple 2 ou 3).');
+      bq=Number(f.buy_qty);if(!Number.isInteger(bq)||bq<1||bq>100)return setMsg('Indiquez un nombre de produits achetés valide (entre 1 et 100).');
     }
+    if(f.starts_at&&Number.isNaN(new Date(f.starts_at).getTime()))return setMsg('Date de début invalide.');
+    if(f.ends_at&&Number.isNaN(new Date(f.ends_at).getTime()))return setMsg('Date de fin invalide.');
     if(f.starts_at&&f.ends_at&&new Date(f.ends_at)<=new Date(f.starts_at))return setMsg('La date de fin doit être après la date de début.');
-    let st:number|null=null;if(f.stock!==''){st=Number(f.stock);if(!Number.isInteger(st)||st<0)return setMsg('La quantité disponible doit être un nombre entier.')}
+    let st:number|null=null;if(f.stock!==''){st=Number(f.stock);if(!Number.isInteger(st)||st<0||st>1000000)return setMsg('La quantité disponible doit être un nombre entier positif (maximum 1 000 000).')}
+    for(const it of items){if(!pm.has(it.product_id))return setMsg('Un produit sélectionné n’est plus disponible. Rechargez la page puis réessayez.');if(it.variant&&!vnames(pm.get(it.product_id)).includes(it.variant))return setMsg('Une variante sélectionnée n’existe plus. Rechargez la page puis réessayez.');}
     setBusy(true);
     const row:any={kind:f.kind,title:t,description:f.description.trim()||null,image_url:f.image_url||null,tag:f.tag||null,pack_price:pp,buy_qty:bq,discount_type:isVariantDiscount?f.discount_type:'percent',discount_value:discountValue,
       starts_at:f.starts_at?new Date(f.starts_at).toISOString():null,ends_at:f.ends_at?new Date(f.ends_at).toISOString():null,stock:st,active:!!f.active};
-    let id=f.id;
-    if(id){const {error}=await supabase.from('offers').update(row).eq('id',id);if(error){setBusy(false);return setMsg('Enregistrement impossible : '+error.message)}}
-    else{const {data,error}=await supabase.from('offers').insert({...row,slug:slug(t)+'-'+Math.random().toString(36).slice(2,6)}).select('id').single();if(error||!data){setBusy(false);return setMsg('Enregistrement impossible : '+(error?.message||'erreur'))}id=data.id}
-    const d=await supabase.from('offer_items').delete().eq('offer_id',id);
-    if(d.error){setBusy(false);return setMsg('Produits non enregistrés : '+d.error.message)}
-    const ins=await supabase.from('offer_items').insert(items.map(it=>({offer_id:id,product_id:it.product_id,variant:(isPack||isVariantDiscount)?(it.variant||null):null,qty:isPack?Math.max(1,Number(it.qty)||1):1})));
+    const offerPayload={...row,...(!f.id?{slug:slug(t)+'-'+Math.random().toString(36).slice(2,8)}:{})};
+    const offerItems=items.map(it=>({product_id:it.product_id,variant:(isPack||isVariantDiscount)?(it.variant||null):null,qty:isPack?Math.max(1,Number(it.qty)||1):1}));
+    const {data:id,error}=await supabase.rpc('admin_save_offer',{
+      p_offer:offerPayload,
+      p_items:offerItems,
+      p_offer_id:f.id||null
+    });
     setBusy(false);
-    if(ins.error)return setMsg('Produits non enregistrés : '+ins.error.message);
-    setMsg('Offre enregistrée.');reset();load();
+    if(error||!id)return setMsg('Enregistrement impossible : '+(error?.message||'identifiant de l’offre manquant'));
+    setMsg('Offre enregistrée avec succès.');reset();await load();
   }
   async function del(o:any){if(!confirm(`Supprimer l’offre « ${o.title} » ?`))return;const {error}=await supabase.from('offers').delete().eq('id',o.id);setMsg(error?error.message:'Offre supprimée');load()}
   async function toggle(o:any){const {error}=await supabase.from('offers').update({active:!o.active}).eq('id',o.id);setMsg(error?error.message:o.active?'Offre désactivée':'Offre activée');load()}
