@@ -196,7 +196,7 @@ export default function CartOfferUpsell(){
     const image=imageOf(p);
 
     return(
-      <div key={it.id} className="group flex gap-3 rounded-2xl border border-[#eee2df] bg-white p-3 transition hover:border-[#d8b5bb]">
+      <div key={it.id} className="group flex min-w-0 gap-3 rounded-2xl border border-[#eee2df] bg-white p-3 transition duration-200 hover:border-[#d8b5bb] hover:shadow-[0_6px_20px_rgba(89,59,72,0.06)]">
         <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f8f1ed] sm:h-28 sm:w-24">
           {image?(
             <img src={image} alt={p.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>
@@ -268,21 +268,18 @@ export default function CartOfferUpsell(){
   return(
     <section className="overflow-hidden rounded-[28px] border border-[#eadccf] bg-[#fffaf8] shadow-[0_12px_40px_rgba(89,59,72,0.06)]">
 
-      <div className="px-5 pb-5 pt-7 text-center sm:px-8">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b47b82]">
-          BEAUTY_BYP NDD
-        </p>
-
-        <h2 className="mt-2 font-serif text-2xl text-[#593b48] sm:text-3xl">
-          Complétez votre panier
-        </h2>
-
-        <p className="mx-auto mt-2 max-w-lg text-xs leading-relaxed text-[#806d70] sm:text-sm">
-          Découvrez les produits associés et profitez de nos offres exclusives.
-        </p>
-
-        <div className="mx-auto mt-4 h-px w-14 bg-[#d8b5bb]"/>
-      </div>
+      <div className="px-5 pb-4 pt-6 text-center sm:px-8 sm:pb-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#b47b82]">
+            SÉLECTION BEAUTÉ
+          </p>
+          <h2 className="mt-2 font-serif text-2xl text-[#593b48] sm:text-3xl">
+            Complétez votre sélection
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-xs leading-relaxed text-[#806d70] sm:text-sm">
+            Retrouvez les produits de votre offre et profitez du prix avantageux.
+          </p>
+          <div className="mx-auto mt-3 h-px w-12 bg-[#d8b5bb]"/>
+        </div>
 
       {packs.map((o:any)=>{
         const items=o.offer_items||[];
@@ -334,11 +331,14 @@ export default function CartOfferUpsell(){
 
               <div className="text-right">
                 <p className="text-[10px] uppercase tracking-wider text-[#967b80]">Prix du pack</p>
-                <p className="font-serif text-2xl text-[#593b48]">{eur(Number(o.pack_price))}</p>
                 {saving>0&&(
-                  <p className="text-[10px] font-semibold text-[#8d5366]">
-                    Économisez {eur(saving)}
-                  </p>
+                  <p className="text-[11px] text-[#b49b9c] line-through">{eur(regularTotal)}</p>
+                )}
+                <p className="font-serif text-2xl font-semibold text-[#593b48]">{eur(Number(o.pack_price))}</p>
+                {saving>0&&(
+                  <span className="mt-1 inline-flex rounded-full bg-[#f7eef0] px-2.5 py-1 text-[10px] font-semibold text-[#8d5366]">
+                    Vous économisez {eur(saving)}
+                  </span>
                 )}
               </div>
             </div>
@@ -412,11 +412,7 @@ export default function CartOfferUpsell(){
         );
       })}
 
-      <div className="px-5 pb-5 text-center">
-        <p className="text-[9px] tracking-wider text-[#b49b9c]">
-          BEAUTY_BYP NDD · BEAUTÉ & ÉLÉGANCE
-        </p>
-      </div>
+      
     </section>
   );
 }
