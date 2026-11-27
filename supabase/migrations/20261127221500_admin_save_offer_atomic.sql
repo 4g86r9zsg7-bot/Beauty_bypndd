@@ -68,8 +68,11 @@ begin
 
     if p_offer->>'kind' in ('pack','variant_discount')
        and pg_catalog.jsonb_typeof(v_product.variants) = 'array'
-       and pg_catalog.jsonb_array_length(coalesce(v_product.variants,'[]'::jsonb)) > 0
-       and pg_catalog.jsonb_typeof(v_product.variants->0) = 'object'
+       and exists (
+         select 1
+         from pg_catalog.jsonb_array_elements(coalesce(v_product.variants,'[]'::jsonb)) as variant_entry(value)
+         where pg_catalog.jsonb_typeof(variant_entry.value) = 'object'
+       )
        and nullif(v_item->>'variant','') is null then
       raise exception 'Une variante doit être choisie pour chaque produit concerné';
     end if;
@@ -77,10 +80,10 @@ begin
     if nullif(v_item->>'variant','') is not null
        and not exists (
          select 1
-         from pg_catalog.jsonb_array_elements(coalesce(v_product.variants,'[]'::jsonb)) v
+         from pg_catalog.jsonb_array_elements(coalesce(v_product.variants,'[]'::jsonb)) as variant_entry(value)
          where case
-           when pg_catalog.jsonb_typeof(v) = 'string' then v #>> '{}'
-           when pg_catalog.jsonb_typeof(v) = 'object' then v->>'name'
+           when pg_catalog.jsonb_typeof(variant_entry.value) = 'string' then variant_entry.value #>> '{}'
+           when pg_catalog.jsonb_typeof(variant_entry.value) = 'object' then variant_entry.value->>'name'
            else null
          end = v_item->>'variant'
        ) then
@@ -131,8 +134,8 @@ begin
   end if;
 
   if p_offer->>'kind' = 'pack'
-     and (select coalesce(sum(greatest(1,coalesce(nullif(x->>'qty','')::integer,1))),0)
-          from pg_catalog.jsonb_array_elements(p_items) x) < 2 then
+     and (select coalesce(sum(greatest(1,coalesce(nullif(item.value->>'qty','')::integer,1))),0)
+          from pg_catalog.jsonb_array_elements(p_items) as item(value)) < 2 then
     raise exception 'Un pack doit contenir au moins deux articles';
   end if;
 
@@ -149,12 +152,12 @@ begin
   insert into public.offer_items(offer_id,product_id,variant,qty)
   select
     v_id,
-    (x->>'product_id')::uuid,
-    nullif(x->>'variant',''),
+    (item.value->>'product_id')::uuid,
+    nullif(item.value->>'variant',''),
     case when p_offer->>'kind'='pack'
-      then greatest(1,coalesce(nullif(x->>'qty','')::integer,1))
+      then greatest(1,coalesce(nullif(item.value->>'qty','')::integer,1))
       else 1 end
-  from pg_catalog.jsonb_array_elements(p_items) x;
+  from pg_catalog.jsonb_array_elements(p_items) as item(value);
 
   return v_id;
 end;
