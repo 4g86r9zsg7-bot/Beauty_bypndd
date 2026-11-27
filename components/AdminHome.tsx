@@ -69,7 +69,13 @@ export default function AdminHome({stats:s,go,editProduct}:{
   const preorderOrders=orders.filter(o=>!['delivered','cancelled'].includes(o.status)&&(o.items||[]).some(i=>i.preorder));
 
   const periodOrders=useMemo(()=>{
-    if(period==='all')return delivered;
+    if(period==='all'){
+      const from=new Date();
+      from.setDate(1);
+      from.setHours(0,0,0,0);
+      from.setMonth(from.getMonth()-11);
+      return delivered.filter(o=>new Date(o.created_at)>=from);
+    }
     const days=Number(period);
     const from=new Date();
     from.setHours(0,0,0,0);
@@ -247,7 +253,7 @@ export default function AdminHome({stats:s,go,editProduct}:{
             {([
               ['7','7 jours'],
               ['30','30 jours'],
-              ['all','Tout']
+              ['all','12 mois']
             ] as const).map(([v,label])=>(
               <button
                 key={v}
@@ -284,7 +290,7 @@ export default function AdminHome({stats:s,go,editProduct}:{
         </div>
 
         <div className="mt-5 border-t border-sand pt-4">
-          <p className="text-xs text-ink/60">Panier moyen des commandes livrées</p>
+          <p className="text-xs text-ink/60">Panier moyen depuis le début de l’activité</p>
           <p className="mt-1 font-semibold text-plum">{money(average)}</p>
         </div>
       </section>
