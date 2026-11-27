@@ -1,8 +1,13 @@
 -- Keep promo_codes admin-managed while exposing only display fields to visitors.
--- Row-level security limits anonymous reads to active, currently valid, non-exhausted codes.
+-- Restrict the existing admin policy to authenticated users so anon never needs
+-- permission to execute the SECURITY DEFINER is_admin() helper.
 
 revoke select on table public.promo_codes from public, anon;
 grant select on table public.promo_codes to authenticated;
+
+alter policy pc_w
+on public.promo_codes
+to authenticated;
 
 grant select (
   code,
