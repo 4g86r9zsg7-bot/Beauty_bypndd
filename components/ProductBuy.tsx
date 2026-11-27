@@ -485,10 +485,18 @@ export default function ProductBuy({p}:{p:any}) {
           Partager ce produit
         </button>
 
-        {p.rating_count>0&&(
-          <a href="#avis" className="mt-4 inline-flex items-center gap-2 text-sm text-plum">
+        {p.rating_count>0?(
+          <a href="#avis" className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#C6A15B]/35 bg-[#FCF8F5] px-3.5 py-2 text-sm text-plum transition hover:border-[#C6A15B] hover:bg-[#FCF4F0]">
             <Stars v={p.rating_avg} size={18}/>
-            <span>{Number(p.rating_avg).toFixed(1)} ({p.rating_count} avis)</span>
+            <span className="font-semibold">{Number(p.rating_avg).toFixed(1)}</span>
+            <span className="text-ink/60">· {p.rating_count} avis</span>
+            <span aria-hidden="true" className="ml-1 text-[#98783b]">↓</span>
+          </a>
+        ):(
+          <a href="#avis" className="mt-4 inline-flex items-center gap-2 rounded-full border border-plum/15 bg-white px-3.5 py-2 text-xs text-plum transition hover:border-rose hover:bg-blush/20">
+            <Stars v={0} size={17}/>
+            <span>Soyez la première personne à donner votre avis</span>
+            <span aria-hidden="true" className="ml-1 text-[#98783b]">↓</span>
           </a>
         )}
 
