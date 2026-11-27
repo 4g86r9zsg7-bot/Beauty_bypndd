@@ -51,9 +51,8 @@ export default async function Home(){
     supabase.from('brands')
       .select('id,name')
       .order('name'),
-    supabase.from('promo_codes')
-      .select('id,code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,max_uses,uses,created_at')
-      .eq('active',true)
+    supabase.from('public_promo_codes')
+      .select('code,kind,percent,amount,expires_at,target_type,target_id,target_variant,starts_at,created_at')
       .order('created_at',{ascending:false})
   ]);
 
@@ -85,13 +84,10 @@ export default async function Home(){
   const promoCodes=(promoData||[]).filter((p:any)=>{
     const starts=p.starts_at?new Date(p.starts_at):null;
     const ends=p.expires_at?new Date(p.expires_at):null;
-    const max=p.max_uses==null?null:Number(p.max_uses);
-    const uses=Number(p.uses||0);
     const value=p.kind==='percent'?Number(p.percent):Number(p.amount);
 
     return (!starts||starts<=now)
       &&(!ends||ends>now)
-      &&(max===null||uses<max)
       &&value>0;
   });
 
