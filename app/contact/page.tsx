@@ -1,5 +1,5 @@
 import {WhatsAppIcon,InstagramIcon} from '@/components/SocialIcons';import {IG} from '@/lib/shop';
-export const metadata={title:'Contact | Beauty_bypndd',description:'Contactez Beauty_bypndd par WhatsApp ou Instagram pour une question, une commande ou une précommande.'};
+export const metadata={title:'Contact',description:'Contactez BeautyByPND par WhatsApp ou Instagram pour une question, une commande ou une précommande.'};
 export default function Contact(){
 const wa=process.env.NEXT_PUBLIC_WHATSAPP||'';
 return <div className="mx-auto max-w-md space-y-6 text-center"><h1 className="font-serif text-4xl text-plum">Contact</h1>
