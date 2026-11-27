@@ -22,8 +22,8 @@ export default function HomeReviews({list}:{list:any[]}) {
   ));
 
   return (
-    <section aria-label="Avis clients" className="mt-8 w-full min-w-0 px-0">
-      <div className="flex min-h-[48px] w-full min-w-0 flex-col gap-3 py-2 sm:flex-row sm:items-center sm:gap-4">
+    <section aria-label="Avis clients" className="mt-0 w-full min-w-0 px-0">
+      <div className="flex min-h-[48px] w-full min-w-0 flex-col gap-3 py-1 sm:flex-row sm:items-center sm:gap-4">
         <div className="flex shrink-0 items-center gap-2 px-1">
           <span className="text-xs font-semibold text-plum">Avis clients</span>
           <span className="text-sm font-semibold tabular-nums text-plum">{average.toFixed(1)}/5</span>
