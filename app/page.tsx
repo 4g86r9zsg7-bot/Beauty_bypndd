@@ -242,8 +242,8 @@ export default async function Home(){
   return (
     <>
       <Shortcuts/>
-      <Hero/>
       <PersonalizedPromo codes={promoCodes.map((p:any)=>({...p,target_label:promoTargetLabel(p)}))}/>
+      <Hero/>
 
       {/* PRODUITS À DÉCOUVRIR : placés tôt pour faciliter le premier achat */}
       <HomeShelves groups={groups} olderItems={olderItems}/>
